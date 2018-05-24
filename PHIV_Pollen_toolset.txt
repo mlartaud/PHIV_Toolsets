@@ -1,0 +1,413 @@
+// PHIV Pollen Tool Set 
+// Marc LARTAUD MRI PHIV
+// Boite a outils pour faciliter le comptage des pollens viables ou non
+
+
+
+/*Outils
+- Pollen noir ou cyan  pour separer les grains de pollen 
+	Parametres (clic droit sur l outil): 	taille min et max en pixels
+				circularite
+				valeurs RGB min et max
+- Somme : tableau resultats
+
+Raccourcis clavier :
+	0	supprime la selection
+	1	ajoute un noir
+	2	ajoute un cyan
+
+*/
+
+
+
+
+   
+var max_noir=600;
+var min_noir=150;//100
+var circu_noir=0.7;
+
+var max_cyan=400;
+var min_cyan=130;//80
+var circu_cyan=0.4; 
+
+
+//var Nmin=newArray(0,0,0);
+//var Nmax=newArray(233,232,228);
+var Nmin=newArray(0,0,0);
+var Nmax=newArray(233,232,140);
+var Nfilter=newArray("pass","pass","pass");
+//var Cmin=newArray(0,0,170);
+//var Cmax=newArray(125,255,255);
+var Cmin=newArray(30,26,99);
+var Cmax=newArray(130,210,212);
+var Cfilter=newArray("pass","pass","pass");
+
+var title1 = "Resultats";
+var title2 = "["+title1+"]";
+var fe = title2;
+
+
+
+
+macro "AutoRun" {
+      setForegroundColor(0, 0, 0);
+			setBackgroundColor(255, 255, 255);
+			run("Options...", "iterations=1 count=1 edm=16-bit");		
+	
+   }
+  
+macro "Pollen_noir Action Tool - C103D77D78CcffD2bC135D39CfffD00D01D02D03D04D05D06D07D08D09D0aD0bD0cD0dD0eD10D1dD1eD22D2eD2fD30D31D32D3fD40D41D50D60D6fD7fD8fDafDb0Db1Dc0Dc1Dc2DceDcfDd0Dd1Dd2DdeDdfDe0De1De2De3DedDeeDefDf0Df1Df2Df3Df4Df5Df6DfbDfcDfdDfeDffC105D48D9bDa6Db8CffeD90C67cDdaC104D97CfffD81D91C368D36C016D85D95Db6CfffD11D12D13D1fD20D21D70D80D9fDa0Da1CbceDe8C103D68D69CeffD16D1aD1bD24D33D52D5fDaeDcdDd3DebDf8C028D84C115DbaC8bbD27C014D5aCfffD0fD14D15D1cD23D2dD3eD42D4fD51D61D71Db2DbeDbfDddDe4De5DecDf7Df9DfaC57aDbcC116D8cCcefD72D7eD92C103D59D67CeffD17D19D2cD3dD4eC146D4bC105Db9C7abD29C104Da7C269D7dC116Dc9CadeD3cC103D87D88D9aC249Dd8C024D4aC9beDd5C104D66D6bC38aD6dC127D9cCdefD8eC103D79D89CdffD18C027D74C015D49D56C6aaD28C104D76D86D96D98Da9C469D54C016Da5Dc8CcdeDe7De9C103D58D99C238DacC015D47C9cdDccC104D7bD8bC57bD73C126DbbCdefD34C003D6aD7aD8aC246D5cC105Db7C8acD44C104Da8C46aD83C116D7cCcefD82C349Dc5C025D46C9ceDdbC114D5bC59aD3bC028D94CeefD9eCdffD25Dd4C136D38C69cDa3C359Db4CbdeD26C138Da4C015D65D75C8adDadC104D57DaaC47bD93C017Dc7C146D37C7abD35C36aD8dCbeeD4dC24aDd7C115DabCaceD53Db3C58aD4cC127DcaCdefDe6DeaCdffDdcC137D64C79cD63C369DcbC257D45C9ddD2aC57bD9dC027Db5C257D3aC8acDc4C56cDd6C026D55CcefDbdC34aDd9C125D6cC6bcD5dC128Dc6CcffD6eCdffD43D62Da2Dc3CcffD5e"{
+   run("Set Measurements...", "area shape feret's display redirect=None decimal=3");
+		//run("Duplicate...", " ");
+		RoiDelete ("noir");	
+		count1 = roiManager("count");
+		origid=getImageID();
+		run("Duplicate...", "title=noir");
+		SeuillageCouleurRGB(Nmin,Nmax,Nfilter);
+		run("Analyze Particles...", "size="+5*max_noir+"-Infinity pixel show=Masks");
+		run("Create Selection");
+		select_type=selectionType();
+		run("Select None");
+		close();
+		selectWindow("noir");
+		run("Restore Selection");
+		if(select_type !=-1){
+			setForegroundColor(255, 255, 255);
+			run("Fill", "slice");
+			run("Select None");
+			}
+		run("Watershed");
+		run("Select None");
+		run("Analyze Particles...", "size="+min_noir+"-"+max_noir+" pixel circularity="+circu_noir+"-1.00 add");
+		count2 = roiManager("count");
+		for(i=count1;i<count2;i++){
+			roiManager("Select", i);
+			roiManager("Set Color", "#ff0000");
+			roiManager("Rename", "noir"+i+1);
+			//roiManager("Set Color", "#ff0000");
+			
+				}
+			run("Select None");
+			roiManager("Deselect");
+		close();
+		run("Select All");
+		run("Select None");
+		roiManager("Deselect");
+		//close();
+		roiManager("UseNames", "true");
+		roiManager("Show All");
+		selectImage(origid); 
+		run("Select None");
+		
+   
+   
+   }
+    macro 'Pollen_noir Action Tool Options'  {
+	Dialog.create("Parametres pollen noir");
+	Dialog.addNumber("Taille max pollen noir:", max_noir);
+	Dialog.addNumber("Taille min pollen noir:", min_noir);
+	Dialog.addNumber("Circularite pollen noir:", circu_noir);
+	Dialog.addMessage("Rouge");
+	Dialog.addNumber("Min:", Nmin[0]);
+	Dialog.addNumber("Max:", Nmax[0]);
+	Dialog.addMessage("Vert");
+	Dialog.addNumber("Min:", Nmin[1]);
+	Dialog.addNumber("Max:", Nmax[1]);
+	Dialog.addMessage("Bleu");
+	Dialog.addNumber("Min:", Nmin[2]);
+	Dialog.addNumber("Max:", Nmax[2]);
+	Dialog.show();
+	max_noir = Dialog.getNumber();
+    min_noir = Dialog.getNumber();
+	circu_noir = Dialog.getNumber();
+	Nmin[0] = Dialog.getNumber();
+	Nmax[0] = Dialog.getNumber();
+	Nmin[1] = Dialog.getNumber();
+	Nmax[1] = Dialog.getNumber();
+	Nmin[2] = Dialog.getNumber();
+	Nmax[2] = Dialog.getNumber();	
+	}
+
+
+  macro "Pollen_cyan Action Tool - C1eeDabCfffD41D51DbfC5efDbbCfffD00D01D02D03D04D05D06D07D08D09D0aD0bD0cD0dD0eD0fD10D11D12D13D14D15D16D17D18D19D1aD1bD1cD1dD1eD1fD20D21D22D23D24D2eD2fD30D31D32D33D3fD40D42D50D60D70D80D81D90D91D9fDa0Da1DafDb0Db1Db2DbeDc0Dc1Dc2Dc3DcdDceDcfDd0Dd1Dd2Dd3Dd4DdcDddDdeDdfDe0De1De2De3De4De5De6DebDecDedDeeDefDf0Df1Df2Df3Df4Df5Df6Df7Df8Df9DfaDfbDfcDfdDfeDffC1eeDa5CfffD25D43D4fD52D61D71D8fDd5DdbDe7De8De9DeaCbffD9eC1ffD5bD5cD69D6cD78D79D7cD88D89D8bDa8C8ffD63C2feD4bD8dCeffD26D2dD34D3eD7fDc4DccDd6C0ffD57D58D59D5aD66D68D75D77D87D8aD8cC7efDc8C1efDb9CeffD27D28D29D2cD5fD6fDa2DaeDb3Dd7DdaCaffDb4C2efDbaC0ffD67D76D85D86D96C5efDb5C1feD49CdffD2aD2bD35D92Dd8Dd9C9ffD45C2feD48C8ffD3bC1ffD56D65D6aD6bD7aCbffD36C3feDacC0ffD9bC5feD46C1eeD94CdffD62D82DbdC9ffD37C2feD5dC8feD38C1ffD7bCaffDa3Dc6C3feD47D4cC1ffD98C6ffD73D83C1ffDb7C9ffD3cD8eDadDbcC2ffD7dC8ffD5eCbffD3dD4eC4eeDa4C1efDaaDb8C4efD55CcffD44D53D72Dc5DcbC8ffD7eC7ffD39D3aCaffDcaC5feD4dC2ffD4aD74C7ffD93C3ffDb6C1ffDa6C4ffD9dC1feD6dC8ffDc7C1ffDa9C7ffD6eC1ffD84C8ffD54Dc9C4efD64C0feD9cC0ffD97D99D9aDa7C0ffD95"{
+	RoiDelete ("cyan");	
+	count1 = roiManager("count");
+	origid=getImageID();
+	run("Duplicate...", "title=cyan");
+		SeuillageCouleurRGB(Cmin,Cmax,Cfilter);
+		run("Watershed");
+		run("Select None");
+		run("Analyze Particles...", "size="+min_cyan+"-"+max_cyan+" pixel circularity="+circu_cyan+"-1.00 add");
+		count2 = roiManager("count");
+		for(i=count1;i<count2;i++){
+			roiManager("Select", i);
+			roiManager("Set Color", "#ffff00");
+			roiManager("Rename", "cyan"+i-count1+1);
+			//roiManager("Set Color", "#00ff00");
+			
+				}
+		close();
+		run("Select All");
+		run("Select None");
+		roiManager("Deselect");
+		//close();
+		roiManager("UseNames", "true");
+		roiManager("Show All");
+		run("Select None");
+	
+	
+	
+	}
+  
+
+ macro 'Pollen_cyan Action Tool Options'  {
+	Dialog.create("Parametres pollen cyan");
+	Dialog.addNumber("Taille max pollen cyan:", max_cyan);
+	Dialog.addNumber("Taille min pollen cyan:", min_cyan);
+	Dialog.addNumber("Circularite pollen cyan:", circu_cyan);
+	Dialog.addMessage("Rouge");
+	Dialog.addNumber("Min:", Cmin[0]);
+	Dialog.addNumber("Max:", Cmax[0]);
+	Dialog.addMessage("Vert");
+	Dialog.addNumber("Min:", Cmin[1]);
+	Dialog.addNumber("Max:", Cmax[1]);
+	Dialog.addMessage("Bleu");
+	Dialog.addNumber("Min:", Cmin[2]);
+	Dialog.addNumber("Max:", Cmax[2]);
+	Dialog.show();
+	max_cyan = Dialog.getNumber();
+	min_cyan = Dialog.getNumber();
+	circu_cyan = Dialog.getNumber();
+	Cmin[0] = Dialog.getNumber();
+	Cmax[0] = Dialog.getNumber();
+	Cmin[1] = Dialog.getNumber();
+	Cmax[1] = Dialog.getNumber();
+	Cmin[2] = Dialog.getNumber();
+	Cmax[2] = Dialog.getNumber();
+}
+  
+ 
+ macro "Somme Action Tool - C444D21D22D2dD2eD31D32D33D3cD3dD3eD41D42D43D44D4bD4cD4dD4eD51D52D53D54D55D5aD5bD5cD5dD5eD61D62D63D64D65D66D69D6aD6bD6cD6dD6eD71D72D75D76D77D78D79D7aD7dD7eD81D82D86D87D88D89D8dD8eD91D92D97D98D9dD9eDa1Da2DadDaeDb1Db2DbdDbeDc1Dc2DcdDceDd1Dd2DddDdeC999D30C666D67D73D7cCfffD01D02D03D04D05D06D07D08D09D0aD0bD0cD0dD0eD0fD14D15D16D17D18D19D1aD1bD25D26D27D28D29D2aD36D37D38D39D47D48Da5DaaDabDb5Db6Db7Db8Db9DbaDbbDc5Dc6Dc7Dc8Dc9DcaDcbDd5Dd6Dd7Dd8Dd9DdaDdbDe4De5De6De7De8De9DeaDebDf1Df2Df3Df4Df5Df6Df7Df8Df9DfaDfbDfcDfdDfeDffCeeeD1cD1fD2bD3aD49D58D95D9aDa9De0DecC888D40D50D60D70D80D90Da0Db0Dc0DdcDdfCcccDe1DedDeeC888D3fD4fD5fD6fD7fD85D8cD8fD96D9cD9fDacDafDbcDbfDccDcfDd3CeeeD10Da6CaaaD11D20C777D2cD3bD4aD59D74D83D8aD93D99Da3Db3Dc3CdddD13D24D35D46D57D84D8bDe3DefCfffD00D94D9bDa4Db4Dc4Dd4Df0CaaaD1dD1eDa7Da8C777D23D34D45D56D68D7bCbbbDe2C999D12D2fDd0"{
+ 
+	nom=getTitle();
+	nb_noir=0;
+	nb_cyan=0;
+	ncount=roiManager("count");
+	for(i=0;i<ncount;i++){
+			roiManager("Select", i);
+			nom_item=call("ij.plugin.frame.RoiManager.getName", i);
+			if (startsWith(nom_item, "noir")) nb_noir++;
+			if (startsWith(nom_item, "cyan")) nb_cyan++;
+			}	
+		if( !isOpen("Resultats")){
+		run("Table...", "name="+title2+" width=600 height=600");
+		print(fe, "\\Headings:Image \tNoirs \tCyans");
+		} 
+		print(fe, nom+"\t"+nb_noir+"\t"+nb_cyan);
+
+						
+			
+ }
+ 
+ 
+ //////////////////////////Shortcut Key//////////////////////////////////////////////////////////////////////////////////////////
+
+//supression de selection 
+macro "ROI Delete [n0]"{
+	if(selectionType()!=-1 && selectionType()!=10){
+	
+		roiManager("Delete");
+		run("Select None");
+		RoiDedoublonne("noir");
+		RoiDedoublonne("cyan");
+	}
+		
+}
+
+
+//ajout de selection
+
+macro "ROI Ajoute [n1]"{
+
+			RoiAdd("noir");
+		RoiDedoublonne("noir");
+		
+	
+
+}
+
+macro "ROI Ajoute [n2]"{
+
+			RoiAdd("cyan");
+		RoiDedoublonne("cyan");
+		
+	
+
+}
+
+//Zoom to selection
+
+macro "Zoom [n3]"{
+run("To Selection");
+}
+	
+
+	
+	
+	/////////////////////////////////////////////////////FUNCTIONS///////////////////////////////////////////////////
+ 
+ 
+ 
+ function RoiAdd(nom) {
+	roiManager("Add");
+	n = roiManager("count");
+	roiManager("Select", n-1);	
+	roiManager("Rename", nom);
+}
+
+function RoiDedoublonne(string){
+	compte=0;
+	n=roiManager("count");
+	for(i=0;i<n;i++){
+			roiManager("Select", i);
+			nom_item=call("ij.plugin.frame.RoiManager.getName", i);
+			if (startsWith(nom_item, string)){
+				compte++;
+				roiManager("Rename", string+compte);
+			
+			
+			}
+		}
+	
+		roiManager( "Deselect");
+}
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+function SeuillageCouleurRGB(min,max,filter){
+	// Color Thresholder 1.50d
+	// Autogenerated macro, single images only!
+	//min=newArray(3);
+	//max=newArray(3);
+	//filter=newArray(3);
+	a=getTitle();
+	run("Split Channels");
+	selectWindow(a+" (red)");
+	rename("0");
+	selectWindow(a+" (green)");
+	rename("1");
+	selectWindow(a+" (blue)");
+	rename("2");
+	for (i=0;i<3;i++){
+	  selectWindow(""+i);
+	  setThreshold(min[i], max[i]);
+	  run("Convert to Mask");
+	  if (filter[i]=="stop")  run("Invert");
+	}
+	imageCalculator("AND create", "0","1");
+	imageCalculator("AND create", "Result of 0","2");
+	for (i=0;i<3;i++){
+	  selectWindow(""+i);
+	  close();
+	}
+	selectWindow("Result of 0");
+	close();
+	selectWindow("Result of Result of 0");
+	rename(a);
+	// Colour Thresholding-------------
+}
+  
+ 
+
+	macro "About These Macros Action Tool - C000C111C222C333C444C555D54D55D63D73D7cD7dD83D88D89D8aD8cD8dD93D97Da3Da4Da5Da6C555D7aDb5C555D72D82C555D45Da7C555D98C555D53C555D79C555C666Db4C666Db6C666C777D92C777D87C777D64C777D62C777C888D44C888D96C888D78C999D94C999CaaaCbbbD99Db3CbbbDa2CbbbDa8CbbbCcccDb7CcccD52CcccD43CcccD65CcccCdddD74CdddD77CdddD86CdddD84D95CdddD00D01D02D03D04D05D06D07D08D09D0aD0bD0cD0dD0eD0fD10D11D12D13D14D15D16D17D18D19D1aD1bD1cD1dD1eD1fD20D21D22D23D24D25D26D27D28D29D2aD2bD2cD2dD2eD2fD30D31D32D33D34D35D36D37D38D39D3aD3bD3cD3dD3eD3fD40D41D42D46D47D48D49D4aD4bD4cD4dD4eD4fD50D51D56D57D58D59D5aD5bD5cD5dD5eD5fD60D61D66D67D68D69D6aD6bD6cD6dD6eD6fD70D71D75D76D7bD7eD7fD80D81D85D8bD8eD8fD90D91D9aD9bD9cD9dD9eD9fDa0Da1Da9DaaDabDacDadDaeDafDb0Db1Db2Db8Db9DbaDbbDbcDbdDbeDbfDc0Dc1Dc2Dc3Dc4Dc5Dc6Dc7Dc8Dc9DcaDcbDccDcdDceDcfDd0Dd1Dd2Dd3Dd4Dd5Dd6Dd7Dd8Dd9DdaDdbDdcDddDdeDdfDe0De1De2De3De4De5De6De7De8De9DeaDebDecDedDeeDefDf0Df1Df2Df3Df4Df5Df6Df7Df8Df9DfaDfbDfcDfdDfeDff"{
+open(getDirectory("macros")+"toolsets/PHIV_Pollen_toolset.txt");
+}
+
+
+
+//////////////////////////////////Fonctions////////////////////////////////////
+
+function GetRGBstat(rgb_moy,rgb_std){	
+	if(selectionType() ==-1){
+	waitForUser("Fire une selection");
+	}
+	run("RGB Stack");
+	for(i=0;i<3;i++){
+		setSlice(i+1);
+		getStatistics(area, mean, min, max, std, histogram);
+		rgb_moy[i]=mean;
+		rgb_std[i]=std;	
+	}	
+	run("RGB Color");
+}
+
+function GetRGBminmax(rgb_min,rgb_max){	
+	if(selectionType() ==-1){
+	waitForUser("Faire une selection");
+	}
+	run("RGB Stack");
+	for(i=0;i<3;i++){
+		setSlice(i+1);
+		getStatistics(area, mean, min, max, std, histogram);
+		rgb_min[i]=min;
+		rgb_max[i]=max;	
+	}	
+	run("RGB Color");
+}
+
+
+function SeuillageCouleurRGB(min,max,filter){
+	// Color Thresholder 1.50d
+	// Autogenerated macro, single images only!
+	//min=newArray(3);
+	//max=newArray(3);
+	//filter=newArray(3);
+	a=getTitle();
+	run("Split Channels");
+	selectWindow(a+" (red)");
+	rename("0");
+	selectWindow(a+" (green)");
+	rename("1");
+	selectWindow(a+" (blue)");
+	rename("2");
+	for (i=0;i<3;i++){
+	  selectWindow(""+i);
+	  setThreshold(min[i], max[i]);
+	  run("Convert to Mask");
+	  if (filter[i]=="stop")  run("Invert");
+	}
+	imageCalculator("AND create", "0","1");
+	imageCalculator("AND create", "Result of 0","2");
+	for (i=0;i<3;i++){
+	  selectWindow(""+i);
+	  close();
+	}
+	selectWindow("Result of 0");
+	close();
+	selectWindow("Result of Result of 0");
+	rename(a);
+	// Colour Thresholding-------------
+}
+
+function RoiDelete (nom){
+	ncount=roiManager("count");
+	for(i=ncount-1;i>=0;i--){
+		roiManager("Select", i);
+		nom_item=call("ij.plugin.frame.RoiManager.getName", i);
+		if (startsWith(nom_item, nom)) roiManager("Delete");
+		}
+	roiManager("Deselect");
+	run("Select None");
+	
+
+}
+

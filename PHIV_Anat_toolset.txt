@@ -1,0 +1,303 @@
+// PHIV Anatomie Tool Set
+// Marc LARTAUD MRI PHIV
+// Boite a outils pour faciliter les analyses anatomiques de feuilles 
+
+/*
+Outil Rotation : faire une selection ligne parallele a la feuille
+l outil fait une rotation de la valeur de l angle de la selection
+
+Outil Crop : faire une selection rectangulaire; 
+l outil retaille l image et en fait une sauvegarde dans le meme dossier
+
+Outil Seuil : duplique, filtre et seuil l image
+permet de selectionner a la baguette les zones exterieures a l objet
+
+Outil ROI : mets la selection dans le ROI Manager; 
+en option (clic droit): choix des noms des selection sauvegardees dans le ROI Manager
+via des raccourcis clavier du pave numerique
+
+Outil Spline : arrondi les angles des selections
+
+Outil Delimitation : duplique l image et trace les selections du ROI Manager (qui est sauvegarde); 
+permet de selectionner a la baguette les zones a ajouter dans un nouveau ROI Manager via le pavé numerique 
+
+Outil Trait : nouvelle image avec des traits // equidistants d un certain nombre de pixels (voir option);
+mesure la longueur de ces traits (=aera) pour chaque selection du ROI Manager; 
+en option (clic droit): choix de l espacement des traits     
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+*/
+
+//variables glogales
+var pxtrait=10;
+
+var t0="Epiderme inferieur";
+var t1="Parenchyme lacuneux";
+var t2="t2";
+var t3="t3";
+var t4="Parenchyme palissadique";
+var t5="t5";
+var t6="t6";
+var t7="Epiderme superieur";
+var t8="t8";
+var t9="t9";
+
+
+
+//macro "Unused Tool-1 - " {}  // laisse une place libre!
+
+
+////////////////////////////////////////////////////////////////label=Rotation////////////////////////////////////////////
+macro "Rotation Action Tool - C000D1aD1bD27D28D29D2aD2bD35D36D37D38D44D45D46D93Da4Db5Db6Db7Dc6Dc7Dc8Dc9DcaDd8Dd9DdaDdbCdddD01D02D03D04D05D06D07D0eD15D1eD42D4dD66D96D9aDbcDd4Df1Df3Df4Df5Df6Df7Df8DfcDfdC888D0bCeeeD11D12D13D14Df0C111D3bDa3Da5Db9DbaDcbDe9CdddD00D21D22D23D31D32D41D51D58D59D5aD5bD5cD5dD61D67D68D69D6aD6bD6cD6dD71D75D76D77D78D79D7aD7bD7cD7dD81D85D86D87D88D89D8aD8bD8cD8dD91D97D98D9bD9cD9dDa1DabDacDadDb1Db2DbdDc1Dc2DcdDd1Dd2Dd3DddDe1De2De3De4De5DedCbbbD16D2dCfffD10C000D54D63Db4DeaC999D95DaaDbbDccCfffD20D30D40D50D60D70D80D90Da0Db0Dc0Dd0De0C555D25D48D83DdcDe8CcccD08D0dD0fD2eD3eD4eD5eD65D6eD74D7eD8eD99D9eDaeDbeDceDdeDe6DeeDf2C999D0cD2fD3fD49D4fD56D5fD62D6fD72D7fD82D8fD92D9fDa7DafDbfDcfDdfDefDffC333D3cD47D94CcccD24D4bD4cD57Dc3DfbC111D26D39D3aD53Dc5Dd7CaaaD09D33Da2C666D17D73Da9Db3Dc4C888D0aC222D1cD2cCbbbD1dD3dD4aD84Da8DecDfeCaaaD1fD52Dd5De7C555D55C444D18D43Dd6DebDf9DfaC666D64Da6C333D34C222D19Db8"{
+getLine(x1, y1, x2, y2, lineWidth);
+if (x1==-1) exit("Selection d une ligne avant la rotation"); 
+rotation=-atan2(y2-y1, x2-x1)*(180/PI); 
+run("Arbitrarily...", "angle="+rotation+" interpolate");
+run("Select None");
+setTool(0);
+}
+
+////////////////////////////////////////////////////////////////label=Crop////////////////////////////////////////////
+
+
+macro "Crop Action Tool - C000D0fDedCdddD10D36D37D38D39D4dD5dD6dD7dD8dD9dDadDbdDe5C777DcaDf2CeeeD0cD21D31D41D51D61D71D81D91Da1Db1Dc1Dd1De0C444DffCdddD2fD32D3eD3fD42D46D47D48D49D4eD4fD52D56D57D58D59D5eD5fD62D66D67D68D69D6eD6fD72D76D77D78D79D7eD7fD82D86D87D88D89D8eD8fD92D96D97D98D99D9eD9fDa2Da6Da7Da8Da9DaeDafDb2Db6Db7Db8Db9DbeDbfDc2DceDcfDdfDe6De7De8De9DeaDf4Df5Df6Df7Df8Df9DfaDfbDfcCbbbD0dD2eD33D3aD43D53D63D73D83D93Da3Db3DdeDf3CeeeD04D05D06D07D08D09D0aD0bD20D30D40D50D60D70D80D90Da0Db0Dc0Dd0C333D01D34D44D54D64D74D84D94Da4Db4Dd5Dd6Dd7Dd8Dd9DdaDf1CaaaDe1De4DefDfdC666D23D2dDc5CcccD00D03D4aD5aD6aD7aD8aD9aDaaDbaC333D1eD25D26D27D28D29D2aD3bD4bD5bD6bD7bD8bD9bDabDbbDc4DeeC888D02D1fDddC666D4cD5cD6cD7cD8cD9cDacDbcDccCbbbD22D35D45D55D65D75D85D95Da5Db5Dc3Dd2CcccD3dDcdDebDf0C222D1dDd4C888D11D14Dc6Dc7Dc8Dc9C555D0eD3cDd3C999D15D16D17D18D19D1aD1bC111D12D2bD2cDcbDdcDe2C777D1cDecC444DfeC222D13DdbDe3C111D24"{
+	nom_image=getTitle();
+nom_dossier=getDirectory("image") ;
+ind_dot=indexOf(nom_image, ".");
+if (ind_dot!=-1) nom_image=substring(nom_image, 0, ind_dot);
+run("Duplicate...", "title=["+nom_image+"crop.tif]");
+saveAs("Tiff", nom_dossier+"\\"+nom_image+"crop.tif");
+}
+
+
+
+////////////////////////////////////////////////////////////////label=Seuil ////////////////////////////////////////////
+macro "Seuil Action Tool - C000D1fD24D25D26D27D28D29D2bD2cD2dD2eD31D32D33D34D35D38D39D3aD3bD3cD3dD3eD3fD44D46D48D49D4aD4bD4cD4eD4fD57D59D5aD5bD5cD5dD5eD5fCbedDacCe00DcfCfdeDa9CbecDb9CeeeD51DfeDffCe00D7dCfffD07D15D19CdddD00D01D06D0aD0bD0eD10D20D30D40D43D50D53D54D55D60D70D71D72D73D74D75D76D77D78D80D81D82D83D84D85D86D87D88D90D91D92D93D94D95D96D97D98Da0Da1Da2Da3Da4Da5Da6Da7Da8Db0Db1Db2Db3Db4Db5Db6Db7Db8Dc0Dc1Dc2Dc3Dc4Dc5Dc6Dc7Dc8Dd0De0De1De2De3De4De5De6De7De8Df1Df2Df3Df4Df5Df6Df7Df8CeceDeaCe00CfffD1cCcedD9cCedcDcdC777D62D67CeeeD02D04D0cD0dD0fD11D13D18D22D23D52DfaDfcCf00D7fCfeeDcaCcecD7bCf00CedeDabCf01DbeCdecDbdCeddDedC200DefCeddDeeDf0Cf00D7eD9fDafCfdeD9bCe00Cf00D9eCfdbD8cCaaaCeffCf11DbfCeeeCf02D7cD9dCfddD79C000CdeeDebDecC887Dd9Cc00DaeCdedD8aCccdDbbCe21D8eCeecDadCceeD99De9C587DdcC666CdccDbcC000D2aD2fD36D45D4dD58CdffDbaC987DdeCd00CdfeDccCdddC666CdcdDcbCa68DdaCd00D8dCddeD9aCdddD7aD8bC777D61D64D69D6bD6eCdddD03D16D21D41D42D56Df9DfbC888D65D66D6aCd02DceCdddD89C222D1eCddcDc9C888D63D68D6cD6dD6fDd1Dd2Dd3Dd4Dd5Dd6Dd7Dd8CdddC697C978DdbCd00D8fC876DdfC111D37CdccDaaC555C987DddCcccD05D08D09D12D14D17D1aD1bDfdC111D47CcccCbbbD1d"{
+	run("Duplicate...", "title=[ndg]");
+run("8-bit");run("Subtract Background...", "rolling=50 light");
+run("Threshold...");
+setThreshold(200, 255);
+setTool(8);
+
+}
+
+/////////////////////////////////////////////////////////////////////label=Roi///////////////////////////////////////
+
+
+macro "Roi Action Tool - C000D06D07D08D09D0aD76Df6Df7Df8Df9DfaCdddD00D01D02D03D0cD0dD0eD0fD10D11D12D13D1cD1dD1eD1fD20D21D22D23D26D2aD2bD2cD2dD2eD2fD30D31D32D33D36D3bD3cD3dD3eD3fD40D41D42D43D4cD4dD4eD4fD50D51D52D53D5cD5dD5eD5fD60D61D62D63D64D6cD6dD6eD6fD70D71D72D73D7cD7dD7eD7fD80D81D82D83D8cD8dD8eD8fD90D91D92D93D96D97D98D99D9cD9dD9eD9fDa0Da1Da2Da3Da7Da8Da9DacDadDaeDafDb0Db1Db2Db3DbcDbdDbeDbfDc0Dc1Dc2Dc3DccDcdDceDcfDd0Dd1Dd2Dd3Dd4DdbDdcDddDdeDdfDe0De1De2De3DecDedDeeDefDf0Df1Df2Df3DfcDfdDfeDffC555D57Dc5C222D17D18D25D35D49Dc7CaaaD4bD84D88DaaDb6C111D15D38Dc9C888D04D14D24D86D89Df4C444D16D19D1aD94De6De7De8De9DeaCcccD59D65DdaC000D05D79Df5C777D27D37D55D8bC333D4aD9bDabCbbbDb7C222D47D77D78D85D8aD95Da5Db5DbaDc6C999Dd6C555D28D48D5bDcaDe5CdddD54D74D7bDa6Dc4DcbDd5C777D75Dd7Dd8Dd9C333D0bD46D5aDc8DfbCaaaDb4Db9C111D45D56C888D34D9aC444D39Da4CcccD29D3aD44D58D6aD6bC999D66D67D68D69D87De4C666D1bDbbDebCbbbDb8C666D7a"{
+	roiManager("add");
+
+}
+
+macro 'Roi Action Tool Options'  {
+    //on right-click, the corresponding 'Options' macro is run
+    Dialog.create("Affectation des raccourcis claviers"); //e.g., put a dialog here
+    Dialog.addMessage("Nom des sélections ajoutées dans le ROI Manager\nVia des raccourcis clavier du pavé numérique");
+    Dialog.addString("Touche 0", t0,25);
+    Dialog.addString("Touche 1", t1,25);
+    Dialog.addString("Touche 2", t2,25);
+    Dialog.addString("Touche 3", t3,25);
+    Dialog.addString("Touche 4", t4,25);
+    Dialog.addString("Touche 5", t5,25);
+    Dialog.addString("Touche 6", t6,25);
+    Dialog.addString("Touche 7", t7,25);
+    Dialog.addString("Touche 8", t8,25);
+    Dialog.addString("Touche 9", t9,25);
+    Dialog.show();
+    t0 = Dialog.getString();
+    t1 = Dialog.getString();;
+    t2 = Dialog.getString();;;
+    t3 = Dialog.getString();;;;
+    t4 = Dialog.getString();;;;;
+    t5 = Dialog.getString();;;;;;
+    t6 = Dialog.getString();;;;;;;
+    t7 = Dialog.getString();;;;;;;;
+    t8 = Dialog.getString();;;;;;;;;
+    t9 = Dialog.getString();;;;;;;;;;
+    /*print (t0);
+    print (t1);
+    print (t2);
+    print (t3);
+    print (t4);
+    print (t5);
+    print (t6);
+    print (t7);
+    print (t8);
+    print (t9);*/
+  	}
+
+
+
+
+macro "ROI 0 [n0]"{
+roiManager("Add");
+roiManager("select", roiManager("count")-1)
+roiManager("Rename", t0);
+roiManager("Deselect");
+}
+macro "ROI 1 [n1]"{
+roiManager("Add");
+roiManager("select", roiManager("count")-1)
+roiManager("Rename", t1);
+roiManager("Deselect");
+}
+macro "ROI 2 [n2]"{
+roiManager("Add");
+roiManager("select", roiManager("count")-1)
+roiManager("Rename", t2);
+roiManager("Deselect");
+}
+macro "ROI 3 [n3]"{
+roiManager("Add");
+roiManager("select", roiManager("count")-1)
+roiManager("Rename", t3);
+roiManager("Deselect");
+}
+macro "ROI 4 [n4]"{
+roiManager("Add");
+roiManager("select", roiManager("count")-1)
+roiManager("Rename", t4);
+roiManager("Deselect");
+}
+macro "ROI 5 [n5]"{
+roiManager("Add");
+roiManager("select", roiManager("count")-1)
+roiManager("Rename", t5);
+roiManager("Deselect");
+}
+macro "ROI 6 [n6]"{
+roiManager("Add");
+roiManager("select", roiManager("count")-1)
+roiManager("Rename", t6);
+roiManager("Deselect");
+}
+macro "ROI 7 [n7]"{
+roiManager("Add");
+roiManager("select", roiManager("count")-1)
+roiManager("Rename", t7);
+roiManager("Deselect");
+}
+macro "ROI 8 [n8]"{
+roiManager("Add");
+roiManager("select", roiManager("count")-1)
+roiManager("Rename", t8);
+roiManager("Deselect");
+}
+macro "ROI 9 [n9]"{
+roiManager("Add");
+roiManager("select", roiManager("count")-1)
+roiManager("Rename", t9);
+roiManager("Deselect");
+}
+/////////////////////////////////////////////////////////////////////label=Spline///////////////////////////////////////
+
+macro "Spline Action Tool - C444D43D50Da7CdddD00D01D04D05D06D07D08D09D0aD0bD0cD0dD0eD0fD10D11D14D15D16D17D18D19D1aD1bD1cD1dD1eD1fD20D21D24D25D26D27D28D29D2aD2bD2cD2dD2eD2fD30D31D34D35D36D37D38D39D3aD3bD3cD3dD3eD3fD41D45D46D47D48D49D4aD4bD4cD4dD4eD4fD55D56D57D58D59D5aD5bD5cD5dD5eD5fD66D67D68D69D6aD6bD6cD6dD6eD6fD70D71D77D78D79D7aD7bD7cD7dD7eD7fD80D81D87D88D89D8aD8bD8cD8dD8eD8fD90D91D92D99D9aD9bD9cD9dD9eD9fDa0Da1Da2Da3DaaDabDacDadDaeDafDb0Db1Db2Db3Db4DbbDbcDbdDbeDbfDc0Dc1Dc2Dc3Dc4Dc5Dd0Dd1Dd2Dd3Dd4Dd5Dd6De0De1De2De3De4De5De6De7De8DecDedDeeDefDf0Df1Df2Df3Df4Df5Df6Df7Df8DfdDfeDffC999DcdDdeC777D61D72Da8Db8CcccD42D65D82D93D98DcfDdbDdcC555Db9DcbCbbbD03D13D60Da9DfaC999D33D40D51D62DbaDcaCdddD44D52D76Da4Db5Dc6Dd7Df9C555Da6Db7DccDd9CaaaD63DdaC888D73D74Db6Dc7Dc9DdfC666D22D64CcccD23DceDddC444D02D12D96CaaaD97Dd8DebC888D54D75D83D86D94Da5C666D85Dc8DeaDfbCbbbD32De9DfcC777D53D84D95"{
+	run("Fit Spline");
+
+}
+
+
+
+
+
+/////////////////////////////////////////////////////////////////////label=Delimitation surfaces///////////////////////////////////////
+
+
+macro "Delimitation Action Tool - CeeeD46D84Da5CdddD00D01D02D03D04D05D0aD0bD0cD0dD0eD0fD10D11D12D13D14D1bD1cD1dD1eD1fD20D21D22D23D2cD2dD2eD2fD30D31D32D3cD3dD3eD3fD4dD4eD4fD5dD5eD5fD6eD6fD70D7fD80D8cD8fD90D91D9aD9dDa0Da1Da2Db0Db1Db2Db3Dc0Dc1Dc2Dc3Dd0Dd1Dd2Dd3Dd4DdeDdfDe0De1De2De3De4DecDedDeeDefDf0Df1Df2Df3Df4Df5DfcDfdDfeDffCfffD28D38D45D49D54D55D56D59D63D64D65D66D6aD74D75D76D77D7aD7bD85D86D87D8bD95D96D97D98D9bD9cDa6Da7Da8DabDacDadDb6Db7Db8Db9Dc7Dc8Dc9Dd8Dd9De8CaaaD35D62D7cCfffD53D5aDbbDbcC777D08D19DaeDf7CeeeD8aCcccD15D1aD39D48D60DbdDf6C666D34D68D6cD83D9eDd6CcccD24D67D7eD88D92D94Da3DddDfaC999D58DcbDccDe6CdddD06D2bD3bD40D44D4cD69D6bD73D81Dc4DcfDd7De5DfbC555D42D7dCbbbD07D4aD50D6dD9fDaaDc6Dd5C888D27D33D43D52D89Db5DdcDe9Df9C777D25D37D72D78DcaC999D47D57D5cD8eDa9DafDb4DbfDebC555D18D26D99Da4DeaCbbbD09D41D79C888D16D5bD61D82DdaDe7C666D17D29D3aD4bD8dDbeDc5DcdC333D51CaaaD2aD36D71DceC333Df8C444DbaC444D93"{
+	roiManager("Deselect");
+roiManager("Save", getDirectory("image")+getTitle()+".zip");
+nom_image=getTitle();
+run("Select None");
+run("Duplicate...", "title=["+nom_image+"]");
+run("Select All");
+setForegroundColor(0, 0, 0);
+setBackgroundColor(255, 255, 255);
+run("Clear");
+run("Line Width...", "line=2");
+setForegroundColor(0,0,0);
+roiManager("Deselect");
+roiManager("Draw");
+roiManager("Delete");
+setTool(8);	
+
+}
+
+
+
+
+
+
+
+
+/////////////////////////////////////////////////////////////////////label=trace traits///////////////////////////////////////
+
+macro "Trait Action Tool - C000D20D21D22D23D24D25D26D27D28D29D2aD2bD2cD2dD2eD2fD60D61D62D63D64D65D66D67D68D69D6aD6bD6cD6dD6eD6fDa0Da1Da2Da3Da4Da5Da6Da7Da8Da9DaaDabDacDadDaeDafDe0De1De2De3De4De5De6De7De8De9DeaDebDecDedDeeDefC000C111C222C333C444C555C666C777C888C999CaaaCbbbCcccD00D01D02D03D04D05D06D07D08D09D0aD0bD0cD0dD0eD0fD10D11D12D13D14D15D16D17D18D19D1aD1bD1cD1dD1eD1fD30D31D32D33D34D35D36D37D38D39D3aD3bD3cD3dD3eD3fD40D41D42D43D44D45D46D47D48D49D4aD4bD4cD4dD4eD4fD50D51D52D53D54D55D56D57D58D59D5aD5bD5cD5dD5eD5fD70D71D72D73D74D75D76D77D78D79D7aD7bD7cD7dD7eD7fD80D81D82D83D84D85D86D87D88D89D8aD8bD8cD8dD8eD8fD90D91D92D93D94D95D96D97D98D99D9aD9bD9cD9dD9eD9fDb0Db1Db2Db3Db4Db5Db6Db7Db8Db9DbaDbbDbcDbdDbeDbfDc0Dc1Dc2Dc3Dc4Dc5Dc6Dc7Dc8Dc9DcaDcbDccDcdDceDcfDd0Dd1Dd2Dd3Dd4Dd5Dd6Dd7Dd8Dd9DdaDdbDdcDddDdeDdfDf0Df1Df2Df3Df4Df5Df6Df7Df8Df9DfaDfbDfcDfdDfeDff"{
+roiManager("Deselect");
+nom_image=getTitle();
+run("Select None");
+run("Duplicate...", "title=["+nom_image+"]");
+idTrait=getImageID();
+run("Select All");
+setForegroundColor(0, 0, 0);
+setBackgroundColor(255, 255, 255);
+run("Clear");
+getDimensions(width, height, channels, slices, frames);
+for (i=pxtrait;i<width;i=i+pxtrait){
+run("Specify...", "width=1 height="+height+" x="+i+" y=0");
+run("Fill", "slice");
+run("8-bit");
+}
+run("Select None");
+run("Set Measurements...", "area display redirect=None decimal=3");
+run("Set Scale...", "distance=0 known=0 pixel=1 unit=pixel");
+for(i=0;i<roiManager("count");i++){
+	roiManager("Select", i);
+	run("Analyze Particles...", "size=0-Infinity circularity=0.00-1.00 show=Nothing display ");
+		}
+selectImage(idTrait);
+close();
+}
+
+macro 'Trait Action Tool Options'  {
+    //on right-click, the corresponding 'Options' macro is run
+    Dialog.create("Espacement entre traits"); //e.g., put a dialog here
+    Dialog.addNumber("Nombre de pixels entre traits:", pxtrait);
+    Dialog.show();
+    pxtrait = Dialog.getNumber();;
+  	}
+
+/////////////////////////////////////////////////////////////////////label=mesure traits///////////////////////////////////////
+/*
+
+macro "Mesure_trait Action Tool - C052DcfDdfDefDfbDfcDfdDfeDffCadaD4aC164D68CffeDb9C273D3fDf2CdedD25D52Dd5C385D8cCfffD15D16D17D18D19D1aD1bD1cD1dD1eD2eD3eD4eD51D5eD61D6eD71D7eD81D83D8eD91D9eDa1Da7DaeDb1Db7Db8DbeDc1Dc9DcaDceDd1DdbDdcDdeDe1De2De3De4De5De6De7De8De9DeaDebDedDeeC163D7fCdddD84C6a3D64DbbCfffDb6Dc4Dc5Dd3Dd4DecC6a1D4cCffeD14D41D9cC798D93C052DbfCcebDa8C484D85CfffD23D32Dc6DdaC382D5bD6cCefeD22D24D42D73C8c5D66C173D7aCdedD26D27D28D29D2aD2bD2cD2dD33D34D35D36D37D38D45D46D62D72D82D92Da2Db2Dc2Dd2C8c4D76D9aC493D70C8aaD20C053D79CbebDc7C364D94D95Da3Da4Da5Db3C383D0fDe0CeeeDb5C696D03C172D6aCcedD39D47C7a4D97C493D08D09D80C8c8D67C063D9fDf9CdecD8aC593D78C483D0bD0cDa0Db0C7a7D21C273D4fD5fDf3Df4C9c4D87D98C593D05D06D07D50D60C9acD01CaebD8dDd8C364D96C373D1fDf0C595D40C163D6fDf5Df6C7b4D65DabC592D4bC7a9D02D11C063D69CcecD3aD3bD3dD48D49D56D57Dc8C493D43C9c5Da9C8c4D77D99CadaDbdDddCbebD6dDd6C383D0dD0eDc0Dd0C5a6D59C272D7cC8b4D86Cac8DbaC163D8fDf7Df8C5a3D54C9c7D55C9d4D88C9bdD00CaeaD9dDd9C273D2fDf1C576Db4C592D5cC798Dc3C062DafDfaCcecD4dD58C594D04C7a6D12C9daDcdCcdbDcbC6b5DccC172D5aD7bC7b4D75DaaC8a9Da6C5a4D63C9c7D3cCadaDadC496D8bC483D0aD90C493D53C8c6DacCcecD5dC6a7D30C282D6bCad9D9bC5a4DbcC9c7D74C9c4D89C9bdD10CbdaD44CcdcD13D31CbebD7dDd7"{
+run("Analyze Particles...", "size=0-Infinity circularity=0.00-1.00 show=Nothing display clear");
+selectWindow("Results");
+run("Summarize");
+}
+*/
+
+macro "About These Macros Action Tool - C000C111C222C333C444C555D54D55D63D73D7cD7dD83D88D89D8aD8cD8dD93D97Da3Da4Da5Da6C555D7aDb5C555D72D82C555D45Da7C555D98C555D53C555D79C555C666Db4C666Db6C666C777D92C777D87C777D64C777D62C777C888D44C888D96C888D78C999D94C999CaaaCbbbD99Db3CbbbDa2CbbbDa8CbbbCcccDb7CcccD52CcccD43CcccD65CcccCdddD74CdddD77CdddD86CdddD84D95CdddD00D01D02D03D04D05D06D07D08D09D0aD0bD0cD0dD0eD0fD10D11D12D13D14D15D16D17D18D19D1aD1bD1cD1dD1eD1fD20D21D22D23D24D25D26D27D28D29D2aD2bD2cD2dD2eD2fD30D31D32D33D34D35D36D37D38D39D3aD3bD3cD3dD3eD3fD40D41D42D46D47D48D49D4aD4bD4cD4dD4eD4fD50D51D56D57D58D59D5aD5bD5cD5dD5eD5fD60D61D66D67D68D69D6aD6bD6cD6dD6eD6fD70D71D75D76D7bD7eD7fD80D81D85D8bD8eD8fD90D91D9aD9bD9cD9dD9eD9fDa0Da1Da9DaaDabDacDadDaeDafDb0Db1Db2Db8Db9DbaDbbDbcDbdDbeDbfDc0Dc1Dc2Dc3Dc4Dc5Dc6Dc7Dc8Dc9DcaDcbDccDcdDceDcfDd0Dd1Dd2Dd3Dd4Dd5Dd6Dd7Dd8Dd9DdaDdbDdcDddDdeDdfDe0De1De2De3De4De5De6De7De8De9DeaDebDecDedDeeDefDf0Df1Df2Df3Df4Df5Df6Df7Df8Df9DfaDfbDfcDfdDfeDff"{
+open(getDirectory("macros")+"toolsets/PHIV_Anat_toolset.txt");
+}
+
+
+

@@ -1,0 +1,479 @@
+// PHIV Video Tool Set
+// Marc LARTAUD MRI PHIV
+// Boite a outils pour faciliter l exploitation des videos
+
+/*
+Outils:
+Ouverture des videos dans ImageJ
+	"Use virtual stack" prend moins de place en memoire mais certaines operations impossibles comme le crop
+
+
+Outil VideoCrop pour ne garder que la selection (ou toute l image si pas de selection)
+avec une image toutes les "z"
+clic droit sur l outil pour changer le pas en z
+
+Pour ne garder qu un bout de film on peut dupliquer le stack de l image x a l image y
+
+Tampon pour ajouter un tampon choisi en option (clic droit) en bas de chaque image
+
+Sauvegarde des videos dans ImageJ
+ Frame rate = nombre d images a la seconde
+ container format .avi ou .mov
+ using codec wmv pour windows et mpeg4 pour Mac
+ video quality excellent
+ custom bitrate par defaut
+ 
+Capture Screen pour capturer en video un partie de l ecran
+ 
+ ConvertBatch convertit tous les fichiers .mov d un repertoire en .avi 
+ et tous les .avi en .mov
+clic droit sur l outil pour changer le nombre d images par seconde (frame)
+
+Installation:
+Recuperrer de Fiji 
+	plugins/FFMPEG_IO.jar a mettre dans ImageJ/plugin
+	creer lib/win64 a la racine d imagej et y mettre  lib/win64/ffmpeg.dll
+	
+	mettre dans /macros/bin
+	ffmpeg.exe
+	libmp3lame-0.dll
+	xvidcore.dll
+	(Pazera free Mov to avi)
+	
+
+Copier phiv.gif dans \ImageJ\macros\toolsets
+
+Installer la bonne version de SaveAsMovie
+https://sites.google.com/site/qingzongtseng/save-as-movie
+
+Video format suggestion
+In general, if you have 3rd-party video player like VLC or mPlayer, all the provided codecs/ formats should be readable. 
+For default system media player (Windows Media Player / Quicktime), WMV will be the safest format for window system 
+and MPEG4 in mov should work for Macintosh.
+About the video quality option, it is basically determined by the bitrate. 
+If the preset doesn't give satisfactory quality, 
+you can try to select the custom option and put in desired bitrate for video encoding (the higher the better qualty). 
+
+
+
+
+
+
+
+
+
+
+
+*/
+
+
+var frame=15;
+var nbframe=30;
+//var SetCompression="(0x64697663,0,10000,0)";
+//var SetCompData="(4,\"Y29scg==\")";
+
+macro "Unused Tool-1 - " {}  // laisse une place libre!
+var tamponpath=getDirectory("macros")+"toolsets\\phiv.gif";
+
+
+
+////////////////////////////////////////////////////////////////Ouvrir////////////////////////////////////////////
+//macro "Ouvrir Action Tool - C168D2bD3bD4bD5bD6bD7bD8bD9bDabDbbDcbDdbCacdD94C278DebCfffD01D0cDfcC18aD28D38D48D58D68D78D88D98Da8Db8Dc8Dd8CeeeD84C489D2cCfffD00D0dD0eD10D1dD1eD20D2eD30D3eD40D4eD50D5eD60D61D6eD70D71D7eD80D81D8eD90D91D9eDa0Da1DaeDb0Db1DbeDc0Dc1DceDd0Dd1DdeDe0De1De2DeeDf0Df1Df2DfdDfeC179D29D39D49D59D69D79D89D99Da9Db9Dc9Dd9CeddDa2Db2C2adD46D56D66D76D86CfffDedDf3C19bD27D37D47D57D67D77D87D97Da7Db7Dc7Dd7CeffD2dD3dD4dD5dD6dD7dD8dD9dDadDbdDcdDddC7abDecC178D2aD3aD4aDcaDdaCdddD02D03D04D11D21D31D41D52D62D82D92C289De9CeeeD12D13D14D22D23D24D32D33D42D43D53D63D73D83Dd2C4acD95CeeeD51D72Dc2C2bdDa4C8ccDb3Dc3CdddD0bC379D3cD4cD5cD6cD7cD8cD9cDacDbcDccDdcCeeeD34D44D54D64D74C59aD19CdeeD93DfbC2adDa5Db5Dc5Dd5C7bcDd3C179D5aD6aD7aD8aD9aDaaDbaCdeeDf5Df6C2acD26D36D96Da6Db6Dc6Dd6C6bcD35D45D55D65D75D85CdeeDf4C2beDb4Dc4Dd4CabcD1cCdddD05D06D07D08D09D0aC279DeaC589D1bC3acDe5C29bDe7C4bdDe4CdeeDf7Df8Df9DfaC59bD17C7bcD25C9cdDa3CcddD15C28aDe8C59aD18C58aD1aC39cDe6C6abD16CbdeDe3"{
+macro "Ouvrir Action Tool - C268Df8CeefD45D55De6C79bD96CfffD0aD0bD0cD0dD0eD0fD1bD1cD1dD1eD1fD22D23D24D25D26D27D2bD2cD32D33D34D35D42D43D44D4fD52D53D54D5dD5eD5fD62D63D64D65D6dD6eD6fD72D73D74D7fD82D83D84D92D93D94D9bD9cDa3Da4Da5DabDacDadDaeDbbDbcDbdDbeDbfDc0DcaDcbDccDcdDceDcfDd0Dd5Dd9DdaDdbDdcDddDdeDdfDe0DeaDebDecDedDeeDefDfaDfbDfcDfdDfeDffC58aD29D39D3dD49D59D69D89D99Dc7De8CfffD13D14D15D16D38D5cD68D78Da2Dc9CbddDd6C579D04D05D06D8dDb1Df5CeffD17D28D2dD48D58D7eD88D95D98Da6Da7Dd1De4De5C9acD97C68aD8eCfffD75Dd4CddeD00De3C47aDc6C8abD3fDa1Db9Dc4C58aDb2CcdeD8bDaaC58aD01D20D30D40D4aD50D60D70D79D80D90CaccD4dC79aD9fCfffD6cDafDbaCeeeD12D37D4eD67D85D9dDe9C479D07D19D46D4bD56D7aD7bDa9Db8Dd7Df3Df6C7abD6aCcddD21D31D41D51D5bD61D71D7dD81D91Da8Db0Dc8Dd8C589D3eDe2C9bcD3cDc5C69aD5aDa0Db4Db5Db6Dd2CdeeD6bCbcdD77C479D08C79bD11D7cC9bcDf9C68aD87CdeeD1aD36D66CbcdD18D3aC8abD2fD8cDc2Dd3De7C57aD03Df4CabcD76D8fD9eCdeeD3bDc1Df0CbcdD2aD2eD9aC379Df1C79bD10D47D57C9bcDe1C68aD4cDb7CacdD8aC479D02Df7C9bcD09C69aDb3C369Dc3Df2C379D86"{
+
+run("Movie (FFMPEG)...");
+
+}
+
+// ffmpeg 
+//exec("cmd", "/c","start", "D:/ffmpeg.exe","-y","-i","D:/test.mov","-vcodec","huffyuv","","-b","500k","-an","","D:/test.avi");
+
+//Virtualdub --> uncompresse
+
+
+
+////////////////////////////////////////////////////////////////Decompression////////////////////////////////////////////
+macro "Decompression Action Tool - C000D05D06D11D12D13D14D17D18D19D1aD21D28D2aD31D3aD41D44D45D46D47D50D54D57D5bD60D64D67D6bD71D74D75D76D77D7aD81D8aD8bD8cD8dD8eD8fD91D9aD9eDa1Da2Da3Da4Da7Da8Da9DaaDaeDb2Db5Db6DbaDbeDc2Dc6DcaDceDd2Dd6DdaDdeDe2De6DeaDeeDf1Df2Df3Df4Df5Df6Df7Df8Df9DfaDfbDfcDfdDfeDffCcccD15D16D22D25D26D29D33D34D37D38D43D48D51D52D59D5aD61D62D69D6aD73D78D83D84D87D88D92D95D96D99Da5Da6DabDacDadDb3Db8Db9DbbDbcDbdDc3Dc4Dc5Dc7Dc8Dc9DcbDccDcdDd3Dd4Dd5Dd7Dd8Dd9DdbDdcDddC888D04D07D23D24D27D32D35D36D39D40D42D49D4aD4bD53D58D63D68D70D72D79D7bD82D85D86D89D93D94D97D98D9bD9cD9dD9fDb4Db7De1De3De4De5De7De8De9DebDecDedDefCfffD00D01D02D03D08D09D0aD0bD0cD0dD0eD0fD10D1bD1cD1dD1eD1fD20D2bD2cD2dD2eD2fD30D3bD3cD3dD3eD3fD4cD4dD4eD4fD55D56D5cD5dD5eD5fD65D66D6cD6dD6eD6fD7cD7dD7eD7fD80D90Da0DafDb0Db1DbfDc0Dc1DcfDd0Dd1DdfDe0Df0"{
+
+
+
+filepath=File.openDialog("Select a File"); 
+filepathuncompress=substring(filepath,0,indexOf(filepath,"."));
+filepathffmpeg=filepathuncompress+"ffmpeg.avi";
+filepathuncompress=filepathuncompress+"uncompress.avi";
+dirmacro=getDirectory("macros");
+dirbin=dirmacro+"bin\\";
+//exec("cmd", "/c","start", "D:/ffmpeg.exe","-y","-i","D:/test.mov","-vcodec","huffyuv","","-b","500k","-an","","D:/test.avi");
+
+exec("cmd", "/c","start", dirbin+"ffmpeg.exe","-y","-i",filepath,"-vcodec","huffyuv","","-b","500k","-an",filepathffmpeg);
+wait_recursif(filepathffmpeg);
+
+
+
+ // Close "Log" window
+  if (isOpen("Log")) {
+      selectWindow("Log");
+      run("Close");
+  }
+print ("VirtualDub.audio.SetSource(0);");
+print ("VirtualDub.audio.SetMode(0);");
+print ("VirtualDub.audio.SetInterleave(1,500,1,0,0);");
+print ("VirtualDub.audio.SetClipMode(1,1);");
+print ("VirtualDub.audio.SetConversion(0,0,0,0,0);");
+print ("VirtualDub.audio.SetVolume();");
+print ("VirtualDub.audio.SetCompression();");
+print ("VirtualDub.audio.EnableFilterGraph(0);");
+print ("VirtualDub.video.SetInputFormat(0);");
+print ("VirtualDub.video.SetOutputFormat(7);");
+print ("VirtualDub.video.SetMode(3);");
+print ("VirtualDub.video.SetSmartRendering(0);");
+print ("VirtualDub.video.SetPreserveEmptyFrames(0);");
+print ("VirtualDub.video.SetFrameRate2(0,0,1);");
+print ("VirtualDub.video.SetIVTC(0, 0, 0, 0);");
+print ("VirtualDub.video.SetCompression();");
+print ("VirtualDub.video.filters.Clear();");
+print ("VirtualDub.audio.filters.Clear();");
+print ("VirtualDub.subset.Clear();");
+print ("VirtualDub.subset.AddRange(0,2991);");
+print ("VirtualDub.video.SetRange();");
+print ("VirtualDub.project.ClearTextInfo();");
+print ("VirtualDub.Open(U\""+filepathffmpeg+"\");");
+print ("VirtualDub.SaveAVI(U\""+filepathuncompress+"\");");
+selectWindow("Log"); 
+saveAs("Text", dirbin+"scriptvirtualdub.txt");
+command=dirbin+"vdub.exe /s "+dirbin+"scriptvirtualdub.txt";
+exec(command);
+//print (command);
+wait_recursif(filepathuncompress);
+open(filepathuncompress);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+////////////////////////////////////////////////////////////////Tampon PHIV////////////////////////////////////////////
+macro "Tampon Action Tool - C012D00D01D02D0fD10D11D20D21D30Db0C352Dd0C135D03D50D90C2aeD06D07D08D09D0aD0bD36D53C093Db8DbeDdaC4b6DcdC2aeD05D42D61D81D82D9fC8dfD54C093D94D95D96D97D9bD9cD9dDa3Da4Da5Da6Da7DadDb3Db4Db5Db6Db7Dc4Dc5Dc6Dc7Dc8Dc9Dd4Dd8Dd9C7b2Dd1C17aD80C4beD73C193Db2Cad8Df4Df9DfaDfbC2aeD3aD3bD3cD3dD49D4aD4bD4cD4dD4eD52D59D5aD5bD5cD5dD5eD5fD62D6eD6fD71D72D7eD7fD8fCcedD77C122Dc0C4b2Dc2C095D93C3aeD39C093D9aDd5Dd7C4adD1dCaddD74C7c3Df3C2acD92C7cfD65C094DaeCbecDa9DdcDebCcefD44C2a2Dd3C157D22C093Dc3DcaC9d7DedCadfD17D18D19D29D37C7c2DdfDe1De2DeeDefDf1Df2DfeDffC1a9D83C5ceD33D45D67C1a4DacDd6CbecD88DbbDccCcefD34D55D56C022D0eC3b4De4C168D41C3beD2dD58C2a2DceCadbDe6CadfD25D57C8c4DfdC2adD8eC8dfD15D2aD2bD48C1a4D85D86D8bD8cCcecD89CefeDecC592Dc1C146D1eC6c7DddC9dfD16D1aD1bD26C6c2Dd2C18aD13C5beD43D64D68D69D6aD6bC194DbdCaefD38C012D1fD40Da0C6b2DcfDe3C2a4DcbC3aeD23C9daD99DbcDeaC6c3Df7C29dD4fD51D91C7cfD2cD66CaddD7cCeffD27D78D79C3a5De8C168Da1C8daDbaDe5De9C28cD32CcebDf6C023D2fC3b5De7C1a7D8dC4beD14D35C7c5Df8C2adD0cD3eCbedD75D76D7bCfffDf5C283DbfC4b6DabC9dfD1cC17aD60C4beD6cCceeD7aC5b2DdeC1a4D84DdbC2beD63C4bdD7dC2a5D87C157D3fCad7DfcC19aDafC023D12C3a5D8aDa8C197Da2C592De0C7c8D98C18bD2eCbefD24D47C3beD6dC6a2Df0C168D0dC29cD04D70C034D31C4b6Db9C1a9D9eC4beD46CeffD28C7c9DaaC143Db1"{
+
+taille_video();
+OrigID=getImageID();
+open(tamponpath);
+getDimensions(width, height, channels, slices, frames);
+tampon_width=width;
+tampon_height=height;
+run("Select All");
+run("Copy");
+close();
+selectImage(OrigID);
+if(nSlices>1) run("Set Slice...", "slice=1");
+for(i=0;i<nSlices;i++){
+	makeRectangle((getWidth()-tampon_width), (getHeight()- tampon_height), tampon_width, tampon_height);
+	run("Paste");
+	if(nSlices>1) run("Next Slice [>]");
+}
+run("Select None");	
+if(nSlices>1) run("Set Slice...", "slice=1");
+
+}
+
+macro 'Tampon Action Tool Options'  {
+    //on right-click, the corresponding 'Options' macro is run
+    tamponpath=File.openDialog("Select a File"); 
+
+    
+
+  	}
+
+
+////////////////////////////////////////////////////////////////Text PHIV////////////////////////////////////////////
+
+macro "Txt Action Tool - C012D1fD2fD3fD4aD4fD5aD6aD7aD8aD9aDaaDbaDcfDdfDefDffCeeeD00D01D02D03D04D05D06D07D08D09D0aD0bD0cD0dD0eD0fD10D11D12D13D14D15D16D17D18D19D1aD1bD1cD1dD20D21D22D23D24D25D26D27D28D29D2aD2bD30D31D32D33D34D35D36D37D38D39D40D41D42D43D44D45D46D47D4dD4eD50D51D52D53D54D55D5bD5cD5dD5eD5fD60D61D62D63D69D6bD6cD6dD6eD6fD70D71D77D78D79D7bD7cD7dD7eD7fD80D86D87D88D89D8bD8cD8dD8eD8fD90D91D98D99D9bD9cD9dD9eD9fDa0Da1Da2Da3Da4DabDacDadDaeDafDb0Db1Db2Db3Db4Db5Db6DbdDbeDbfDc0Dc1Dc2Dc3Dc4Dc5Dc6Dc7Dc8Dc9Dd0Dd1Dd2Dd3Dd4Dd5Dd6Dd7Dd8Dd9DdaDdbDe0De1De2De3De4De5De6De7De8De9DeaDebDecDedDeeDf0Df1Df2Df3Df4Df5Df6Df7Df8Df9DfaDfbDfcDfdDfeC778D96DcbC355D94DcdCbbbD2cD3aD3eD48D4cD56D64D68D76D81C124D82C9aaDddC678D2dD3bD3dD49D4bD57D59D65D67D73D75CccdD1eDb7C789D93DceC566D2eC345D3cD58D66D74CabbD92CdddD85DdcC788D84C456Da8Db9C345D95Da7DccCaabDa5DbcC899Da9Db8C677Da6DbbCbbbD97DcaC234D83CaaaD72C567Dde"{
+
+			setTool("text");
+			title = "Text";
+			msg = "Tapez le text et positionnez le";
+			waitForUser(title, msg);
+			run("Draw", "stack");
+			run("Set Slice...", "slice=1");
+			run("Select None");
+
+}
+
+
+////////////////////////////////////////////////////////////////video save jpeg avi////////////////////////////////////////////
+
+
+
+macro "Microsoft_Wmv_Save Action Tool - C057Df7C755D25C169D0fD19C886DbeC555D26C7a4Dd5C169D27C976D92C058Df9Cc42D42C08cD3eD4dDdfC79aD11Df1C577De9Cfa2DadC29aD7eCac9D97C484Df3C775D66C07bD2bDedC698D7aC594De4C995D9eC17bD2aCbd7Db6Db7C158D0cCd72D53C0adD6eC6adD48C488DceCec2D75C28bD37C9abDe0C058D0aD17Cb42D51C06aD1bC778D31C575Dd8C9c5Dc5C17aDecCac6Dc7C069DfbCd62D62C09dDcfC8abDa0Db0Dc0C479D14Ceb2D65D74C689D12Cbc9D96C266De8Df6Ca84D76C08bD2eD2fC79aD21Db1Dc1Dd1De1C585De7Cea2DbdDccC18cD3aCfd6D8bC378D87Cc93DcdC0aeD5fC7acD78C688Db2Cfc3D9cC49bD6bC8beD59C058D09Df8Ca43D41C06aD1eD2cC797D8eC567D24C8a5Db3C179DebC9a8D95C069DfaCd52D43C09cD3fC89bD30D90C468D04Cfb2D9dDbcDcbC589D22Dc2Dd2C8abD20Dd0C375Df5C995DdbC07bD4cDeeDefC79aDa1C6a4Dd4Cac5Db4Dc6C18cD28D5cCbd8Da5C368D05Cd83D45C0adDafC7adD6aC697Db8Cfc3DbbC39dD4aD5bCabcDf0C158D0bCb52D71C07aD1fD3cDffC888D50D70C585Dd3C9b5Da3C18bDdeCfd6D9bC069D1cD1dDfcDfdDfeCd62D82C09dD4fD5eC579D03Cfb2D8dC69aD79Ccd9Da7C258D06D16Cb93Dd9C08cD3dD5dC686DdcCca3DdaC19cD4bCed8D8aC368D15Ce92D54D73C0beD6fD7fC8bdD67C698Da8Cfd4DabDbaC5adD49C9ceD69C047D07D08C955D32C786D93C655D36C8b4Dc4Dd6Dd7C996Db9C058D0dD18Cc52D52Cea2D64C38aD6cC8abD01C485De3Df4C885D85C68aD02C594De5Cba4D7dC18bD29D3bCd72D44C588D98Cfc2DacDcaC29dD38C9bcD10Cb42D61C878D60D91C17bD2dCac6Da4Db5Cd62D35C09dD4eDbfC578D23Ccc9D89C695Dc3Cfd7DaaCd83D83C0beD8fC579De2Cfd4D8cC5adD47C9ceD58Ca53D33C797D94C567D46D56C16aD1aCaa8Da9C069D0eCc53D34C578Df2C995DaeDc9C79aD80C694De6Ccd8Da6C378DeaCe82D63C0bdD9fC697Da2CabcD00Ca64D81C676D86C28aD6dCd62D72C579D13Cdd9D99Cb94D84C696Dc8Cbb5D7cC29cD39Cfd8D9aC379DddCd93D55C7bdD57C698D88C6adD5aCbdeD68C58aD77C897D7bC89aD40"{
+
+ Dialog.create("Nombre de frame");
+	  Dialog.addMessage("Nombre d images par seconde");
+    Dialog.addNumber("Nombre de frame:", nbframe);
+    Dialog.show();
+    nbframe=Dialog.getNumber();
+
+run("Save as Movie", "frame="+nbframe+" container=.avi using=WMV7 video=excellent save");
+//run("Save as Movie");
+/*taille_video();
+run("AVI... ", "frame="+frame+" save");*/
+
+}	
+
+macro "MP4 Action Tool - C999D00D01D02D03D04D05D06D07D08D09D0aD0bD0cD0dD0eD0fD10D11D12D13D14D15D16D17D18D19D1aD1bD1cD1dD1eD1fD20D21D22D23D24D26D2aD2cD2dD2eD2fD30D31D32D33D34D3cD3dD3eD3fD40D41D42D43D4eD4fD50D51D52D5eD5fD60D61D62D6fD70D71D7eD7fD80D81D8fD9fDa3DafDb0Db1Db3DbeDbfDc0Dc1Dc2Dc3Dc4Dc9DceDcfDd0Dd1Dd2Dd3Dd4Dd5Dd6Dd7Dd8Dd9DdbDdcDddDdeDdfDe0De1De2De3De4De5De6De7De8De9DeaDebDecDedDeeDefDf0Df1Df2Df3Df4Df5Df6Df7Df8Df9DfaDfbDfcDfdDfeDffCfffD37D38D39D46D47D48D49D4aD4bD55D56D57D58D59D5aD5bD5cD65D66D67D68D69D6aD6bD6cD6dD75D76D77D78D79D7aD7bD7cD83D85D86D87D88D89D8aD8bD8cD92D95D96D97D98D99D9aD9bD9cDa5Da6Da7Da8Da9DaaDabDacDadDb5Db6DbaDbbDbcC999D25D2bD53D63D72D8eD90Da0Db2Dc7Dc8DcdCcccD54D64D82D94Da2Da4Db7Db8DbdDc5CaaaD28D29D6eD9eDaeDdaCeeeD36D4cD93Db9DcbCbbbD35D74Da1Dc6CaaaD27D44D4dD73CfffD45D5dD9dCeeeD3aD7dDcaCbbbDb4DccCdddD84D8dCcccD3bD91"{
+
+filepath=File.openDialog("Select a File"); 
+prefix=substring(filepath,0,indexOf(filepath,"."));
+//filepathffmpeg=filepathuncompress+"ffmpeg.avi";
+//filepathmp4=prefix+".mp4";
+filepathmov=prefix+"_mac.mov";
+filepathavi=prefix+"_pv.avi";
+dirmacro=getDirectory("macros");
+dirbin=dirmacro+"bin\\";
+print("\\Clear"); 
+
+/*Defaults and ranges:
+Contrast -2.0 to 2.0, default 0 (but I think it is default 1)
+Brightness -2.0 to 2.0, default 0
+Saturation 0 to 3, default 1
+Gamma 0 to 10, default 1
+Gamma r 0 to 10, default 1
+Gamma g 0 to 10, default 1
+Gamma b 0 to 10, default 1
+ffmpeg -i test.m2ts -vf eq=1:0:1:1:1:1:1:1 foo.mp4 makes no changes
+*/
+
+
+//command=dirbin+"ffmpeg -i "+filepath+" -c:v libx264 -preset slow -crf 20 -c:a copy "+filepathmp4;
+//command=dirbin+"ffmpeg -i "+filepath+" -vf \"eq=1.2:0:1:1:1:1:1:1\" -c:v libx264 -preset slow -crf 20 -c:a copy "+filepathmov;
+command=dirbin+"ffmpeg -i "+filepath+" -c:v libx264 -preset slow -crf 20 -c:a copy "+filepathmov;
+//exec(command);
+print (command);
+/*
+//command=ffmpeg -i total.avi  -q:a 2 -q:v 4 -vcodec wmv2 -acodec wmav2 total2.avi
+command=dirbin+"ffmpeg -i "+filepath+" -q:a 2 -q:v 4 -vcodec wmv2 -acodec wmav2 "+filepathavi;
+//exec(command);
+print (command);
+*/
+waitForUser("Conversion via FFMPEG", "Fermer la fenetre de commande une fois la conversion terminee");
+selectWindow("Log");//sauvegarder en .bat
+		saveAs("Text",dirbin+"cmd.txt");
+		if (File.exists(dirbin+"cmd.bat")) File.delete(dirbin+"cmd.bat");
+        File.rename(dirbin+"cmd.txt",dirbin+"cmd.bat");
+		exec("cmd", "/c", "start", dirbin+"cmd.bat");
+		
+
+
+
+//wait_recursif(filepathmp4);
+print("ok");
+
+exit();
+/*commande ffmepg libmp3lame-0
+ffmpeg -i video.avi -c:v libx264 -preset slow -crf 20 -c:a copy video.mp4*/
+
+
+//https://www.ffmpeg.org/ffmpeg.html
+
+}
+macro "HTML5 Action Tool - C567D0aD0bD0cD19D1aD1bD1cD2aD2bD2cD3cDebDecDf9DfaDfbDfcCf23D47C249Da9Cfa0DbaC666DdcCa26D4bC768D27CaabD33C568D0dD1dD2dD3dD4dDddDedDfdCa73DaaC35aD73Caa5Db7C568D0eD1eD2eD3eD4eD5eD6eD7eD8eD9eCb43DadC6a9D94CbbcD51D60C646D9aCc52D7aC569D0fD1fD5fD6fD7fD8fD9fDafDbfDcfDdfDefDffCdd3Da5C568D2fD3fD4fCe23D6cC789D07D17De2Df2CabbD02D12D22D32D61D70C667DcdCf61D9cC05cDa8C9aaD04Da1Db0C678Df5Ca68D35C89aD05D15D25Dd1De0De1Df0CbbcD40Cf41D56Cfb0Dd9C568DaeDbeDceDdeDeeDfeCb35D7dC778Dd3De3Df3CaabD52Cd71D79C26bD98Cca7Da2Ca84De9C88aD53CbbcD21D31D41D50C657D3bCf41D7bD8cCfe3Dc6C568Df8Cf23D46D48C789Dd2C767D74Cf80D9bC15dD83C99bD72C786Db8Ca96Dc3C89aD92CbccD10D20Cf32D59D6bD7cCfb0Dc9C567D09Cc16D37C678D08De4Df4CaabD03D13D23D81D90Cc82D89C469D88Cfe4Dc5Cb73DccC889D06D16C745D8aCc52D67Cdc4Dd5Cd15D4aCf70D66DacC15dD87C778De5Ca89D43CbbcD01D11D30Cf32D55Cfd1Dc7Cb26D5cC679D86CaabD42D71D80Cd72D76C48aD93Caa8Db2Cb94De8C88aDf1C837D3aCf51D69Cfe4Da4C668D18Df6Df7Ce24D45C889D26C658D28Cf90DbbC07fD97C9abD62D91Da0C7a8Da6C99aDb1Dc0Dc1Dd0CcccD00Ce32D58Cfa0DcaCa27D39Cb73DdbCed4Da3C945D64C647D78Cc43D68Cfd2Db6Ce14D5bCf61D65D8bCc46D44Cfc1Dd8Cb35D54Ce71DbcC37bD85Ced5Db3C995De6C899Dc2C657D29D5dCf42D6aCfd4Dc4Cf90DabDcbC06eD84Cfc0Dc8C667DeaCb16D38Cb93Db9C56aD63Cff4Db4Ca65D75C856DbdCf42D57Cfd3Dd6Ce14D49C17dDa7Ca8aD34Cfd2Dd7Cb37D36Ce91DdaC39bD95C99aD14D24Cb95De7C89bD82C657D4cCfe4Db5Cd43D9dC08fD96C996Dd4Cf23D5aC667D99C847D6dC657D77Cd34D8d"{
+
+filepath=File.openDialog("Select a File"); 
+prefix=substring(filepath,0,indexOf(filepath,"."));
+
+filepathmp4=prefix+".mp4";
+filepathogv=prefix+".ogv";
+filepathwebm=prefix+".webm";
+
+dirmacro=getDirectory("macros");
+dirbin=dirmacro+"bin\\";
+print("\\Clear"); 
+
+/*
+ffmpeg -i ma_video.avi -vcodec libx264 ma_video.mp4
+ffmpeg -i ma_video.avi -vcodec libtheora ma_video.ogv
+ffmpeg -i ma_video.avi -b 1000k ma_video.webm
+*/
+command1=dirbin+"ffmpeg -i "+filepath+" -vcodec libx264 "+filepathmp4;
+command2=dirbin+"ffmpeg -i "+filepath+" -vcodec libtheora "+filepathogv;
+command3=dirbin+"ffmpeg -i "+filepath+" -b 1000k "+filepathwebm;
+
+
+print (command1);
+print (command2);
+print (command3);
+
+waitForUser("Conversion via FFMPEG", "Fermer la fenetre de commande une fois la conversion terminee");
+selectWindow("Log");//sauvegarder en .bat
+		saveAs("Text",dirbin+"cmd.txt");
+		if (File.exists(dirbin+"cmd.bat")) File.delete(dirbin+"cmd.bat");
+        File.rename(dirbin+"cmd.txt",dirbin+"cmd.bat");
+		exec("cmd", "/c", "start", dirbin+"cmd.bat");
+
+print("ok");
+/*print("Code HTML5");
+print("<video width=\"572\" height=\"316\" controls>");
+print("<source src=\"../download/videos/"+filepathmp4+"\" type=\"video/mp4\" /> ");
+print("<source src=\"../download/videos/"+filepathwebm+"\" type=\"video/webm\" /> ");
+print("<source src=\"../download/videos/"+filepathogv+"\" type=\"video/ogg\" /> ");
+print("</video> ");*/
+  
+
+exit();
+}
+
+
+////////////////////////////////////////////////////////////////Virtual dub Save////////////////////////////////////////////
+macro "Compression Action Tool - C000D00D01D02D03D04D05D06D07D08D09D0aD0bD0cD0dD0eD11D15D19D1dD21D25D29D2dD31D35D39D3dD41D45D49D4aD4dD51D55D56D57D58D5bD5cD5dD5eD61D65D6eD70D71D72D73D74D75D7eD85D88D89D8aD8bD8eD94D98D9bD9fDa4Da8DabDafDb8Db9DbaDbbDbeDc5DceDd5Dd7DdeDe5De6De7De8DebDecDedDeeDf9DfaCcccD22D23D24D26D27D28D2aD2bD2cD32D33D34D36D37D38D3aD3bD3cD42D43D44D46D47D4cD52D53D54D59D5aD66D69D6aD6dD77D78D7bD7cD87D8cD95D96D9dD9eDa5Da6DadDaeDb7DbcDc7Dc8DcbDccDd6Dd9DdaDddDe9DeaC888D10D12D13D14D16D17D18D1aD1bD1cD1eD48D4bD60D62D63D64D67D68D6bD6cD76D79D7aD7dD84D86D8dD8fD97D9cDa7DacDb4Db5Db6DbdDbfDc6Dc9DcaDcdDd8DdbDdcDf8DfbCfffD0fD1fD20D2eD2fD30D3eD3fD40D4eD4fD50D5fD6fD7fD80D81D82D83D90D91D92D93D99D9aDa0Da1Da2Da3Da9DaaDb0Db1Db2Db3Dc0Dc1Dc2Dc3Dc4DcfDd0Dd1Dd2Dd3Dd4DdfDe0De1De2De3De4DefDf0Df1Df2Df3Df4Df5Df6Df7DfcDfdDfeDff"{
+
+
+
+filepath=File.openDialog("Select a File"); 
+filepathcompress=substring(filepath,0,indexOf(filepath,"."));
+//filepathffmpeg=filepathuncompress+"ffmpeg.avi";
+filepathcompress=filepathcompress+"compress.avi";
+dirmacro=getDirectory("macros");
+dirbin=dirmacro+"bin\\";
+
+
+
+
+ // Close "Log" window
+  if (isOpen("Log")) {
+      selectWindow("Log");
+      run("Close");
+  }
+print ("VirtualDub.audio.SetSource(0);");
+print ("VirtualDub.audio.SetMode(0);");
+print ("VirtualDub.audio.SetInterleave(1,500,1,0,0);");
+print ("VirtualDub.audio.SetClipMode(1,1);");
+print ("VirtualDub.audio.SetConversion(0,0,0,0,0);");
+print ("VirtualDub.audio.SetVolume();");
+print ("VirtualDub.audio.SetCompression();");
+print ("VirtualDub.audio.EnableFilterGraph(0);");
+print ("VirtualDub.video.SetInputFormat(0);");
+print ("VirtualDub.video.SetOutputFormat(7);");
+print ("VirtualDub.video.SetMode(3);");
+print ("VirtualDub.video.SetSmartRendering(0);");
+print ("VirtualDub.video.SetPreserveEmptyFrames(0);");
+print ("VirtualDub.video.SetFrameRate2(0,0,1);");
+print ("VirtualDub.video.SetIVTC(0, 0, 0, 0);");
+print ("VirtualDub.video.SetCompression(0x6376736d,0,10000,0);");
+print ("VirtualDub.video.SetCompData(4,\"SwAAAA==\");");
+print ("VirtualDub.video.filters.Clear();");
+print ("VirtualDub.audio.filters.Clear();");
+print ("VirtualDub.subset.Clear();");
+print ("VirtualDub.subset.AddRange(0,75);");
+print ("VirtualDub.video.SetRange();");
+print ("VirtualDub.project.ClearTextInfo();");
+print ("VirtualDub.Open(U\""+filepath+"\");");
+print ("VirtualDub.SaveAVI(U\""+filepathcompress+"\");");
+selectWindow("Log"); 
+saveAs("Text", dirbin+"scriptvirtualdubre.txt");
+command=dirbin+"vdub.exe /s "+dirbin+"scriptvirtualdubre.txt";
+exec(command);
+//print (command);
+wait_recursif(filepathcompress);
+print("ok");
+//open(filepathuncompress);
+}
+
+
+macro "Capture_Screen Action Tool - C47eD12D1dDd1De2DedC8adD03Df3C47eD21CeeeD65C48eDb3CbcdD02Df2C69dD3fDcfCfffDa5Dc9C47eD13D17D18D19D1aD1bD1cD22D2dD2eD31D3eD41D4eD51D52D5eD61D62D6eD71D72D7eD81D8eD91D9eDa1Da2DadDaeDb1Db2Db7DbcDbdDbeDc1Dc2Dc3Dc4Dc5Dc6Dc7DcdDceDd2Dd3Dd4Dd5Dd6Dd7DddDdeDe3De4De5De6De7C9bdD30D50D60D70D80D90Db0Dc0C48eD42D4dD5dD6dD7dD8dD92D9dCeffD01D98Da4Da6Df1CddeD1fC8adD04D05D06D07D08D09D0aD0bD0cDf4Df5Df6Df7Df8Df9DfaDfbDfcCfffD00D0fD39D3aD3bD49D4aD4bD59D5aD5bD69D6aD6bD79D7aD7bD89D8aD8bD99D9aD9bDaaDbaDcaDf0DffC9aeD2aDa7C68dD1eDeeCeefD10D47D58D97De0CcdeD83C8adD11De1C9bdD0dDfdC58eDe9DeaCeffD55CdefD24D26D38D84D86Da9C9adD40Da0C68dD4fD5fD6fD7fD8fD9fDafDbfCeefD34D68D74D76D78DcbDd9DdaDdbCcdeD33D3cDb9C69eD15CfffD25D48D54D56D75D88CdefD4cD5cD6cD7cD8cC9beD53CcdfD46C79eD23D27CabeD64D66C69eD2cD67C8aeD29D2bD85Da3Da8DdcC48eD32D3dD63D82Db8DecCeeeD87CbcdD20Dd0C69eD28D45CdeeD0eD37D94DfeCdeeD44C9beD35D77C58eDe8C79eD95Db4Db6Dc8C9beDb5CddfD43D93D96D9cC7aeDacCaceD57C8adDdfCddeDabDefC58eD14D16DccDebCeefD36CaceDbbCabeDd8C8adD2fC8aeD73"{
+
+run("Capture Screen Plugin");
+
+}    
+
+
+
+
+
+
+
+
+////////////////////////////////////////////////////////////////label=ConvertBatch////////////////////////////////////////////
+
+/*commande ffmepg libmp3lame-0
+ffmpeg -i video.avi -c:v libx264 -preset slow -crf 20 -c:a copy video.mp4*/
+
+macro "ConvertBatch Action Tool - C2a3D47CbceD89CbbcDaaCfffD00D01D02D03D04D05D06D07D09D0aD0bD0cD0dD0eD0fD10D11D12D13D1cD1dD1eD1fD20D21D2dD2eD2fD30D3eD3fD40D4eD4fD50D5fD60D6fD7fD8fD9fDa0DafDb0DbeDbfDc0Dc1DceDcfDd0Dd1Dd2DddDdfDe0De1De2DeaDebDedDefDf0Df1Df2Df3Df4Df5Df6Df7Df8Df9DfaDfbDfcDfdDfeDffCa99Dc6CffeDc8CcccD81C877D7cCeeeD4dD61DcdDd3DdcDe7CbbdD7aCbbbD7bDd4CfffD3dCcceD93C3c1D46CeeeD8eCcbcD6dCaaaD95Dc4CfffDd8De3De9CccdD68C998D9cCeefD18Da1DdaCbbdD8aC9d9D25CfffD08DaeDd9De8CddeD3aD3cD5aD7eC876D96Da6CeeeD15D23CbbbD8dCaaaDcbDd6CfffD14D1bD22D2cD41D70D80D90D9eDc2CcecD24C888Dc5CcccD2aDa2CacaD62CfffD5eDb1DdeDeeCdddD28C6b5D55CeeeD6eCbcbD58CaabDb4CdddD16C7a7D63CeffD17D51CccdDb9CbcbD76CeeeDb2Db8DdbDe4C4a4D37CeeeD19D29D39D4aDc9CabcD94D9aCaa9D97CccdD2bD49D92C887D8cCbbdD6aCbbbDbcCfffD31DecCdceD4bC4c2D45CbbcD59D74Da8CaabDbaCdddD91C998Db5CbcdD84CbcaD33C6a6D66CcbbD9dCba9Da7CdddD5dD75D82Dd7De6C988D86CcccDc3CacaD38D52D67CdedD32C6b6D34CeefD5bCbcbD72CbabD7dCdddD1aC8c6D43D54CccdD83D88CbdbD42C3a3D56CcceD69CbbcD98Db3Caa9D87CcccDadC777DbbCbbdDa9CabbD73CcceD78C3b2D36C988D9bCbbbDccC888DabCbbbD77CdddD71DbdC6d4D44CcccDc7CaabDa4C8a8D48CccdDa3C6a6D26Caa9D8bC987Db6CcbdD4cD5cCbbbDcaCddeD6bC4c3D35CbbaDb7Ca99Da5CbbeD99CadaD27C6b6D57CbbcD3bD6cCaaaDacC888Dd5C7b6D53CcdbD64CabbD85CcdbD65CccfD79CddcDe5"{
+
+dir1 = getDirectory("Choix du Répertoire Source ");
+list = getFileList(dir1);
+dir2 = getDirectory("Choix du Répertoire Cible ");	
+//setBatchMode(true);
+      for (i=0; i<list.length; i++) {
+          showProgress(i+1, list.length);
+           if (endsWith(list[i], '.mov')){
+           	run("Movie (FFMPEG)...", "choose=["+dir1+list[i]+"] use_virtual_stack first_frame=0 last_frame=-1");
+           	fichier=substring(list[i],0,indexOf(list[i],".mov"));
+           	run("Save as Movie", "frame="+nbframe+" container=.avi using=WMV7 video=excellent save="+dir2+fichier+".avi");
+           	close();
+          }
+          if (endsWith(list[i], '.avi')){
+           	run("Movie (FFMPEG)...", "choose=["+dir1+list[i]+"] use_virtual_stack first_frame=0 last_frame=-1");
+           	fichier=substring(list[i],0,indexOf(list[i],".avi"));
+           	run("Save as Movie", "frame="+nbframe+" container=.mov using=MPEG4 video=excellent save="+dir2+fichier+".mov");
+           	close();
+          }
+        }
+           
+
+}
+
+
+
+macro 'ConvertBatch Action Tool Options'  {
+	  Dialog.create("Nombre de frame");
+	  Dialog.addMessage("Nombre d images par seconde");
+    Dialog.addNumber("Nombre de frame:", nbframe);
+    Dialog.show();
+    nbframe=Dialog.getNumber();
+    
+
+}
+
+
+
+//////////////////////////////////////////////////////////?//////////////////////////////////
+
+
+macro "About These Macros Action Tool - C000C111C222C333C444C555D54D55D63D73D7cD7dD83D88D89D8aD8cD8dD93D97Da3Da4Da5Da6C555D7aDb5C555D72D82C555D45Da7C555D98C555D53C555D79C555C666Db4C666Db6C666C777D92C777D87C777D64C777D62C777C888D44C888D96C888D78C999D94C999CaaaCbbbD99Db3CbbbDa2CbbbDa8CbbbCcccDb7CcccD52CcccD43CcccD65CcccCdddD74CdddD77CdddD86CdddD84D95CdddD00D01D02D03D04D05D06D07D08D09D0aD0bD0cD0dD0eD0fD10D11D12D13D14D15D16D17D18D19D1aD1bD1cD1dD1eD1fD20D21D22D23D24D25D26D27D28D29D2aD2bD2cD2dD2eD2fD30D31D32D33D34D35D36D37D38D39D3aD3bD3cD3dD3eD3fD40D41D42D46D47D48D49D4aD4bD4cD4dD4eD4fD50D51D56D57D58D59D5aD5bD5cD5dD5eD5fD60D61D66D67D68D69D6aD6bD6cD6dD6eD6fD70D71D75D76D7bD7eD7fD80D81D85D8bD8eD8fD90D91D9aD9bD9cD9dD9eD9fDa0Da1Da9DaaDabDacDadDaeDafDb0Db1Db2Db8Db9DbaDbbDbcDbdDbeDbfDc0Dc1Dc2Dc3Dc4Dc5Dc6Dc7Dc8Dc9DcaDcbDccDcdDceDcfDd0Dd1Dd2Dd3Dd4Dd5Dd6Dd7Dd8Dd9DdaDdbDdcDddDdeDdfDe0De1De2De3De4De5De6De7De8De9DeaDebDecDedDeeDefDf0Df1Df2Df3Df4Df5Df6Df7Df8Df9DfaDfbDfcDfdDfeDff"{
+open(getDirectory("macros")+"toolsets/PHIV_Video_toolset.txt");
+}	
+	
+
+
+///////////////////////Fonctions////////////////
+
+
+function	wait_recursif (path){
+	if (!File.exists(path)){
+		 wait (5000);
+		 wait_recursif (path);
+		}
+		//else open (path);
+}
+	
+
+function taille_video(){
+	getDimensions(width, height, channels, slices, frames);
+	if (width>2048||height>2048){
+	
+		if (width>height )run("Size...", "width=2048 height=560 constrain average interpolation=Bilinear");
+		if (width<=height )run("Size...", "width="+(width*(2048/height))+"    height=2048 constrain average interpolation=Bilinear");
+	}
+	getDimensions(width, height, channels, slices, frames);
+	width=width-(width%16);
+	height=height-(height%16);
+	makeRectangle(0, 0, width, height);
+	run("Crop");
+}	
+	

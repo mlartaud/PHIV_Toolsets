@@ -1,0 +1,211 @@
+// PHIV Matlab Tool Set
+// Marc LARTAUD MRI PHIV
+// Boite a outils pour l analyse d images multispectrales dans Matlab
+
+
+/*
+Matlab = a partir d une image .lsm choix d un dossier de travail pour matlab copie dedans tous les fichiers
+en option choix de l emplacement du dossier de base ou sont tous les scripts matlab
+par defaut "D:\\Mes donnees\\matlab\\la base"
+Mask = creation d un masque et sauvegarde dans le dossier de travail
+//Luminosite Contraste = reglages!
+Spectre = mets dans le presse papier les spectres des roi pour les coller dans le fichier spectres.csv
+Composite = creation d une image composite des stacks unmix en options le nombre de cannaux
+Lut = choix des lut
+on peut aussi utiliser stack sorter pour mettre les couches dans l ordre  R G B C M Y
+
+
+
+
+*/
+
+var canaux=5;
+     var dCmds = newMenu("Lut Menu Tool",
+      newArray("Red","Green", "Blue", "Cyan", "Magenta", "Yellow", "Matlab"));
+
+
+//macro "Unused Tool-1 - " {}  // laisse une place libre!
+
+var dir="";
+var dirbase="D:\\Mes donnees\\matlab\\la base";
+var fichier_unmix="unmix_pca.tif";
+
+macro "Matlab Action Tool - C412D67C511D78C234D3bC554D6eC333DcbDdbDecCc42D8bC335D76C744Da1C233D0bD0cD0dD0eD1bD1cD1dD1eD2bD2cD2dD2eD3cD3dD3eD4cD4dD4eD5dD5eD9eDadDaeDbcDbdDbeDccDcdDceDdcDddDdeDedDeeDfdDfeC922D89C244D09C667D04Da0C333D0aD5cCc73Da3C258D75C888D02D41D50D60C412D69C533DebC424D5aC666D05D15D24D34D63C233DafDbfDcfCd73Db2C245D74C777D22D32C943DdaC444Dc2C567D91C333D07D17D26D36D7fDdfDe7DefDf7Df8Df9DfaDffCe93Db6Db7C38bD19C899D01D20D30C711D6aC344D45D54D64Dd4De4De5Df4Df5C555De0C233D0fD1aD1fD2fD3fD4bD4fD5fD6fD8fD9fCd53D9aC454Dd1De1Df1C777D03D13D23D42D71D80D90Ca32D7bC444Dd3De3Df3C777D33D52D81C333DfcCe73DaaC368D37C888D21D31C423D77C821D6bD7aD88C433De8C666D14D53D72Dc0Ce73D9cDa9Dc9C356D08C788D12D51D61D70C953DcaC444D44D73Dd2De2Df2C48cD48D49Ce93D7dC49cD3aCb74D6dC512D5bC333De6Df6C555D16D25Dc1Cd43Dd9C335D66C854Db1C922D96C344D27C677D43D62Db0Ce73DabC268D2aC733Dc3Dd6C434D93Ce63D8cC435D57Cb33Dc4C57aD58C48bD47D4aC999D00D10C821D95C566D06Dd0Cd63D7cCb32DeaCe83D8dDb8Db9DbaC47aD59C888D11D40C733De9C443DacC347D56Cc42D6cD99C49dD28Cf93Db5C49dD29D38Cea3Db4C511D86C334D46C455D82Df0Cc43Dc5Ce73Da5C533DfbCe73Da6Cb32D98C711D79D87Ce53Dc7Ca32D8aC269D84C443DbbC256D83Cb62Da2C49dD39C611D94Cd43Dc6C345D55Ca32D97C444D35Cd83Da4C268D65C643D9dC434D85Ce73Da7Da8C346D68Cc32Dd8Ce63D9bDc8Cb33Dd7C48aD18C434Dd5C357D92Ceb3D7eC554D8eCe93Db3"{
+nom_orig=getInfo("image.directory")+"\\"+getInfo("image.filename");
+ if (endsWith(nom_orig, ".lsm")){
+dir=getDirectory("nouveau dossier pour l analyse matlab");
+exec("cmd", "/c", "copy", dirbase,dir );
+print (nom_orig);
+exec("cmd", "/c", "copy", nom_orig, dir );
+exec("cmd", "/c", "rename", dir+getInfo("image.filename"), "cube.lsm" );
+open(dir+"cube.lsm");
+}
+else showMessage("Vous devez ouvrir une image spectrale au format lsm");
+}
+  
+macro 'Matlab Action Tool Options'  {
+    //on right-click, the corresponding 'Options' macro is run
+    dirbase=getDirectory("dossier de base pour l analyse matlab");
+  	}
+
+
+
+
+
+
+macro "Mask Action Tool - C000D25D26D27D28D29D2aD2bD34D35D36D37D38D39D3aD3bD3cD43D44D45D46D47D48D49D4aD4bD4cD4dD53D54D55D56D57D58D59D5aD5bD5cD5dD62D63D64D65D66D67D68D69D6aD6bD6cD6dD72D73D74D75D76D77D78D79D7aD7bD7cD7dD82D83D84D85D86D87D88D89D8aD8bD8cD8dD93D94D95D96D97D98D99D9aD9bD9cD9dDa3Da4Da5Da6Da7Da8Da9DaaDabDacDadDb4Db5Db6Db7Db8Db9DbaDbbDbcDc5Dc6Dc7Dc8Dc9DcaDcbC333D1aC000D17D18Dd8CfffD00D01D02D03D04D05D0bD0cD0dD0eD0fD10D11D12D13D1dD1eD1fD20D21D22D2eD2fD30D31D3fD40D4fD50D60D70D80D90Da0DafDb0Db1DbfDc0Dc1Dc2DceDcfDd0Dd1Dd2Dd3DddDdeDdfDe0De1De2De3De4De5DebDecDedDeeDefDf0Df1Df2Df3Df4Df5Df6Df7Df8Df9DfaDfbDfcDfdDfeDffCcccD09D91De7C111D33D6eD8eDd9C999D4eDdbC111D19D52D7eD92Dd7CeeeD06De6C222D16D24Db3C555Da2DbdDccCdddD2dD6fD8fDcdCbbbDc3CfffD41D5fD9fDa1DeaC222Dc4Dd6C444D2cD3dD42CdddD14D7fDd4De9CaaaD23CeeeD0aD1cD3eDbeDdcC666D15CcccD07D32D51Db2De8C444D5eD9eC999D61D81DaeCbbbD08C888D1bD71C333DdaC777Dd5"{
+
+resetdir=0;
+if (dir==""){
+	 dir=getInfo("image.directory")+"\\";
+	 resetdir=1;
+	}
+	print (dir);
+run("Z Project...", "projection=[Max Intensity]");
+run("Threshold...");
+setAutoThreshold("Default dark");
+title = "Masque";
+msg = "Reglage du seuil";
+waitForUser(title, msg);
+run("Create Selection");
+run("Create Mask");
+rename("mask");
+saveAs(dir+"mask.tif");
+close();
+selectWindow("MAX_cube.lsm");
+close();
+selectWindow("cube.lsm");
+close();
+if (resetdir!=1) showMessage("Lancer les scripts matlab dans "+dir);
+if (resetdir==1) dir="";
+}
+
+
+  macro "Luminosite Contraste Action Tool - C874D8aD99Da8CdddD3aDc6CdddD0bD0cD0dD0eD0fD1bD1cD1dD1eD1fD2bD2cD2dD2eD2fD3cD3dD3eD3fD4cD4dD4eD4fD5bD5cD5dD5eD5fD6dD6eD6fD7dD7eD7fD8dD8eD8fD9bD9cD9dD9eD9fDacDadDaeDafDbcDbdDbeDbfDcbDccDcdDceDcfDdbDdcDddDdeDdfDebDecDedDeeDefDfbDfcDfdDfeDffCfffD00D10D20D30D40D50D60D70D80D90Da0Db0Dc0Dd0De0Df0Ccc9D9aCeeeD01D02D03D04D05D11D12D13D14D15D21D22D23D24D25D31D32D35D41D42D51D52D53D61D71D81D91D92D93Da1Da2Db1Db2Db5Dc1Dc2Dc3Dc4Dc5Dd1Dd2Dd3Dd4Dd5De1De2De3De4De5Df1Df2Df3Df4Df5CeecD34D43CfffD67D76Cb94D95CeedD82CccbD8bD8cCfffD56D65D66Ca94D59D84CdddD06D07D08D09D0aD16D17D18D19D1aD29D2aD39Db9Dc9DcaDd6Dd7Dd8Dd9DdaDe6De7De8De9DeaDf6Df7Df8Df9DfaCbbaDabDbaCca7D3bCeedD26CeebD58C984D6aDa6Cec8D33D72Ccb6D79D97CffdD57D75CedbD63Db4Ca86DaaCcc9Da9Cdb8D37D4aCeeeD62CeecDa3C974D7aDa7Cdd8D45D54Cba6D89D98CdcbD6cCb94D47D48CccaDb8Dc8Cdb7D69D96CfebD68D85Ca84D64D74Cec9D27Cca7D44CddbD36Ca96D7bD7cDb7Dc7CedaD78D87Cdc8D73Db3CfecD77Cdc8D5aCb95D46Ccb7D88CfebD86CddaDa5CeecD28D38D83Cdb5D55CddbD6bDb6C986DbbCec9Da4CddcD4bCedaD94Cdd9D49"{
+nS=getSliceNumber();
+for (i=1;i<nSlices+1;i++){
+setSlice(i);
+resetMinAndMax();
+}
+setSlice(nS);
+run("Brightness/Contrast...");
+}
+
+
+
+
+
+macro "Spectre Action Tool - C111D7bCfffD00D01D02D03D04D05D06D07D08D09D0aD0fD10D11D12D13D14D15D16D17D18D19D1aD1eD1fD20D21D22D23D24D25D26D27D28D29D2dD2eD2fD30D31D32D33D34D35D36D3dD3eD3fD40D41D42D43D4cD4dD4eD4fD50D51D52D53D5aD5bD5cD5dD5eD5fD60D61D62D63D64D6dD6eD6fD70D71D72D73D74D7eD7fD8dD8eD8fD98D99D9aD9bD9cD9dD9eD9fDa3Da4Da5Da6Da7Da8Da9DaaDabDacDadDaeDafDb5Db6Db7Db8Db9DbaDbbDbcDbdDbeDbfDc0Dc8Dc9DcaDcbDccDcdDceDcfDd0Dd1Dd2Dd3DdbDdcDddDdeDdfDe0De1De2De3De4De5DeeDefDf0Df1Df2Df3Df4Df5Df6Df7Df8CaaaD6bD93Dd5C666D46Db1Dc3CdddD80D95Dd4DffC555D3aD68D85D86D91De9CcccD1bD4aD81D8bDecC888D0cD67D83DfbCfffD0bD2aD4bD75D97Dc1De6DedDf9C555D3bD47D69Db2DeaDfcCbbbD38D66C777Dd8CeeeD37D59D76D96Da2Dc7DdaC666D48D87Dd6CdddD1dD6cD77D7dDe7DfaC999D2bD49D89De8C444D7cDfdCbbbD78D8aDc2Dc6C777D57D6aD79D84D88Da1Dc5CeeeD44D65D8cDb0Db4CcccD3cD58D94Dd9C888D2cD39D92DebDfeC999D0eC222D7aCaaaD45D54D82Db3C444D1cDa0Dc4Dd7C222D56D90C333D55C333D0d"{
+run("Set Measurements...", "  mean limit redirect=None decimal=3");
+run("Plot Z-axis Profile");
+String.copyResults();
+}
+
+
+
+macro "StackSpectre Action Tool - C258D25D57CdddD00D01D02D03D04D05D06D07D08D09D0aD0bD0cD0dD0eD10D11D12D13D17D19D1aD1bD1cD1dD1eD20D21D22D2aD2bD2cD2dD2eD30D31D32D3aD3bD3cD3dD3eD40D41D42D4aD4bD4cD4dD4eD50D51D52D5aD5bD5cD5dD5eD60D61D62D63D69D6aD6bD6cD6dD6eD70D71D72D73D7aD7bD7cD7dD7eD80D81D82D83D8aD8bD8cD8dD8eD90D91D92D93D9aD9bD9cD9dD9eDa0Da1Da2Da3DaaDabDacDadDaeDb0Db1Db2Db3Db4Db9DbdDbeDc0Dc1Dc2Dc3Dc4DceDd0Dd1Dd2Dd3Dd4Dd5Dd6Dd7Dd9DdeDe0De1De2De3De4De5De6De7De8De9DedDeeDf0Df1Df2Df3Df4Df5Df6Df7Df8Df9DfaDfbDfcDfdDfeCbbcD27D39D49D66C68aD24D35D47D78CcddD23D29D53D59Ca22DcbDdbCccdD65D67D79Dc5Dc9C9abDc7CdddDbaDbcDcdDddDeaDecC469D34D38D44D48CccdD15D74D87D89D95D96D97D98Da9C78aDc8CdccDcaDdaC579D75CabcDa4CdddD16Db5C358Da7CbccD33D43Db8CdddD14D18D64D68D94Dd8Cb88DbbC9abD88C579Da6Db7C89bD86C67aD28D54D58D77Da5Da8CbbcD85CdddD84D99C358D76Cb66DccDdcC9abDc6C79aDb6CabcD37D45D55C368D36Cc88DebC9abD56C8abD26C469D46"{
+run("Profile Plot Options...", "width=450 height=200 minimum=0 maximum=0 fixed interpolate draw");
+dirstack=getDirectory("Dossier matlab");
+open(dirstack+"cube.lsm");
+open(dirstack+fichier_unmix);
+n=nSlices;
+run("Set Measurements...", "  mean display redirect=None decimal=3");
+for(i=1;i<=n;i++){
+selectWindow(fichier_unmix);
+setSlice(i);
+setAutoThreshold("Yen dark");
+run("Create Selection");
+run("Add to Manager");
+run("Select None");
+resetThreshold();
+selectWindow("cube.lsm");
+run("Restore Selection");
+run("Plot Z-axis Profile");
+//String.copyResults();
+//selectWindow("cube.lsm-0-0");
+rename("spectre"+i);
+}
+run("Images to Stack", "name=Stack title=spectre use");
+saveAs("Tiff", dirstack+fichier_unmix+"spectres.tif");
+roiManager("Save",dirstack+fichier_unmix+"RoiSet.zip");
+run("Set Measurements...", "area mean integrated display redirect=None decimal=3");
+selectWindow(fichier_unmix);
+run("Clear Results");
+roiManager("Measure");
+//scores acp dasn matlab monacp.engenval.d
+}
+
+macro 'StackSpectre Action Tool Options'  {
+    //on right-click, the corresponding 'Options' macro is run
+  Dialog.create("Analyse spectrale");
+  Dialog.addChoice("Type:", newArray("unmix_pca.tif", "unmix_maf.tif", "unmix_kmeans.tif", "unmix_discrim.tif"));
+  Dialog.show();
+  fichier_unmix = Dialog.getChoice();
+  	}
+
+
+////////////////////////////////////////////////////////////////label=Composite////////////////////////////////////////////
+
+macro "Composite Action Tool - Cf00D00D01D02D03D04D05D06D07D08D09D0aD0bD0cD0dD0eD0fD10D11D12D13D14D15D16D17D18D19D1aD1bD1cD1dD1eD1fC02dD60D61D62D63D64D65D66D67D68D69D6aD6bD6cD6dD6eD6fC0f0D40D41D42D43D44D45D46D47D48D49D4aD4bD4cD4dD4eD4fCf0eDc0Dc1Dc2Dc3Dc4Dc5Dc6Dc7Dc8Dc9DcaDcbDccDcdDceDcfCd20D20D21D22D23D24D25D26D27D28D29D2aD2bD2cD2dD2eD2fC08fD80D81D82D83D84D85D86D87D88D89D8aD8bD8cD8dD8eD8fCfc2De0De1De2De3De4De5De6De7De8De9DeaDebDecDedDeeDefCa5eDb0Db1Db2Db3Db4Db5Db6Db7Db8Db9DbaDbbDbcDbdDbeDbfC01fD70D71D72D73D74D75D76D77D78D79D7aD7bD7cD7dD7eD7fC0a5D50D51D52D53D54D55D56D57D58D59D5aD5bD5cD5dD5eD5fCf59Dd0Dd1Dd2Dd3Dd4Dd5Dd6Dd7Dd8Dd9DdaDdbDdcDddDdeDdfC5a0D30D31D32D33D34D35D36D37D38D39D3aD3bD3cD3dD3eD3fC0ffD90D91D92D93D94D95D96D97D98D99D9aD9bD9cD9dD9eD9fCff0Df0Df1Df2Df3Df4Df5Df6Df7Df8Df9DfaDfbDfcDfdDfeDffC2dfDa0Da1Da2Da3Da4Da5Da6Da7Da8Da9DaaDabDacDadDaeDaf"{
+commande="";
+nom=getTitle();
+origID=getImageID();
+selectImage(origID);
+if (canaux>nSlices) canaux=nSlices;
+
+for(i=1; i<=canaux; i++) {
+            setSlice(i);
+            run("Duplicate...", "title="+i);
+            selectImage(origID);
+            }
+for(i=1; i<=canaux; i++) {
+           if (i<4) commande=commande+" c"+i+"="+i+" "; 
+           else commande=commande+" c"+i+1+"="+i+" ";       
+            }
+            //print (commande);
+
+
+run("Merge Channels...", commande+" create");
+rename(nom+"_Composite");
+for (i=1;i<nSlices+1;i++){
+setSlice(i);
+run("Enhance Contrast", "saturated=0.35");
+}
+run("Channels Tool... ");
+run("Brightness/Contrast...");
+run("Stack Sorter");
+
+}
+
+macro 'Composite Action Tool Options'  {
+    //on right-click, the corresponding 'Options' macro is run
+    Dialog.create("Nombre de canaux"); //e.g., put a dialog here
+    Dialog.addNumber("Canaux :", canaux);
+    Dialog.show();
+    canaux = Dialog.getNumber();
+  	}
+
+
+
+
+      
+  macro "Lut Menu Tool - C037T0b11LT6b09UTcb09T" {
+       cmd = getArgument();
+       if (cmd=="Red") run("Red");
+       if (cmd=="Green") run("Green");
+       if (cmd=="Blue") run("Blue");
+       if (cmd=="Cyan") run("Cyan");
+       if (cmd=="Magenta") run("Magenta");
+       if (cmd=="Yellow") run("Yellow");
+       if (cmd=="Matlab") run("colormap_matlab");
+
+
+       
+	 else if (cmd!="-")
+            run(cmd);
+  }
+
+
+macro "About These Macros Action Tool - C000C111C222C333C444C555D54D55D63D73D7cD7dD83D88D89D8aD8cD8dD93D97Da3Da4Da5Da6C555D7aDb5C555D72D82C555D45Da7C555D98C555D53C555D79C555C666Db4C666Db6C666C777D92C777D87C777D64C777D62C777C888D44C888D96C888D78C999D94C999CaaaCbbbD99Db3CbbbDa2CbbbDa8CbbbCcccDb7CcccD52CcccD43CcccD65CcccCdddD74CdddD77CdddD86CdddD84D95CdddD00D01D02D03D04D05D06D07D08D09D0aD0bD0cD0dD0eD0fD10D11D12D13D14D15D16D17D18D19D1aD1bD1cD1dD1eD1fD20D21D22D23D24D25D26D27D28D29D2aD2bD2cD2dD2eD2fD30D31D32D33D34D35D36D37D38D39D3aD3bD3cD3dD3eD3fD40D41D42D46D47D48D49D4aD4bD4cD4dD4eD4fD50D51D56D57D58D59D5aD5bD5cD5dD5eD5fD60D61D66D67D68D69D6aD6bD6cD6dD6eD6fD70D71D75D76D7bD7eD7fD80D81D85D8bD8eD8fD90D91D9aD9bD9cD9dD9eD9fDa0Da1Da9DaaDabDacDadDaeDafDb0Db1Db2Db8Db9DbaDbbDbcDbdDbeDbfDc0Dc1Dc2Dc3Dc4Dc5Dc6Dc7Dc8Dc9DcaDcbDccDcdDceDcfDd0Dd1Dd2Dd3Dd4Dd5Dd6Dd7Dd8Dd9DdaDdbDdcDddDdeDdfDe0De1De2De3De4De5De6De7De8De9DeaDebDecDedDeeDefDf0Df1Df2Df3Df4Df5Df6Df7Df8Df9DfaDfbDfcDfdDfeDff"{
+open(getDirectory("macros")+"toolsets/PHIV_Matlab_toolset.txt");
+}

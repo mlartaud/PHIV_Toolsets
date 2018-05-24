@@ -1,0 +1,459 @@
+// Outil pour calibrer spatialement et ajouter une barre d echelle
+// aux images capturees sur les microscopes PHIV
+// Marc LARTAUD MRI PHIV
+
+// "Configuration capture" pour choisir le microscope, la camera, l objectif et le grossissement
+// "Scale Bar" pour calibrer et ajouter une barre d echelle a une image active
+// "Batch Scale" pour calibrer et ajouter une barre d echelle a toutes les images d un dossier
+//    en option (clic droit) 	- ajout ou non de la barre
+//				- position de la barre
+//				- couleur de la barre
+
+/// Montage										
+
+
+
+
+
+//variables glogales
+var Microscope="DM6000";
+var Camera="Retiga 4000R";
+var Objectif="10";
+var Grossissement="1";
+var Taille_pix=0;
+var Taille_bar=100;
+var ajout_bar=true;
+var position_bar="Lower Right";
+var color_bar="White";
+var Calib=0;
+
+macro "AutoRun"{
+	setTool("rectangle");
+	setForegroundColor(255, 255, 255);//premier plan blanc
+	setBackgroundColor(0,0,0);// fond noir
+	run("Set Measurements...", "area shape display redirect=None decimal=3");
+	requires("1.49p");
+}
+
+
+
+////////////////////////////////////////////////////////////////Capture////////////////////////////////////////////
+macro "Configuration Capture Action Tool - C211D81DabCfffD00D01D02D03D04D05D06D07D08D09D0aD0bD0cD0dD0eD0fD10D11D12D13D14D15D16D17D18D19D1aD1bD1cD1dD1eD1fD20D21D22D23D24D25D26D27D28D29D2aD2bD2cD2dD2eD2fD30D31D32D33D34D35D36D37D38D39D3aD3bD3cD3dD3eD3fD40D41D42D43D44D45D46D47D48D49D4aD4bD4cD4dD4eD50D51D52D53D54D55D60D61D62D63D64D65D70D71D72D73D74D75D76D78D79D88D89D8cD93D9cDa8Da9DacDb0Db1Db2Db3Db4Db5Db6Db7Db8Db9DbcDbdDc0Dc1Dc2Dc3Dc4Dc5Dc6Dc7Dc8Dc9DcaDcbDccDcdDceDcfDd0Dd1Dd2Dd3Dd4Dd5Dd6Dd7Dd8Dd9DdaDdbDdcDddDdeDdfDe0De1De2De3De4De5De6De7De8De9DeaDebDecDedDeeDefDf0Df1Df2Df3Df4Df5Df6Df7Df8Df9DfaDfbDfcDfdDfeDffCa60D7bD7fD8fD9fC850D77D7eD82D8eD98D9bCb72D6bD6eD92Da5Da6C740D67D97DadCc70D6fD7dDa2Da7DbbC862D4fD5fD69D6cD7cD84D85Da4DbeCdb8D83D87D8aD9dDa1C432D6aD91D94D95D96D9aCb70D5aD86D99DafDbfC960D56D57D59D5eD6dD8bDaeCd92D58C654D5bD5cD5dD66D80D8dD90D9eDa0Da3DbaCd90D68D7aDaa"{
+	Calib=0;
+  Dialog.create("Capture");
+  items = newArray("DM6000", "DM4500", "DMRXA", "Nikon");
+  Dialog.addRadioButtonGroup("Microscope", items, 3, 1, Microscope);
+  items = newArray("Retiga 4000R","Retiga 2000R", "Nikon 4908x3264","Nikon 1636x1088", "MicroPublisher Qimaging couleur");
+  Dialog.addRadioButtonGroup("Camera", items, 3, 1, Camera);
+  items = newArray("1.25","2","2.5","4", "5", "10", "20", "40", "63", "100");
+  Dialog.addRadioButtonGroup("Objectif", items, 8, 1, Objectif);
+  items = newArray("1", "1.25", "1.6");
+  Dialog.addRadioButtonGroup("Grossissement", items, 3, 1, Grossissement);
+  Dialog.show;
+	Microscope=Dialog.getRadioButton;
+	Camera=Dialog.getRadioButton;
+	Objectif=Dialog.getRadioButton;
+	Grossissement=Dialog.getRadioButton;
+	///////////////Nikon
+		if (Microscope=="Nikon"){
+		if (Camera=="Nikon 4908x3264"){
+			if (Objectif=="2"){
+				Taille_bar=300;
+				Calib=1;Taille_pix=1.45;				
+			}
+			if (Objectif=="4"){
+				Taille_bar=150;
+				Calib=1;Taille_pix=0.72;				
+			}
+			if (Objectif=="10"){
+				Taille_bar=100;
+				Calib=1;Taille_pix=0.2898;				
+			}
+			if (Objectif=="20"){
+				Taille_bar=50;
+				Calib=1;Taille_pix=0.1456;				
+			}
+			if (Objectif=="40"){
+				Taille_bar=20;
+				Calib=1;Taille_pix=0.0736801;				
+			}
+			if (Objectif=="100"){
+				Taille_bar=10;
+				Calib=1;Taille_pix=0.029563;				
+			}
+								
+		}
+		if (Camera=="Nikon 1636x1088"){
+			if (Objectif=="2"){
+				Taille_bar=500;
+				Calib=1;Taille_pix=4.35;				
+			}
+			if (Objectif=="4"){
+				Taille_bar=300;
+				Calib=1;Taille_pix=2.1600;				
+			}
+			if (Objectif=="10"){
+				Taille_bar=250;
+				Calib=1;Taille_pix=0.8693;				
+			}
+			if (Objectif=="20"){
+				Taille_bar=150;
+				Calib=1;Taille_pix=0.4367;				
+			}
+			if (Objectif=="40"){
+				Taille_bar=50;
+				Calib=1;Taille_pix=0.2210;				
+			}
+			if (Objectif=="100"){
+				Taille_bar=20;
+				Calib=1;Taille_pix=0.0887;				
+			}
+								
+		}
+		
+	}
+	
+	
+	
+	//////////////DM6000
+	if (Microscope=="DM6000"){
+		if (Camera=="Retiga 4000R"){
+			if (Objectif=="1.25"){
+				Taille_bar=400;
+				if (Grossissement=="1"){
+					Calib=1;Taille_pix=5.8708;
+				}
+				if (Grossissement=="1.25"){
+					Calib=1;Taille_pix=4.7096;
+				}
+				if (Grossissement=="1.6"){
+					Calib=1;Taille_pix=3.6923;
+				}
+			}
+				
+			if (Objectif=="5"){
+				Taille_bar=150;
+				if (Grossissement=="1"){
+					Calib=1;Taille_pix=1.4717;
+				}
+				if (Grossissement=="1.25"){
+					Calib=1;Taille_pix=1.1813;
+				}
+				if (Grossissement=="1.6"){
+					Calib=1;Taille_pix=0.9251;
+				}
+			}
+				
+			if (Objectif=="10"){
+				Taille_bar=100;
+				if (Grossissement=="1"){
+					Calib=1;Taille_pix=0.7435;
+				}
+				if (Grossissement=="1.25"){
+					Calib=1;Taille_pix=0.5970;
+				}
+				if (Grossissement=="1.6"){
+					Calib=1;Taille_pix=0.4668;
+				}				
+			}
+			
+			if (Objectif=="20"){
+				Taille_bar=50;
+				if (Grossissement=="1"){
+					Calib=1;Taille_pix=0.3659;
+				}
+				if (Grossissement=="1.25"){
+					Calib=1;Taille_pix=0.2945;
+				}
+				if (Grossissement=="1.6"){
+					Calib=1;Taille_pix=0.2305;
+				}				
+			}
+			
+			if (Objectif=="40"){
+				Taille_bar=20;
+				if (Grossissement=="1"){
+					Calib=1;Taille_pix=0.1829;
+				}
+				if (Grossissement=="1.25"){
+					Calib=1;Taille_pix=0.1473;
+				}
+				if (Grossissement=="1.6"){
+					Calib=1;Taille_pix=0.1153;
+				}				
+			}	
+			
+			if (Objectif=="63"){
+				Taille_bar=10;
+				if (Grossissement=="1"){
+					Calib=1;Taille_pix=0.1159;
+				}
+				if (Grossissement=="1.25"){
+					Calib=1;Taille_pix=0.0932;
+				}
+				if (Grossissement=="1.6"){
+					Calib=1;Taille_pix=0.0729;
+				}				
+			}	
+			
+			if (Objectif=="100"){
+				Taille_bar=10;
+				if (Grossissement=="1"){
+					Calib=1;Taille_pix=0.0723;
+				}
+				if (Grossissement=="1.25"){
+					Calib=1;Taille_pix=0.0581;	
+				}
+				if (Grossissement=="1.6"){
+					Calib=1;Taille_pix=0.0455;
+				}				
+			}					
+		}
+		
+	}
+	////////////DM4500
+	if (Microscope=="DM4500"){
+		if (Camera=="Retiga 2000R"){
+			if (Objectif=="1.25"){
+				Taille_bar=400;
+				if (Grossissement=="1"){
+					Calib=1;Taille_pix=5.8766;
+				}
+			}
+				
+			if (Objectif=="5"){
+				Taille_bar=150;
+				if (Grossissement=="1"){
+					Calib=1;Taille_pix=1.4663;
+				}
+			}
+				
+			if (Objectif=="10"){
+				Taille_bar=100;
+				if (Grossissement=="1"){
+					Calib=1;Taille_pix=0.7413;
+				}			
+			}
+			
+			if (Objectif=="20"){
+				Taille_bar=50;
+				if (Grossissement=="1"){
+					Calib=1;Taille_pix=0.3655;
+				}				
+			}
+			
+			if (Objectif=="40"){
+				Taille_bar=20;
+				if (Grossissement=="1"){
+					Calib=1;Taille_pix=0.1830;
+				}			
+			}	
+			
+			if (Objectif=="63"){
+				Taille_bar=10;
+				if (Grossissement=="1"){
+					Calib=1;Taille_pix=0.1162;
+				}								
+			}	
+			
+			if (Objectif=="100"){
+				Taille_bar=10;
+				if (Grossissement=="1"){
+					Calib=1;Taille_pix=0.0728;
+				}					
+			}					
+		}
+
+	}
+	
+	
+	/////DMRXA
+	
+		if (Microscope=="DMRXA"){
+		if (Camera=="MicroPublisher Qimaging couleur"){
+			if (Objectif=="1.25"){
+				Taille_bar=400;
+				if (Grossissement=="1"){
+					Calib=1;Taille_pix=2.7594;
+				}
+				if (Grossissement=="1.25"){
+					Calib=1;Taille_pix=2.2075;
+				}
+				if (Grossissement=="1.6"){
+					Calib=1;Taille_pix=1.7202;
+				}
+			}
+				
+			if (Objectif=="2.5"){
+				Taille_bar=200;
+				if (Grossissement=="1"){
+					Calib=1;Taille_pix=1.3793;
+				}
+				if (Grossissement=="1.25"){
+					Calib=1;Taille_pix=1.1038;
+				}
+				if (Grossissement=="1.6"){
+					Calib=1;Taille_pix=0.8613;
+				}
+			}
+			
+			if (Objectif=="5"){
+				Taille_bar=150;
+				if (Grossissement=="1"){
+					Calib=1;Taille_pix=0.6906;
+				}
+				if (Grossissement=="1.25"){
+					Calib=1;Taille_pix=0.5525;
+				}
+				if (Grossissement=="1.6"){
+					Calib=1;Taille_pix=0.4306;
+				}
+			}
+				
+			if (Objectif=="10"){
+				Taille_bar=100;
+				if (Grossissement=="1"){
+					Calib=1;Taille_pix=0.3428;
+				}
+				if (Grossissement=="1.25"){
+					Calib=1;Taille_pix=0.2747;
+				}
+				if (Grossissement=="1.6"){
+					Calib=1;Taille_pix=0.2134;
+				}				
+			}
+			
+			if (Objectif=="20"){
+				Taille_bar=50;
+				if (Grossissement=="1"){
+					Calib=1;Taille_pix=0.1734;
+				}
+				if (Grossissement=="1.25"){
+					Calib=1;Taille_pix=0.1389;
+				}
+				if (Grossissement=="1.6"){
+					Calib=1;Taille_pix=0.1083;
+				}				
+			}
+			
+			if (Objectif=="40"){
+				Taille_bar=20;
+				if (Grossissement=="1"){
+					Calib=1;Taille_pix=0.086;
+				}
+				if (Grossissement=="1.25"){
+					Calib=1;Taille_pix=0.0689;
+				}
+				if (Grossissement=="1.6"){
+					Calib=1;Taille_pix=0.0536;
+				}				
+			}	
+					
+			if (Objectif=="100"){
+				Taille_bar=10;
+				if (Grossissement=="1"){
+					Calib=1;Taille_pix=0.0344;
+				}
+				if (Grossissement=="1.25"){
+					Calib=1;Taille_pix=0.0277;	
+				}
+				if (Grossissement=="1.6"){
+					Calib=1;Taille_pix=0.0215;
+				}				
+			}					
+		}
+		
+	}
+	
+	
+	
+	
+	
+	
+	
+	if (Calib==0){
+		 Taille_pix=0;
+		 showMessage("Cette Configuration n existe pas!");
+		}
+	else print("La taille du pixel est de :"+Taille_pix+"µm");
+	
+ 	
+	
+}
+
+
+//////////////////////////////////////////////////////////////////////////////
+
+macro "Scale Bar Action Tool - C111D4bD4cD6bCfffD00D08D09D0aD0bD0cD0dD0eD0fD10D18D19D1aD1bD1cD1dD1eD1fD20D21D22D23D25D26D27D28D29D2aD2bD2cD2dD2eD2fD30D31D32D33D35D36D37D38D39D3aD3bD3cD3dD3eD3fD40D41D42D43D45D46D47D48D4eD4fD50D51D52D53D55D56D57D58D59D5aD5dD5eD5fD60D61D62D63D65D66D67D68D6dD6eD6fD70D71D72D73D75D76D77D78D79D7aD7bD7dD7eD7fD80D81D82D83D85D86D87D88D8dD8eD8fD90D91D92D93D95D96D97D98D9aD9bD9cD9dD9eD9fDa0Da1Da2Da3Da5Da6Da7Da8DadDaeDafDb0Db1Db2Db3Db5Db6Db7Db8DbbDbcDbdDbeDbfDc0Dc1Dc2Dc3Dc5Dc6Dc7Dc8DcdDceDcfDd0Dd1Dd2Dd3Dd5Dd6Dd7Dd8Dd9DdaDdbDdcDddDdeDdfDe0De8De9DeaDebDecDedDeeDefDf0Df8Df9DfaDfbDfcDfdDfeDffC222D8bDabC03fD02D03D04D05D06D12D13D14D15D16D24D34D44D54D64D74D84D94Da4Db4Dc4Dd4De4Df2Df3Df4Df5Df6C89fD01D07D11D17De2De3De5De6Df1Df7C222D4aD6aD8aDaaC555D99Db9C999D5cC444Da9C999D6cD8cDacDccCbcfDe1De7C333D49D69D89DcaDcbC666D4dDc9CfffD7cDbaCbbbD5b"{
+	getVoxelSize(width, height, depth, unit);
+	if (width==1){
+		if (Taille_pix==0) showMessage("Configurer la capture");
+		if (Taille_pix!=0){
+				run("Set Scale...", "distance=1 known="+Taille_pix +" pixel=1 unit=µm");
+				run("Scale Bar...");
+			}
+		}
+		if (width!=1){
+			if (Taille_pix!=width){
+				showMessageWithCancel("Changer la calibration","Voulez vous changer la calibration?");
+				run("Set Scale...", "distance=1 known="+Taille_pix +" pixel=1 unit=µm");
+			}
+			run("Scale Bar...");
+		}
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
+macro "Batch Scale Action Tool - C2a3D47CbceD89CbbcDaaCfffD00D01D02D03D04D05D06D07D09D0aD0bD0cD0dD0eD0fD10D11D12D13D1cD1dD1eD1fD20D21D2dD2eD2fD30D3eD3fD40D4eD4fD50D5fD60D6fD7fD8fD9fDa0DafDb0DbeDbfDc0Dc1DceDcfDd0Dd1Dd2DddDdfDe0De1De2DeaDebDedDefDf0Df1Df2Df3Df4Df5Df6Df7Df8Df9DfaDfbDfcDfdDfeDffCa99Dc6CffeDc8CcccD81C877D7cCeeeD4dD61DcdDd3DdcDe7CbbdD7aCbbbD7bDd4CfffD3dCcceD93C3c1D46CeeeD8eCcbcD6dCaaaD95Dc4CfffDd8De3De9CccdD68C998D9cCeefD18Da1DdaCbbdD8aC9d9D25CfffD08DaeDd9De8CddeD3aD3cD5aD7eC876D96Da6CeeeD15D23CbbbD8dCaaaDcbDd6CfffD14D1bD22D2cD41D70D80D90D9eDc2CcecD24C888Dc5CcccD2aDa2CacaD62CfffD5eDb1DdeDeeCdddD28C6b5D55CeeeD6eCbcbD58CaabDb4CdddD16C7a7D63CeffD17D51CccdDb9CbcbD76CeeeDb2Db8DdbDe4C4a4D37CeeeD19D29D39D4aDc9CabcD94D9aCaa9D97CccdD2bD49D92C887D8cCbbdD6aCbbbDbcCfffD31DecCdceD4bC4c2D45CbbcD59D74Da8CaabDbaCdddD91C998Db5CbcdD84CbcaD33C6a6D66CcbbD9dCba9Da7CdddD5dD75D82Dd7De6C988D86CcccDc3CacaD38D52D67CdedD32C6b6D34CeefD5bCbcbD72CbabD7dCdddD1aC8c6D43D54CccdD83D88CbdbD42C3a3D56CcceD69CbbcD98Db3Caa9D87CcccDadC777DbbCbbdDa9CabbD73CcceD78C3b2D36C988D9bCbbbDccC888DabCbbbD77CdddD71DbdC6d4D44CcccDc7CaabDa4C8a8D48CccdDa3C6a6D26Caa9D8bC987Db6CcbdD4cD5cCbbbDcaCddeD6bC4c3D35CbbaDb7Ca99Da5CbbeD99CadaD27C6b6D57CbbcD3bD6cCaaaDacC888Dd5C7b6D53CcdbD64CabbD85CcdbD65CccfD79CddcDe5"{
+
+	if (Taille_pix==0) showMessage("Configurer la capture");
+	if (Taille_pix!=0){
+					dir1 = getDirectory("Choisir un repertoire source");
+					list = getFileList(dir1);
+					dir2 = getDirectory("Choisir un repertoire destination");
+					
+					for (i=0; i<list.length; i++) {												
+						 //if (endsWith(list[i], "tif")){											//condition sur l extension tif
+						 nom=substring(list[i],0,indexOf(list[i],"."));				//nom sans l extension
+						 open(dir1 + list[i]);																// ouvre les fichiers du dossier source
+						 run("Set Scale...", "distance=1 known="+Taille_pix +" pixel=1 unit=µm");	
+						 run("Remove Overlay");
+						 if (ajout_bar==true) run("Scale Bar...", "width="+Taille_bar+" height=5 font=20 color="+color_bar+" background=None location=["+position_bar+"] bold");																			
+						 saveAs("Tiff", dir2+nom+".tif");											// sauvegarde les fichiers dans le dossier destination
+						 close();
+						 
+						//}	
+					}
+			
+		}
+}
+
+macro 'Batch Scale Action Tool Options'  {
+    //on right-click, the corresponding 'Options' macro is run
+    Dialog.create("Ajout de la barre"); //e.g., put a dialog here
+    Dialog.addCheckbox("Ajout de la barre", true);
+    items = newArray("Upper Left", "Upper Right", "Lower Left" ,"Lower Right" );
+  	Dialog.addRadioButtonGroup("Position", items, 2, 2, position_bar);
+  	items = newArray("Black", "White");
+  	Dialog.addRadioButtonGroup("Position", items, 1, 2, color_bar);
+    Dialog.show();
+    ajout_bar = Dialog.getCheckbox();
+    position_bar=Dialog.getRadioButton;
+    color_bar=Dialog.getRadioButton;
+  	}
+
+
+
+macro "About These Macros Action Tool - C000C111C222C333C444C555D54D55D63D73D7cD7dD83D88D89D8aD8cD8dD93D97Da3Da4Da5Da6C555D7aDb5C555D72D82C555D45Da7C555D98C555D53C555D79C555C666Db4C666Db6C666C777D92C777D87C777D64C777D62C777C888D44C888D96C888D78C999D94C999CaaaCbbbD99Db3CbbbDa2CbbbDa8CbbbCcccDb7CcccD52CcccD43CcccD65CcccCdddD74CdddD77CdddD86CdddD84D95CdddD00D01D02D03D04D05D06D07D08D09D0aD0bD0cD0dD0eD0fD10D11D12D13D14D15D16D17D18D19D1aD1bD1cD1dD1eD1fD20D21D22D23D24D25D26D27D28D29D2aD2bD2cD2dD2eD2fD30D31D32D33D34D35D36D37D38D39D3aD3bD3cD3dD3eD3fD40D41D42D46D47D48D49D4aD4bD4cD4dD4eD4fD50D51D56D57D58D59D5aD5bD5cD5dD5eD5fD60D61D66D67D68D69D6aD6bD6cD6dD6eD6fD70D71D75D76D7bD7eD7fD80D81D85D8bD8eD8fD90D91D9aD9bD9cD9dD9eD9fDa0Da1Da9DaaDabDacDadDaeDafDb0Db1Db2Db8Db9DbaDbbDbcDbdDbeDbfDc0Dc1Dc2Dc3Dc4Dc5Dc6Dc7Dc8Dc9DcaDcbDccDcdDceDcfDd0Dd1Dd2Dd3Dd4Dd5Dd6Dd7Dd8Dd9DdaDdbDdcDddDdeDdfDe0De1De2De3De4De5De6De7De8De9DeaDebDecDedDeeDefDf0Df1Df2Df3Df4Df5Df6Df7Df8Df9DfaDfbDfcDfdDfeDff"{
+
+open(getDirectory("macros")+"toolsets\\PHIV_Calibration_toolset.txt");
+}
+
+
+
+
+
+
+
+///////////////////////////////////////////////////////////////////////////////////
+

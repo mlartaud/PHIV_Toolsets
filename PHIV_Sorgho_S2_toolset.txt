@@ -1,0 +1,2014 @@
+// a faire seg cellule prend les fx apres correction! 
+
+
+
+// PHIV Shorgo Tool Set version 8
+// Marc LARTAUD MRI PHIV
+// Boite a outils pour faciliter la segmentation des coupes de sorgho
+
+/*
+Installer loci bio formats
+http://www.loci.wisc.edu/files/software/loci_tools.jar
+Installer Graylevel watershed
+http://bigwww.epfl.ch/sage/soft/watershed/Watershed-cls.zip
+Installer Colour Deconvolution
+http://www.dentistry.bham.ac.uk/landinig/software/cdeconv/cdeconv.html
+rgb-measure
+http://rsbweb.nih.gov/ij/plugins/rgb-measure.html
+Densitometry 3-Channel
+http://rsb.info.nih.gov/ij/plugins/rgb-segmentation/Densitometry_3_Channel_.htm
+
+
+*/
+
+/*
+Parametres Menu --> Reglage des parametres de traitement de l image en fonction de objets a delimiter
+		Faisceaux internes
+			Sigma Gauss : taille du filtre gaussien pour attenuer les details
+			Min : taille minimale des  objets selectionnes
+			Max : taille maximale des objets selectionnes
+			Circularite : critere de forme de 0 a 1, 1 proche du cercle
+			Pixels lissage : taille du lissage par dilatation erosion des selections
+		Xyleme
+			Sigma Gauss : taille du filtre gaussien pour attenuer les details
+			Min : taille minimale des  objets selectionnes
+			Max : taille maximale des objets selectionnes
+			Circularite : critere de forme de 0 a 1, 1 proche du cercle
+			Pixels lissage : taille du lissage par dilatation erosion des selections
+		Sclerenchyme
+			Sigma Gauss : taille du filtre gaussien pour attenuer les details
+			Min : taille minimale des  objets selectionnes
+			Max : taille maximale des objets selectionnes
+			Circularite : critere de forme de 0 a 1, 1 proche du cercle
+			Pixels lissage : taille du lissage par dilatation erosion des selections
+			Methode de seuillage
+				Deconv Color : utilisation de la couche rouge d apres le plugon Color Deconvolution
+				Blue : utilisation de la couche Bleue apres decomposition RGB
+		Phloeme
+			Sigma Gauss : taille du filtre gaussien pour attenuer les details
+			Min : taille minimale des  objets selectionnes
+			Max : taille maximale des objets selectionnes
+			Circularite : critere de forme de 0 a 1, 1 proche du cercle
+			Pixels lissage : taille du lissage par dilatation erosion des selections
+			Methode de seuillage			
+				RGB : utilisation du Threshold Color
+				8bits : utilisation de l image en niveaux de gris
+				Densitometry : utilisation d une selection et calcul de la moyenne et ecart type en RGB	
+				Aucune
+				
+				
+		Sauve parametres --> Sauvegarde de tous les reglages des parametres
+
+		Charge parametres --> Recharge des parametres prealablement sauvegardes	
+
+Essais Menu --> Pour tester sur une portion d image le reglage des parametres
+	Faisceaux intrenes
+	Xyleme
+	Sclerenchyme
+	Phloeme
+		
+Zonation --> Delimitation de l objet Total, puis de la zone externe ou interne
+	Possibilite de travailler sur une portion de coupe si elle est incomplette
+	Option clic droit --> taille du filtre
+		Filtre Total : taille du filtre gaussien pour attenuer les details
+		Filtre Zone : taille du filtre gaussien pour attenuer les details
+		
+Faisceaux_zone externe --> Comptage des faisceaux dans une partie de la zone externe
+
+Sclerenchyme_zone --> delimitation du sclerenchyme dans la zone extrene apres choix d un seuil et d une methode de seuillage
+	Option clic droit 
+		Sigma Gauss : taille du filtre gaussien pour attenuer les details
+		Pixels lissage : taille du lissage par dilatation erosion des selections : taille du lissage par dilatation erosion des selections
+		Methode de seuillage
+			Deconv Color : utilisation de la couche rouge d apres le plugon Color Deconvolution
+			Blue : utilisation de la couche Bleue apres decomposition RGB
+
+Faisceaux_zone interne --> Delimitation des faisceaux dans une partie de la zone interne
+	avec possibilite de validation par ajout(1) ou suppression(0)
+	
+Autosegment --> Delimitation automatique des differents tissus dans les faisceaux de la zone interene
+			
+Resultats_xls --> Calcul des surfaces des selections 
+
+
+Couleur_Parenchyme	--> Selection des zones bleues par seuillage sur la couche Hue du HSB  	
+	Option clic droit
+		Sigma Gauss : taille du filtre gaussien pour attenuer les details
+		Pixels lissage : taille du lissage par dilatation erosion des selections
+
+
+		
+
+Raccourcis clavier au pave numerique
+0 supprimme une selection
+1 ajoute une selection
+3 zoom to selection
+9 enleve les Delete du roi manager et remet a zero les parametres de validation
+
+
+*/
+
+macro "AutoRun"{
+	setTool("rectangle");
+	setForegroundColor(255, 255, 255);//premier plan blanc
+	setBackgroundColor(0,0,0);// fond noir
+	run("Set Measurements...", "area shape display redirect=None decimal=3");
+	requires("1.49p");
+}
+/////////////////////variables glogales////////////////////////////
+
+//var globales zones
+//var etat="Complete";
+var seuil_total=newArray(0,164);
+var seuil_zone=newArray(0,117);
+var param_zone=newArray(10,10,3);
+// scerenchyme de zone exterieur
+var seuil_scl_zone=newArray(0,40);
+var seuil_method_scl_zone="Blue";//seuil_method_scl="Blue";
+var param_scl_zone=newArray(3,3);	
+//var globales faisceaux exterieurs
+var seuil_fx_ext=newArray(28,255);	
+var seuil_method_fx_ext="Xyleme";//seuil_method_ext="Blue";
+var param_fx_ext=newArray(5,10,7000,0.3,50,13); //(sigma,taillemin,taillemax,circul,seuil_mean_enlarge,dilate)
+
+//var globales faisceaux interieurs
+var seuil_fx_int=newArray(0,120);
+var param_fx_int=newArray(7,5000,50000,0.2,10);
+
+//var globales xyleme
+var seuil_xyl=newArray(0,144);
+var param_xyl=newArray(1,200,5000,0,3);	
+
+//var globales sclerenchyme
+var seuil_scl=newArray(0,175);
+var seuil_method_scl="Deconv Color";//seuil_method_scl="Blue";"Deconv Color",
+var param_scl=newArray(3,200,200000,0,5);	
+
+//var globales phloeme
+var seuil_phl=newArray(50,255);
+var param_phl=newArray(1,500,15000,0.1,5);			
+var seuil_method_phl="RGB";//seuil_method_phl="RGB" ou  "8bits" ou "Densitometry"
+var min_phl=newArray(0,0,83);//var min=newArray(116,108,86);
+var max_phl=newArray(113,126,255);//var max=newArray(190,125,114);
+var mean_phl=newArray(45,76,107);//moyenne dans les 3 couches couleur
+var ecart_phl=newArray(23,23,23);//ecart type
+
+//var param_wat(sigma 0,taillemin 1,taillemax 2,circul 3,Enlarge 20px);	
+var param_wat=newArray(10.0,200,10000,0,20);
+
+// parenchyme 
+var seuil_par=newArray(95,255);
+var param_par=newArray(3,5);	
+
+
+//menus
+var dCmds = newMenu("Parametres Menu Tool",
+      newArray("Faisceaux Internes","Xyleme", "Sclerenchyme", "Phloeme","-","Sauve parametres","Charge parametres"));
+var dCmds = newMenu("Essais Menu Tool",
+      newArray("Faisceaux Internes","Xyleme", "Sclerenchyme", "Phloeme"));
+var dCmds = newMenu("Validation Menu Tool",
+      newArray("Faisceaux Internes","Manuelle"));
+
+//Roi raccourcis corrections
+var tabCombine=newArray(-1,-1); //tableau des index des roi a combiner
+var countCombine=0;
+
+// ndpi batch
+var numserie=2; //a verifier avec plugin-loci-bioformat importer
+
+//validations
+var valid_autosegment=0;
+var Num_Fxi="";
+var valid_fx_ext=0;
+var valid_fx_int=0;
+
+var title1 = "Resultats R";
+var title2 = "["+title1+"]";
+var fe = title2;
+
+////////////////////////////////////////////////////////////////label=NdpiExportBatch////////////////////////////////////////////
+/*
+macro "NdpiMacroBatch Action Tool - C2a3D47CbceD89CbbcDaaCfffD00D01D02D03D04D05D06D07D09D0aD0bD0cD0dD0eD0fD10D11D12D13D1cD1dD1eD1fD20D21D2dD2eD2fD30D3eD3fD40D4eD4fD50D5fD60D6fD7fD8fD9fDa0DafDb0DbeDbfDc0Dc1DceDcfDd0Dd1Dd2DddDdfDe0De1De2DeaDebDedDefDf0Df1Df2Df3Df4Df5Df6Df7Df8Df9DfaDfbDfcDfdDfeDffCa99Dc6CffeDc8CcccD81C877D7cCeeeD4dD61DcdDd3DdcDe7CbbdD7aCbbbD7bDd4CfffD3dCcceD93C3c1D46CeeeD8eCcbcD6dCaaaD95Dc4CfffDd8De3De9CccdD68C998D9cCeefD18Da1DdaCbbdD8aC9d9D25CfffD08DaeDd9De8CddeD3aD3cD5aD7eC876D96Da6CeeeD15D23CbbbD8dCaaaDcbDd6CfffD14D1bD22D2cD41D70D80D90D9eDc2CcecD24C888Dc5CcccD2aDa2CacaD62CfffD5eDb1DdeDeeCdddD28C6b5D55CeeeD6eCbcbD58CaabDb4CdddD16C7a7D63CeffD17D51CccdDb9CbcbD76CeeeDb2Db8DdbDe4C4a4D37CeeeD19D29D39D4aDc9CabcD94D9aCaa9D97CccdD2bD49D92C887D8cCbbdD6aCbbbDbcCfffD31DecCdceD4bC4c2D45CbbcD59D74Da8CaabDbaCdddD91C998Db5CbcdD84CbcaD33C6a6D66CcbbD9dCba9Da7CdddD5dD75D82Dd7De6C988D86CcccDc3CacaD38D52D67CdedD32C6b6D34CeefD5bCbcbD72CbabD7dCdddD1aC8c6D43D54CccdD83D88CbdbD42C3a3D56CcceD69CbbcD98Db3Caa9D87CcccDadC777DbbCbbdDa9CabbD73CcceD78C3b2D36C988D9bCbbbDccC888DabCbbbD77CdddD71DbdC6d4D44CcccDc7CaabDa4C8a8D48CccdDa3C6a6D26Caa9D8bC987Db6CcbdD4cD5cCbbbDcaCddeD6bC4c3D35CbbaDb7Ca99Da5CbbeD99CadaD27C6b6D57CbbcD3bD6cCaaaDacC888Dd5C7b6D53CcdbD64CabbD85CcdbD65CccfD79CddcDe5"{
+XResolution=0;
+ImageWidth=0;
+ImageHeight=0;
+
+dir1 = getDirectory("Choix du Repertoire Source ");
+list = getFileList(dir1);
+dir2 = getDirectory("Choix du Repertoire Cible ");	
+//setBatchMode(true);
+      for (i=0; i<list.length; i++) {
+          showProgress(i+1, list.length);
+           if (endsWith(list[i], '.ndpi')){
+           	run("Bio-Formats Importer", "open=["+dir1+list[i]+"] color_mode=Default display_metadata view=[Metadata only] stack_order=Default");
+           
+           fichier=substring(list[i],0,indexOf(list[i],".ndpi"));
+           selectWindow("Original Metadata - "+list[i]);
+           	saveAs("Text", dir2+fichier+".xls"); //Creation d un fichier excel pour recuperrer les metadata
+						run("Close");
+						lines=split(File.openAsString(dir2+fichier+".xls"), "\n");
+						
+						xline=split(lines[11],"\t"); 
+						yline=split(lines[12],"\t"); 
+						resline=split(lines[(lines.length-3)],"\t");
+						xlineserie=split(lines[11+(12*(numserie-1))],"\t"); 
+						ylineserie=split(lines[12+(12*(numserie-1))],"\t"); 
+
+						XResolution=parseInt(resline[1]);
+						ImageHeight=parseInt(yline[1]);
+						ImageWidthtotal=parseInt(xline[1]);
+						ImageWidthserie=parseInt(xlineserie[1]);
+						ImageHeightserie=parseInt(ylineserie[1]);
+						pxparcm=XResolution/(ImageWidthtotal/ImageWidthserie);
+           
+           //print(pxparcm);
+           //if (ImageWidthserie*ImageHeightserie < 20000*20000){
+         if(maxOf(ImageWidthserie, ImageHeightserie)< 60000){
+           run("Bio-Formats Importer", "open=["+dir1+list[i]+"] color_mode=Default crop view=Hyperstack stack_order=XYCZT series_"+numserie+" x_coordinate_4=0 y_coordinate_4=0 width_4=100000 height_4=100000");
+           composite=getImageID();   
+           run("RGB Color");
+           selectImage(composite);
+           close ();           
+           //run("Set Scale...", "distance="+pxparcm+" known=10000 pixel=1 unit=µm");
+           saveAs("Tiff", dir2+fichier+".tif");           
+        		close ();
+        }else print ("taille trop grande");
+          }
+          	
+        }
+
+//setBatchMode(false);
+  showMessage("Etat du process", "<html>"
+     +"<h1><font color=red><i>Fin</i></h1>");
+
+}
+
+macro 'NdpiMacroBatch Action Tool Options'  {
+    //on right-click, the corresponding 'Options' macro is run
+    Dialog.create("Serie"); //e.g., put a dialog here
+    Dialog.addNumber("Numero de serie de 2 a 5 :", numserie);
+    Dialog.show();
+    numserie = Dialog.getNumber();
+  	}
+
+*/
+
+
+
+
+
+
+
+
+
+
+///////////////////////// Menu parametres//////////////////////////////////
+macro "Parametres Menu Tool - C333D18D28D34D37D38D39D3cD44D45D46D47D48D49D4aD4bD4cD54D55D56D5aD5bD64D65D6bD6cD72D73D74D75D7bD7cD7dD7eD82D83D84D85D8bD8cD8dD8eD94D95D9bD9cDa4Da5Da6DaaDabDb4Db5Db6Db7Db8Db9DbaDbbDbcDc3Dc4Dc7Dc8DccDd8De8CaaaD07D2dD32D76D86DdbDf7C333D27D33D43D59D5cD6aD9aDa9DacDc9DcbDd7CdddD00D01D02D03D04D05D0aD0bD0cD0dD0eD0fD10D11D12D1eD1fD20D21D2fD30D31D3fD40D41D4fD88Da0Da1DafDb0Db1DbfDc0Dc1DcfDd0Dd1DdfDe0De1DeeDefDf0Df1Df2Df3Df4Df5DfbDfcDfdDfeDffCdddD06D13D14D15D1aD1bD1cD1dD22D2eD50D51D52D5eD5fD60D77D78D79D87D89D90Da2DaeDdeDe2De3De4De5DeaDebDecDedDf6DfaC555D3aD66D96DcaCbbbD16D25D3eD67D6fD70D80D97D9fDe6C444D35D3dD58Da8Dc6C777D6dCbbbD09D5dDadDb2DddDf9C444D17D3bD57D71D81Da7Db3De7C666D19D2cD4dD7aD8aD9dDdcDe9CcccD2aDceDd5DdaC555D29D36D63D93Dc5DcdDd9C999D08D6eD9eDc2Df8CaaaD26D2bD42D61D91Dd6C666D7fD8fDbdC888Da3CcccD4eD68D98DbeDd2C999D69D99C777D24D53Dd3Dd4C888D23D62D92"{
+	cmd = getArgument();
+	if (cmd=="Faisceaux Internes") {
+		Dialog.create("Seuillage");
+	  Dialog.addMessage("Faisceaux Internes");
+	  Dialog.addNumber("Sigma Gauss:", param_fx_int[0]);
+    Dialog.addNumber("Min:", param_fx_int[1]);
+    Dialog.addNumber("Max:", param_fx_int[2]);
+    Dialog.addNumber("Circularite:", param_fx_int[3]);
+    Dialog.addNumber("Pixels  lissage:", param_fx_int[4]);
+    Dialog.show();
+    param_fx_int[0]=Dialog.getNumber();
+    param_fx_int[1]=Dialog.getNumber();;
+    param_fx_int[2]=Dialog.getNumber();;;
+    param_fx_int[3]=Dialog.getNumber();;;;
+    param_fx_int[4]=Dialog.getNumber();;;;;  	
+    raz("fx");
+	}
+	if (cmd=="Xyleme") {
+	  Dialog.create("Xyleme");
+	  Dialog.addNumber("Sigma Gauss:", param_xyl[0]);
+    Dialog.addNumber("Min:", param_xyl[1]);
+    Dialog.addNumber("Max:", param_xyl[2]);
+    Dialog.addNumber("Circularite:", param_xyl[3]);
+    Dialog.addNumber("Pixels lissage:", param_xyl[4]);
+    Dialog.show();
+    param_xyl[0]=Dialog.getNumber();
+    param_xyl[1]=Dialog.getNumber();;
+    param_xyl[2]=Dialog.getNumber();;;
+    param_xyl[3]=Dialog.getNumber();;;;
+    param_xyl[4]=Dialog.getNumber();;;;;
+    raz("xyl");
+	}
+	if (cmd=="Sclerenchyme") {
+	  Dialog.create("Sclerenchyme");
+	  items = newArray("Deconv Color", "Blue");
+    Dialog.addNumber("Sigma:", param_scl[0]);
+    Dialog.addNumber("Min:", param_scl[1]);
+    Dialog.addNumber("Max:", param_scl[2]);
+    Dialog.addNumber("Circularite:", param_scl[3]);
+    Dialog.addNumber("Pixels lissage:", param_scl[4]);
+    Dialog.addRadioButtonGroup("Methode de seuillage", items, 1, 2, seuil_method_scl);
+    Dialog.show();
+    param_scl[0]=Dialog.getNumber();
+    param_scl[1]=Dialog.getNumber();;
+    param_scl[2]=Dialog.getNumber();;;
+    param_scl[3]=Dialog.getNumber();;;;
+    param_scl[4]=Dialog.getNumber();;;;;
+    seuil_method_scl=Dialog.getRadioButton;
+    raz("scl");
+        
+  }
+	if (cmd=="Phloeme") {
+	Dialog.create("Seuillage");
+	items = newArray("RGB", "8bits", "Densitometry", "Aucune");//var seuil_method_phl="RGB";//seuil_method_phl="RGB" ou  "8bits"
+	Dialog.addMessage("Phloeme");
+	Dialog.addRadioButtonGroup("Methode de seuillage", items, 1, 3, seuil_method_phl);
+	Dialog.addNumber("Sigma Gauss:", param_phl[0]);
+    Dialog.addNumber("Min:", param_phl[1]);
+    Dialog.addNumber("Max:", param_phl[2]);
+    Dialog.addNumber("Circularite:", param_phl[3]);
+    Dialog.addNumber("Pixels  lissage:", param_phl[4]);
+	Dialog.show();
+	seuil_method_phl=Dialog.getRadioButton;
+	param_phl[0]=Dialog.getNumber();
+    param_phl[1]=Dialog.getNumber();;
+    param_phl[2]=Dialog.getNumber();;;
+    param_phl[3]=Dialog.getNumber();;;;
+    param_phl[4]=Dialog.getNumber();;;;;
+	
+	if (seuil_method_phl=="RGB"){
+		Dialog.create("Seuillage RGB");
+		Dialog.addMessage("Rouge");
+		Dialog.addNumber("Min:", min_phl[0]);
+		Dialog.addNumber("Max:", max_phl[0]);
+		Dialog.addMessage("Vert");
+		Dialog.addNumber("Min:", min_phl[1]);
+		Dialog.addNumber("Max:", max_phl[1]);
+		Dialog.addMessage("Bleu");
+		Dialog.addNumber("Min:", min_phl[2]);
+		Dialog.addNumber("Max:", max_phl[2]);
+		Dialog.show();
+		min_phl[0]=Dialog.getNumber();
+		max_phl[0]=Dialog.getNumber();;
+		min_phl[1]=Dialog.getNumber();;;
+		max_phl[1]=Dialog.getNumber();;;;
+		min_phl[2]=Dialog.getNumber();;;;;
+		max_phl[2]=Dialog.getNumber();;;;;;
+    }
+	if (seuil_method_phl=="Densitometry"){
+		Dialog.create("Seuillage Densitometry");
+		Dialog.addMessage("Rouge");
+		Dialog.addNumber("Moyenne:", mean_phl[0]);
+		Dialog.addNumber("Ecart type:", ecart_phl[0]);
+		Dialog.addMessage("Vert");
+		Dialog.addNumber("Moyenne:", mean_phl[1]);
+		Dialog.addNumber("Ecart type:", ecart_phl[1]);
+		Dialog.addMessage("Bleu");
+		Dialog.addNumber("Moyenne:", mean_phl[2]);
+		Dialog.addNumber("Ecart type:", ecart_phl[2]);
+		Dialog.show();
+		mean_phl[0]=Dialog.getNumber();
+		ecart_phl[0]=Dialog.getNumber();;
+		mean_phl[1]=Dialog.getNumber();;;
+		ecart_phl[1]=Dialog.getNumber();;;;
+		mean_phl[2]=Dialog.getNumber();;;;;
+		ecart_phl[2]=Dialog.getNumber();;;;;;	
+    }
+    
+	}	
+	if (cmd=="Sauve parametres") {
+		dir=getInfo("image.directory");
+		print("\\Clear");     
+		print("Parametres"+ "  \t" +dir+getTitle());
+		print("seuil_total"+ "  \t" +seuil_total[0]+ "  \t" +seuil_total[1]);
+		print("seuil_zone"+ "  \t" +seuil_zone[0]+ "  \t" +seuil_zone[1]);
+		print("param_zone"+ "  \t" +param_zone[0]+ "  \t" +param_zone[1]);
+		print("seuil_scl_zone"+ "  \t" +seuil_scl_zone[0]+ "  \t" +seuil_scl_zone[1]);
+		print("seuil_method_scl_zone"+ "  \t" +seuil_method_scl_zone);
+		print("param_scl_zone"+ "  \t" +param_scl_zone[0]+ "  \t" +param_scl_zone[1]);
+		print("seuil_fx_ext"+ "  \t" +seuil_fx_ext[0]+ "  \t" +seuil_fx_ext[1]);
+		print("seuil_method_fx_ext"+ "  \t" +seuil_method_fx_ext);
+		print("param_fx_ext"+ "  \t" +param_fx_ext[0]+ "  \t" +param_fx_ext[1]+ "  \t" +param_fx_ext[2]+ "  \t" +param_fx_ext[3]+ "  \t" +param_fx_ext[4]+ "  \t" +param_fx_ext[5]);
+		print("seuil_fx_int"+ "  \t" +seuil_fx_int[0]+ "  \t" +seuil_fx_int[1]);
+		print("param_fx_int"+ "  \t" +param_fx_int[0]+ "  \t" +param_fx_int[1]+ "  \t" +param_fx_int[2]+ "  \t" +param_fx_int[3]+ "  \t" +param_fx_int[4]);
+		print("seuil_xyl"+ "  \t" +seuil_xyl[0]+ "  \t" +seuil_xyl[1]);
+		print("param_xyl"+ "  \t" +param_xyl[0]+ "  \t" +param_xyl[1]+ "  \t" +param_xyl[2]+ "  \t" +param_xyl[3]+ "  \t" +param_xyl[4]);
+		print("seuil_scl"+ "  \t" +seuil_scl[0]+ "  \t" +seuil_scl[1]);
+		print("seuil_method_scl"+ "  \t" +seuil_method_scl);
+		print("param_scl"+ "  \t" +param_scl[0]+ "  \t" +param_scl[1]+ "  \t" +param_scl[2]+ "  \t" +param_scl[3]+ "  \t" +param_scl[4]);
+		print("seuil_phl"+ "  \t" +seuil_phl[0]+ "  \t" +seuil_phl[1]);
+		print("param_phl"+ "  \t" +param_phl[0]+ "  \t" +param_phl[1]+ "  \t" +param_phl[2]+ "  \t" +param_phl[3]+ "  \t" +param_phl[4]);
+		print("seuil_method_phl"+ "  \t" +seuil_method_phl);
+		print("min_phl"+ "  \t" +min_phl[0]+ "  \t" +min_phl[1]+ "  \t" +min_phl[2]);
+		print("max_phl"+ "  \t" +max_phl[0]+ "  \t" +max_phl[1]+ "  \t" +max_phl[2]);
+		print("mean_phl"+ "  \t" +mean_phl[0]+ "  \t" +mean_phl[1]+ "  \t" +mean_phl[2]);
+		print("ecart_phl"+ "  \t" +ecart_phl[0]+ "  \t" +ecart_phl[1]+ "  \t" +ecart_phl[2]);
+		print("param_wat"+ "  \t" +param_wat[0]+ "  \t" +param_wat[1]+ "  \t" +param_wat[2]+ "  \t" +param_wat[3]+ "  \t" +param_wat[4]);
+		print("seuil_par"+ "  \t" +seuil_par[0]+ "  \t" +seuil_par[1]);
+		print("param_par"+ "  \t" +param_par[0]+ "  \t" +param_par[1]);
+		Dialog.create("Sauvegarde des parametres");
+		items = newArray("Image_Param", "Autre");
+		Dialog.addRadioButtonGroup("Sauvegarde", items, 2, 1, "Image_Param");
+	  Dialog.show();    
+	  save_method=Dialog.getRadioButton; 
+		selectWindow("Log");
+		if (save_method=="Autre")	saveAs("Text","");
+		else saveAs("Text", dir+getTitle()+"-Param.txt");
+	}
+	if (cmd=="Charge parametres") {
+		lines=split(File.openAsString(""), "\n");
+		row=split(lines[1],"\t");
+		seuil_total[0]=row[1];
+		seuil_total[1]=row[2];
+		row=split(lines[2],"\t");
+		seuil_zone[0]=row[1];
+		seuil_zone[1]=row[2];
+		row=split(lines[3],"\t");
+		param_zone[0]=row[1];
+		param_zone[1]=row[2];
+		row=split(lines[4],"\t");
+		seuil_scl_zone[0]=row[1];
+		seuil_scl_zone[1]=row[2];
+		row=split(lines[5],"\t");
+		seuil_method_scl_zone=row[1];
+		row=split(lines[6],"\t");
+		param_scl_zone[0]=row[1];
+		param_scl_zone[1]=row[2];
+		row=split(lines[7],"\t");
+		seuil_fx_ext[0]=row[1];
+		seuil_fx_ext[1]=row[2];
+		row=split(lines[8],"\t");
+		seuil_method_fx_ext=row[1];
+		row=split(lines[9],"\t");
+		param_fx_ext[0]=row[1];
+		param_fx_ext[1]=row[2];
+		param_fx_ext[2]=row[3];
+		param_fx_ext[3]=row[4];
+		param_fx_ext[4]=row[5];
+		param_fx_ext[5]=row[6];
+		row=split(lines[10],"\t");
+		seuil_fx_int[0]=row[1];
+		seuil_fx_int[1]=row[2];
+		row=split(lines[11],"\t");
+		param_fx_int[0]=row[1];
+		param_fx_int[1]=row[2];
+		param_fx_int[2]=row[3];
+		param_fx_int[3]=row[4];
+		param_fx_int[4]=row[5];
+		row=split(lines[12],"\t");
+		seuil_xyl[0]=row[1];
+		seuil_xyl[1]=row[2];
+		row=split(lines[13],"\t");
+		param_xyl[0]=row[1];
+		param_xyl[1]=row[2];
+		param_xyl[2]=row[3];
+		param_xyl[3]=row[4];
+		param_xyl[4]=row[5];
+		row=split(lines[14],"\t");
+		seuil_scl[0]=row[1];
+		seuil_scl[1]=row[2];
+		row=split(lines[15],"\t");
+		seuil_method_scl=row[1];
+		row=split(lines[16],"\t");
+		param_scl[0]=row[1];
+		param_scl[1]=row[2];
+		param_scl[2]=row[3];
+		param_scl[3]=row[4];
+		param_scl[4]=row[5];
+		row=split(lines[17],"\t");
+		seuil_phl[0]=row[1];
+		seuil_phl[1]=row[2];
+		row=split(lines[18],"\t");
+		param_phl[0]=row[1];
+		param_phl[1]=row[2];
+		param_phl[2]=row[3];
+		param_phl[3]=row[4];
+		param_phl[4]=row[5];
+		row=split(lines[19],"\t");
+		seuil_method_phl=row[1];
+		row=split(lines[20],"\t");
+		min_phl[0]=row[1];
+		min_phl[1]=row[2];
+		min_phl[2]=row[3];
+		row=split(lines[21],"\t");
+		max_phl[0]=row[1];
+		max_phl[1]=row[2];
+		max_phl[2]=row[3];
+		row=split(lines[22],"\t");
+		mean_phl[0]=row[1];
+		mean_phl[1]=row[2];
+		mean_phl[2]=row[3];
+		row=split(lines[23],"\t");
+		ecart_phl[0]=row[1];
+		ecart_phl[1]=row[2];
+		ecart_phl[2]=row[3];
+		row=split(lines[24],"\t");
+		param_wat[0]=row[1];
+		param_wat[1]=row[2];
+		param_wat[2]=row[3];
+		param_wat[3]=row[4];
+		param_wat[4]=row[5];
+		row=split(lines[25],"\t");
+		seuil_par[0]=row[1];
+		seuil_par[1]=row[2];
+		row=split(lines[26],"\t");
+		param_par[0]=row[1];
+		param_par[1]=row[2];
+		print ("ok");
+	}
+}
+
+///////////////////////// Menu essais//////////////////////////////////
+macro "Essais Menu Tool - C444D6bDacCdddD0cD0dD72D73Da9Dc6DdfDeaDebDecDedDeeDefDfeDffC888D3bD4aD55D91Db7DbeCfffD00D01D02D03D10D11D12D13D20D21D22D23D30D31D32D33D40D41D42D43Da2Da3Db0Db1Db2Dc0Dc1Dc2Dc4Dd0Dd1Dd2Dd3Dd4De0De1De2De3De4Df0Df1Df2Df3Df4C777D2aD2bD2dD4dD64D81D8aDaaDb6Dc8DcdDdcCeeeD06D07D16D17D26D54D57D67D76D97Da0De7De8Df7Df8CaaaDd8C666D46D61D90D9aD9bD9dDbaDbfDceDdaDdbCeeeD08D09D48D49D58D68D87D88D98Da7Da8Db5De9Df9DfaC999D38D3cD82D83D84D85D94DccDddC777D28D62D63D6aD7aD8cDa6Dc7Dd9CfffD04D05D14D15D24D25D34D35D44D52D53Da1Da4Db3Db4Dc3Dc5Dd5Dd6De5De6Df5Df6CcccD0eD0fD1dD1eD1fD2fD39D45D66D74D75D78D99C666D29D2cD37D3eD4fD5fD65D6fD7fD8fD95D9fDafDbcCdddD0aD0bD18D51D59D77D79D86Db8Db9Dd7DfbDfcDfdC999D3dD3fD4eD56D5aD5eD6eD71D7eD8eD9eDaeDbdCbbbD1cD27D50D69CaaaD2eD3aD8bD92D93Da5Dc9DcaDcbC888D5cDabC555D4cD5bD5dD60D6cD6dD7bD7cD7dD9cCbbbD1aD1bD36D47D96DcfCcccD19D89DdeC555D4bD70D80D8dDadDbb"{
+	cmd = getArgument();
+
+	if (cmd=="Faisceaux Internes") {
+		nomimage=getTitle();
+		run("Select None");
+		norig = roiManager("count");
+		faisseaux(); //garde la couche bleue du rgb
+		Blur(param_fx_int[0]);
+	 	ChoixSeuils("Faisceaux de la zone interne",seuil_fx_int);
+	 	Seuil(seuil_fx_int);
+		//print ("Nombre de faisceaux de la zone interne :"+particules (param_fx_int)); //Include holes
+		
+		ninit=	roiManager("count");
+ 		run("Analyze Particles...", "size="+param_fx_int[1]+"-"+param_fx_int[2]+" circularity="+param_fx_int[3]+"-1.00 show=Masks exclude include add");
+	nfinal=	roiManager("count");
+	for (i=ninit; i<nfinal; i++) {
+		roiManager("Select", i);
+		run("Enlarge...", "enlarge="+param_fx_int[4]+" pixel");
+		run("Enlarge...", "enlarge=-"+param_fx_int[4]+" pixel");
+		roiManager("Update");
+		run("Select None");
+	}
+		
+		
+		print ("Seuil:"+seuil_fx_int[0]+" - "+seuil_fx_int[1]);
+		selectWindow("fx");
+		//close();
+		selectWindow(nomimage);
+		nfinal = roiManager("count");
+		for (i=norig; i<nfinal; i++) {
+			roiManager("Select", i);
+			roiManager("Rename", "Fxi"+(i-norig+1));
+			
+		}
+		roiManager("Deselect");
+		roiManager("UseNames", "true");
+		roiManager("Show All");
+		run("Select None");
+	}
+//////////////////////////////////////////////
+	if (cmd=="Xyleme"){
+		nomimage=getTitle();
+		run("Select None");
+		//masque faisceaux internes
+		faisseaux();
+		Blur(param_fx_int[0]);
+		setThreshold(seuil_fx_int[0], seuil_fx_int[1]);
+		ninit=	roiManager("count");
+ 		run("Analyze Particles...", "size="+param_fx_int[1]+"-"+param_fx_int[2]+" circularity="+param_fx_int[3]+"-1.00 show=Masks exclude include add");
+ 		selectWindow("fx");
+ 		close();
+ 		selectWindow("Mask of fx");
+		run("Invert");
+		nfinal=	roiManager("count");
+		for (i=nfinal-1; i>ninit-1; i--) {
+			roiManager("Select", i);
+			run("Enlarge...", "enlarge="+param_fx_int[4]+" pixel");
+			run("Enlarge...", "enlarge=-"+param_fx_int[4]+" pixel");
+			run("Fill", "slice");
+			roiManager("Delete");
+			run("Select None");	
+		}
+		//soustraction du fond
+		selectWindow(nomimage);
+		xyleme(); //8-bits invert
+		imageCalculator("Subtract", "xyl","Mask of fx");
+		selectWindow("Mask of fx");
+		close();
+		selectWindow("xyl");	
+		//reglage seuil
+		Blur(param_xyl[0]);
+ 		ChoixSeuils("Xyleme",seuil_xyl);
+ 		Seuil(seuil_xyl);
+ 		//resultats
+		print ("Nombre de vaisceaux de xyleme :"+particules (param_xyl));
+		print ("Seuil:"+seuil_xyl[0]+" - "+seuil_xyl[1]);		
+		selectWindow(nomimage);
+		roiManager("Show All");
+	}
+//////////////////////////////////////////////////	
+	if (cmd=="Sclerenchyme"){
+		nomimage=getTitle();
+		run("Select None");
+		//masque faisceaux internes
+		faisseaux();
+		Blur(param_fx_int[0]);
+		setThreshold(seuil_fx_int[0], seuil_fx_int[1]);
+		ninit=	roiManager("count");
+ 		run("Analyze Particles...", "size="+param_fx_int[1]+"-"+param_fx_int[2]+" circularity="+param_fx_int[3]+"-1.00 show=Masks exclude include add");
+ 		selectWindow("fx");
+ 		close();
+ 		selectWindow("Mask of fx");
+		run("Invert");
+		nfinal=	roiManager("count");
+		for (i=nfinal-1; i>ninit-1; i--) {
+			roiManager("Select", i);
+			run("Enlarge...", "enlarge="+param_fx_int[4]+" pixel");
+			run("Enlarge...", "enlarge=-"+param_fx_int[4]+" pixel");
+			run("Fill", "slice");
+			roiManager("Delete");
+			run("Select None");	
+		}
+		//elimine les bords des fx
+		run("Options...", "iterations=5 count=1 edm=Overwrite do=Nothing");
+		run("Dilate");
+		//masque xyleme
+		selectWindow(nomimage);
+		xyleme(); 
+		Blur(param_xyl[0]);
+ 		setThreshold(seuil_xyl[0], seuil_xyl[1]);
+ 		run("Analyze Particles...", "size="+param_xyl[1]+"-"+param_xyl[2]+" circularity="+param_xyl[3]+"-1.00 show=Masks");
+ 		//elimine les bords du xyleme
+		run("Options...", "iterations=2 count=1 edm=Overwrite do=Nothing");
+		run("Dilate");
+ 		selectWindow("xyl");
+		close();
+		imageCalculator("Add", "Mask of xyl","Mask of fx");
+		selectWindow("Mask of fx");
+		close();
+		//choix de methode	
+		selectWindow(nomimage);	
+		if (seuil_method_scl=="Deconv Color") sclerenchyme1(); //couche rouge du Color deconvolution
+		if (seuil_method_scl=="Blue") sclerenchyme2();  //couche bleue du merge chanels
+		Blur(param_scl[0]);
+	 	imageCalculator("Add", "scl","Mask of xyl");
+	 	selectWindow("Mask of xyl");
+	 	close();
+	 	//reglage seuil
+	 	selectWindow("scl");
+ 		ChoixSeuils("Sclerenchyme",seuil_scl);
+ 		Seuil(seuil_scl);
+ 		///////Exclude holes par create selection
+		run("Create Selection");
+		roiManager("Add");
+		roiManager("Select", roiManager("count")-1);
+		roiManager("Rename", "create_scl");
+		run("Select None");
+		roiManager("Deselect");
+		ninit=	roiManager("count");
+		create_scl=ninit-1;
+		//applique les parametres du slerenchyme pour le seuillage
+		run("Analyze Particles...", "size="+param_scl[1]+"-"+param_scl[2]+" pixel circularity="+param_scl[3]+"-1.00 show=Nothing exclude include add ");
+		nfinal=	roiManager("count");
+		for (i=ninit; i<nfinal; i++) {   //pour chaque selection enleve les trous 
+			roiManager("Select", i);
+			//lissage
+			run("Enlarge...", "enlarge="+param_scl[4]+" pixel");
+			run("Enlarge...", "enlarge=-"+param_scl[4]+" pixel");
+			roiManager("Update");
+			//enleve les trous
+			roiManager("Select", newArray(i,create_scl));
+			roiManager("AND");
+			roiManager("Add");
+			run("Select None");
+			roiManager("Deselect");
+		}
+		for (i=nfinal-1; i>=ninit; i--) {  //detruit les selections initialement avec trous
+			roiManager("Select", i);
+			roiManager("Delete");
+			roiManager("Deselect");
+		}
+		roiManager("Select", create_scl);
+		roiManager("Delete");	
+		//resultats
+		print ("Seuil:"+seuil_scl[0]+" - "+seuil_scl[1]);
+		//validation de la methode
+		seuil_method_scl_ex=seuil_method_scl;
+  	Dialog.create("Validation");
+  	items = newArray("Deconv Color", "Blue");
+  	Dialog.addRadioButtonGroup("Methode de seuillage", items, 1, 2, seuil_method_scl);
+ 		Dialog.show;
+		seuil_method_scl=Dialog.getRadioButton;
+		if (seuil_method_scl!=seuil_method_scl_ex){
+			roiManager("Deselect");
+			roiManager("Delete");
+			selectWindow("scl");
+			close();
+			
+		}
+		else {
+			//close();
+			selectWindow(nomimage);
+			roiManager("Show All");			
+		}
+		if (isOpen("Colour_deconv_red")){
+			selectWindow("Colour_deconv_red");
+			close();
+		}
+	}
+//////////////////////////////////////////////////	
+	if (cmd=="Phloeme") {	
+		if (seuil_method_phl=="Aucune") exit("Choisir la methode de seuillage du phloeme");
+		//run("Options...", "iterations=1 count=1 edm=Overwrite do=Nothing");
+		nomimage=getTitle();
+		run("Select None");
+		//masque faisceaux internes
+		faisseaux();
+		Blur(param_fx_int[0]);
+		setThreshold(seuil_fx_int[0], seuil_fx_int[1]);
+		ninit=	roiManager("count");
+ 		run("Analyze Particles...", "size="+param_fx_int[1]+"-"+param_fx_int[2]+" circularity="+param_fx_int[3]+"-1.00 show=Masks exclude include add");
+ 		selectWindow("fx");
+ 		close();
+ 		selectWindow("Mask of fx");
+		run("Invert");
+		nfinal=	roiManager("count");
+		for (i=nfinal-1; i>ninit-1; i--) {
+			roiManager("Select", i);
+			run("Enlarge...", "enlarge="+param_fx_int[4]+" pixel");
+			run("Enlarge...", "enlarge=-"+param_fx_int[4]+" pixel");
+			run("Fill", "slice");
+			roiManager("Delete");
+			run("Select None");	
+		}
+		//elimine les bords des fx
+		run("Options...", "iterations=5 count=1 edm=Overwrite do=Nothing");
+		run("Dilate");
+		//masque xyleme
+		selectWindow(nomimage);
+		xyleme(); 
+		Blur(param_xyl[0]);
+ 		setThreshold(seuil_xyl[0], seuil_xyl[1]);
+ 		run("Analyze Particles...", "size="+param_xyl[1]+"-"+param_xyl[2]+" circularity="+param_xyl[3]+"-1.00 show=Masks");
+ 		//elimine les bords du xyleme
+		run("Options...", "iterations=2 count=1 edm=Overwrite do=Nothing");
+		run("Dilate");
+ 		selectWindow("xyl");
+		close();
+		imageCalculator("Add", "Mask of xyl","Mask of fx");
+		selectWindow("Mask of fx");
+		close();
+				//choix de methode
+		selectWindow(nomimage);	
+		run("Duplicate...", "title=phl");
+		if (seuil_method_phl=="8bits"){  //par niveaux de gris
+		 phloeme1();
+		 imageCalculator("Subtract", "phl","Mask of xyl");
+		 selectWindow("Mask of xyl");
+		 close();	 
+		 selectWindow("phl");
+		 print ("Methode:"+seuil_method_phl);
+		 Blur(param_phl[0]);
+		 ChoixSeuils("Phloeme",seuil_phl);
+		 Seuil(seuil_phl);
+		 run("Options...", "iterations=1 count=1 edm=Overwrite do=Nothing");	
+		 run("Dilate");		
+		}
+		if (seuil_method_phl=="RGB"){  //par seuillage couleur
+			selectWindow("Mask of xyl");
+			run("Invert");
+			imageCalculator("Subtract", "phl","Mask of xyl");
+			selectWindow("phl");
+			Blur(param_phl[0]);
+			run("Duplicate...", "title=colthrshold");
+			run("Threshold...");
+			title = "Seuillage couleur";
+		  msg = "Utiliser l outil seuillage couleur en RGB\nCopier les valeurs dans la boite de dialogue Parametres Phloeme\nRemettre a Original le seuillage Couleur\npuis \"OK\"";
+		  waitForUser(title, msg);
+		  selectWindow("colthrshold");
+		  close();
+		  selectWindow("phl");
+		  phloeme2(min_phl,max_phl);
+		  selectWindow("Mask of xyl");
+			close();
+			print ("Methode:"+seuil_method_phl); 
+		}
+		if (seuil_method_phl=="Densitometry"){  //par niveaux de gris
+		if (selectionType() ==-1){
+			setTool("freehand");
+				title = "RGB seuil";
+				msg = "Faire une selection sur du phloeme";
+				waitForUser(title, msg);			
+				}
+			rgb_get(mean_phl, ecart_phl);	
+			
+		run("Select None");
+		Blur(param_phl[0]);	
+		 phloeme3(mean_phl,ecart_phl);
+		 imageCalculator("Add", "phl","Mask of xyl");
+		 selectWindow("Mask of xyl");
+		 close();	 
+		 selectWindow("phl");
+		 run("Dilate");		
+		}
+		
+		selectWindow("phl");
+		print ("Phloeme :"+particules (param_phl)); //Include holes
+		//run("Set Measurements...", "area shape display redirect=None decimal=3");
+		setTool("rectangle");
+	}
+}
+
+
+
+
+/////////////////////////////////////////////////Zonation///////////////////////////////////////////////////////////////////////////////
+
+macro "Zonation Action Tool - C147D6aD6bD87D94CbccD0eCaabDefCcdfD15D16D26D27D36D37D43D46D47D56D57D66Db7Dc6Dc7Dd6Dd7De6De7C469D97CbdfD19D1aD2aD2bD3aD3bDcaDdaDdbDeaDebCabfD4bD6dD7dD8dD9dDadCdefD23D33Db2Dd3De3C358D86Da5CcdeD11CabdDf6Df7Df8CddfDc4C9abD2fCcdfD17D28D38D48D58Db8Dc8Dd8De8CacfDbaCeefD31D41D51D61D71D81D91Da1Db1Dc1C258D84D88D8bD9bDabCcccDffCabdDf9DfaDfbC8abD3fD4fD5fD6fD7fD8fD9fDafDbfDcfDdfCcdfD18D29D39D49Da8Da9Db9Dc9Dd9De9CacfD1dD2eD3eD4eD5dD5eD6eD7eD8eD9eDaeDbeDceDdeCdefD21D22D32D42Dc2Dd1Dd2De2C46aDa3CcdfD55Db6CacdDf4Df5CdefD12D13D14D24D25D34D35D45D52Dc3Dc5Dd4Dd5De4De5C9bdD1eDfcCacfD1cD2dD3dD4dDcdDddDedC248D78D79D7bD96Da4CbceD20D30D40D50D60D70D80D90Da0Db0Dc0Dd0CabdD04D05D06D07D08D09D0aC67aD89CacfD4cDbdC369D63D6cD73D7cD83D8cD93D9cDacCbcfD1bD2cD3cD4aDdcDecCabeD76C9bdDb3DfdCbcfD99DcbC258D7aCdddD0fCbcdD03C79cD68CcdfD62D72D82D92Da2De1CaceDa7C9beDeeC148D95CbcdD02CabcD0dC57bD5cC369D69CbdfD67C8acD98CccdDe0Df1CcdfD44CbcdDf2Df3C68bDbcCacfDccCabeD59CdddDf0C89cD8aCbceD65D75CbbbD1fC57aD54D77C359D5bD64D74CccdD01C68bD85DbbC9beD9aDaaCcddD10CabdD0bD0cC58bD53D5aC78bDa6CdddD00CabdDb5CabcDfeC79bDb4"{
+	origid=getImageID();
+	run("Select None");
+	Dialog.create("Etat de la coupe");
+	items = newArray("Complete", "Incomplete");
+	Dialog.addRadioButtonGroup("Coupe", items, 2, 1, "Complete");
+	Dialog.show;
+	etat=Dialog.getRadioButton;
+	//Total
+	run("Duplicate...", "title=nb");
+	run("8-bit");
+	run("Gaussian Blur...", "sigma="+param_zone[0]);
+	Validation_surface("Total",seuil_total);
+	if(etat=="Incomplete"){
+		roiManager("Select", 0);
+		centre_gravite();
+		run("Select None");
+		roiManager("Show None");
+		setTool("polygon");
+		title = "Portion";
+		msg = "Tracer un polygone avec le deuxieme point au centre de gravite ";
+		waitForUser(title, msg);
+		RoiAdd("temp");
+		Roi.getCoordinates(xpoints, ypoints);
+		xpoints=Array.trim(xpoints,3);
+		ypoints=Array.trim(ypoints,3);
+		makeSelection("angle",xpoints,ypoints);
+		RoiAdd("Angle");
+		/*List.setMeasurements;
+		facteur_correction=List.getValue("Angle");	
+		//facteur_correction=mesure_angle();*/
+		Dialog.create("Portion");
+		items = newArray("Garder", "Supprimer");
+		Dialog.addRadioButtonGroup("Selection a :", items, 2, 1, "Garder");
+		Dialog.show;
+		etat_portion=Dialog.getRadioButton;
+		if(etat_portion=="Supprimer"){
+			roiManager("Select", 1);
+			run("Make Inverse");
+			roiManager("Update");			
+		}
+		roiManager("Select", newArray(0,1));
+		roiManager("AND");
+		RoiAdd("Portion");
+		roiManager("Select", 1);
+		roiManager("Delete");
+			
+	}
+	//Zone
+	selectImage(origid);
+	run("Select None");
+	run("Duplicate...", "title=Zone");
+	n = roiManager("count");
+	roiManager("Select", n-1);
+	run("Make Inverse");
+	run("Fill", "slice");
+	run("Make Inverse");
+	run("Select None");
+	run("Split Channels");
+	selectWindow("Zone (red)");
+	close();
+	selectWindow("Zone (green)");
+	close();
+	selectWindow("Zone (blue)"); //couche bleue
+	rename("Zone");
+	run("Gaussian Blur...", "sigma="+param_zone[1]);
+	Validation_surface("Zone",seuil_zone);
+	Dialog.create("Zone selectionnee");
+	items = newArray("Zone externe", "Zone interne");
+	Dialog.addRadioButtonGroup("Selection", items, 1, 2, "Zone externe");
+	Dialog.show;
+	zone=Dialog.getRadioButton;
+	
+	if (zone=="Zone interne"){
+		roiManager("Deselect");
+		roiManager("Select", newArray(0,1));
+		roiManager("XOR");
+		roiManager("Add");
+		roiManager("Deselect");
+		roiManager("Select", 1);
+		roiManager("Delete");
+		roiManager("Select", 1);
+	  roiManager("Rename", "Zone");	
+	}
+	selectImage(origid);
+	roiManager("Deselect");
+	roiManager("Show All");
+	//setTool("rectangle");
+	
+	}
+
+
+macro 'Zonation Action Tool Options'  {
+    //on right-click, the corresponding 'Options' macro is run
+    
+    Dialog.create("Zonation");
+    Dialog.addMessage("Tailles des filtres");
+    Dialog.addNumber("Filtre Total:", param_zone[0]);
+    Dialog.addNumber("Filtre Zone:", param_zone[1]);
+    Dialog.show();
+    param_zone[0]=Dialog.getNumber();
+    param_zone[1]=Dialog.getNumber();;
+    //param_zone[2]=Dialog.getNumber();;;
+      
+  	}
+
+
+
+//////////////////////////////////Faisceaux_ext///////////////////////////////////////////////////////////////////
+macro "Faisceaux_ext Action Tool - C147D47CbcdD01C79cDebCbcfD1cD2cD5cD6cD7cD8cD9cDecDfbDfcC359D33D77Da9DcbCacfDeeC8beD3fD4fD5fD6fD7fD8fD9fDafDbfDcfDdfCdefD12D13D22Da3Db3Dc3Dd3De3Df3C258Db5CacfD8aCaabDffCcdfD19D69D79C57aDd5CcdfD82CaceD32Db4Dc4De5CeefD21D31D41D51D61D71D81D91Da1Db1Dc1Dd1C258D45D49D4aD99Da6CbceD24D25D30D40D50D60D70D80D90Da0Db0Dc0Dd0C9adD42D52D59D5aD62CbdfD1aD1bD6aD6bD7aD7bD8bDf9C469D96Da5DdbCacfD1dD2dD2eD3dD3eD4dD4eD5dD5eD6dD6eD7dD7eD8dD8eD9dD9eDacDadDaeDbdDbeDcdDceDddDdeDedDfdC9beD5bCdefD92Da2Db2Dc2Dd2De1De2C258D34CcdfDa4Dd4Df6CabdD07D08D09D0aCcefD85C68aDb6CddfD11CaceD27D28D86C248D44D46D48D57D67D97D98Da8DaaDd6Dd7CbceD84C9acD1fC369De7C258D35D36D37D38D39D3aD73Da7Dc5CbcfDfaC9bdD0bD0cD0dD72Dd9CcdfD16D17D65D75C47bD3bCabeD2aDbcC8aeD2fC46aD4bD9aC9beD9bC259Db8Dc8Dd8CabdD04D05D06CdefD14D15D93D94De4Df2Df4Df5C79bD64CacfD2bD3cD4cC148D43D53D63CcccD0fC89cD76C9bdD55D83CcdfD18C57aD54D56Dc6De6CabeDc9De9C68bDb7CacfD1eDdcCbceD26Df7Df8C8adD78DefC369DbaDbbDdaCbdfD23C58bDc7DeaCaceD29C9beD89DfeC47aDe8C9beDccCacdD03C79cD66D87CbcdD02C79cD88CabcD0eC9beD95CbceDe0Df1C8adDb9C57bDabC79bD74CccdDf0C8acD68C68bD58C47aDcaCbceD20CbcdD10CdddD00"{
+
+	origid=getImageID();
+	ncount=roiManager("count");
+	run("Select None");
+	run("Duplicate...", "title=fx");
+	total_fait=0;
+	for(i=0;i<ncount;i++){
+			roiManager("Select", i);
+			nom_item=call("ij.plugin.frame.RoiManager.getName", i);
+			
+						if (nom_item=="Total"){
+							total_fait=1;
+							centre_gravite();
+							run("Select None");
+							roiManager("Show None");
+							setTool("polygon");
+							title = "Portion";
+							msg = "Tracer un polygone avec le deuxieme point au centre de gravite ";
+							waitForUser(title, msg);
+							setBackgroundColor(255, 255, 255);
+							setForegroundColor(255, 255, 255);
+							run("Clear Outside");
+							RoiAdd("temp");
+							index_temp=roiManager("count");
+							Roi.getCoordinates(xpoints, ypoints);
+							xpoints=Array.trim(xpoints,3);
+							ypoints=Array.trim(ypoints,3);
+							makeSelection("angle",xpoints,ypoints);
+							RoiAdd("AngleFx");
+							
+						}
+						if (nom_item=="Zone"){
+							run("Clear Outside");
+							index_zone=i;
+						}
+					}
+		if (total_fait==0){
+			close();
+			 exit("Zones a determiner avant");
+			} 		
+					index_temp--;
+		roiManager("Select", newArray(index_temp,index_zone));
+		roiManager("AND");
+		run("To Selection");
+		roiManager("Deselect");
+		roiManager("Select", index_temp);
+		roiManager("Delete");
+		run("Select None");
+									
+		setTool("point");
+		valid_fx_ext=1;		
+							
+							
+	title = "Comptage des faisceaux ";
+	msg = "Pointer chaque faisceaux et appuyer sur la touche 1";						
+	waitForUser(title, msg);						
+	close();				
+	selectImage(origid);
+	roiManager("Deselect");
+	roiManager("Show All");
+	setTool("rectangle");
+	valid_fx_ext=0;	
+}
+/////////////////////
+macro 'Faisceaux_ext Action Tool Options'  {
+
+		
+	}
+	
+	
+	/////////////////////////////////////////////Sclerenchyme_ext///////////////////////////////////////////////////////////
+macro "Sclerenchyme_ext Action Tool - C147D65D66D88CbccDffC9adD63CcdfD16D17D26D27D36D37D96Da6Db6Db7Dc6Dc7Dd6Dd7De6De7C57aD73D75CbdfD1aD1bD2aD2bD3aD3bD69D7aDcaDcbDdaDdbDeaDebCabeD79CdefD12D13D23D33D43D72D92Dc3Dd3De2De3C258D84D9aDabCbcfD1cD2cD3cD4aDccDdcDecCabdD05D06D07Df5Df6Df7CddfD53C8adD8dCcdfD18D28D38D47D48Dc8Dd8De8CacfD1dD2dD2eD3dD3eD4dD4eD5eD6eD7eD8eD9eDaeDbdDbeDcdDceDddDdeDedCeefD31D41D51D61D71D81D91Da1Db1Dc1C258D64CbceD20D30D40D50D60D70D80D90Da0Db0Dc0Dd0C9beD9dC79cDacDbaCcdfD19D29D39D49D59Dc9Dd9De9CacfDbcCdefD21D22D32D42D52D62Da2Db2Dc2Dd1Dd2C369D55D6bCcdeDb4CacdD04Df3Df4CdefD14D15D24D25D34D35D44D82Db3Dc4Dc5Dd4Dd5De4De5C8beD3fD4fD5fD6fD7fD8fD9fDafDbfDcfC248D67D74D7cD8cD94D98D99D9bDa9DaaCccdD10De0CabdD08D09D0aD0bD85Da3Df8Df9DfaDfbC68bD68D97CaceD86C359D5bD87D9cC8adD6dC258D6cC9beD5aC89cDb9CbcfD6aC47aD83Da8CcdfD45Db5CbcdD02D03Df2C247D77CccdD01Df1C9bdD0cD0dDfcDfdC57bD7bCacfD1eD4cD5dDeeC258D78C8adD95DbbC79cDa5C469Da4CbcfD58CdddD00Df0C69cD57CbceDb8C369D56C8aeD2fDdfC9beD8aC9acD1fDefCacfDadC57aD76CcdfD11De1CcccD0fCabcD0eDfeC9beD4bC8acD54C58bD89D93C79dD7dC46aD8bCbdfD46CbceDa7C47aD5c"{
+	origid=getImageID();
+	run("Select None");
+	if (seuil_method_scl_zone=="Deconv Color") sclerenchyme1();
+	if (seuil_method_scl_zone=="Blue") sclerenchyme2();
+			//clear outside zone
+	n=roiManager("count");
+	for(i=0;i<n;i++){
+		roiManager("Select", i);
+		nom_item=call("ij.plugin.frame.RoiManager.getName", i);
+		if (nom_item=="Zone"){
+			setBackgroundColor(255,255,255);// fond noir
+			run("Clear Outside");
+			setBackgroundColor(0,0,0);// fond noir
+			}
+		}
+	Blur(param_scl_zone[0]);
+	ChoixSeuils("Sclerenchyme dans la zone externe",seuil_scl_zone);
+	run("Create Selection");
+	run("Enlarge...", "enlarge="+param_scl_zone[1]+" pixel");
+	run("Enlarge...", "enlarge=-"+param_scl_zone[1]+" pixel");
+	roiManager("Add");
+	n = roiManager("count");
+	roiManager("Select", n-1);
+	roiManager("Rename", "Scl_Zone");
+	close();
+	selectImage(origid);
+	roiManager("Deselect");
+	roiManager("Show All");
+	//setTool("rectangle");
+		
+}
+
+macro 'Sclerenchyme_ext Action Tool Options'  {
+	  Dialog.create("Sclerenchyme dans la zone externe");
+	  items = newArray("Deconv Color", "Blue");
+  	Dialog.addNumber("Sigma Gauss:", param_scl_zone[0]);
+		Dialog.addNumber("Pixels lissage:", param_scl_zone[1]);
+		Dialog.addRadioButtonGroup("Methode de seuillage", items, 1, 2, seuil_method_scl_zone);
+    Dialog.show();    
+    param_scl_zone[0]=Dialog.getNumber();
+    param_scl_zone[1]=Dialog.getNumber();; 
+    seuil_method_scl_zone=Dialog.getRadioButton; 
+	
+}
+
+
+
+//////////////////////////////////Faisceaux_int///////////////////////////////////////////////////////////////////
+macro "Faisceaux_int Action Tool - C147D44D48CbcdD10De0C9bdD56D65CcefD86C369Db6DbcCcdfD0aD1aD6aD7aD8aDdaDeaDfaCbcfD0dD0eD1dD1eD2dD2eD3eD4eD5eD6dD6eD7dD7eD8dD8eD9eDaeDbeDceDddDdeDedDeeDfdDfeCdefD12D22Dd2De1De2Df2C258D45D49D64CbdfD0bD0cD1bD1cD6bD6cD7bD7cD8bD8cDdbDdcDebDecDfbDfcCacfD5dD9dCdefD02D03D11D13D82Dc2Dd3De3Df3C89cD88CcdfD07D08D17D18D66D76Dd7Dd8De7De8Df7Df8CeefD21D31D41D51D61D71D81D91Da1Db1Dc1Dd1C248D34D35D36D37D38D39D3aD3bD47D54Da6CbceD95Db2Dc6CbcdD20CdefD04D05D06D14D15D16D32D42D52D62D72D92Dd4Dd5Dd6De4De5De6Df4Df5Df6C58bD67CcdfD09D19Dd9De9Df9C259D3cCacfD0fD1fD2fD3fD4fD5fD6fD7fD8fD9fDafDbfDcfDdfDefDffC8adD2aD2bD4dDadC148D58D68Da7Da8Da9DaaDabCbceD01D85Dc4CabdD75C469Db4C258D46D4aD4bCbcfDcdC8adD93D96CcceDc3CbceD30D40D50D60D70D80D90Da0Db0Dc0Dd0C79cDa5C359Da4Db7Db8Db9DbaDbbC9adD5cDbdCccdDf0C9bdD25D26C46aD43D53D63D73C258D74D78Da3DacC8acDb5CbceDc7C68bD77C259D4cCaceD87D89Da2Dc8Dc9C47aD57C9adD5aD5bD83D94CcdfDc5C79dD99D9aD9bC9bdD27D28D29C469Db3C89cD69C68bD59CabeDcbDccCcdfD23Df1C79cD98CcddD00C9beD2cD3dC8adD97D9cC79bD84C57bD33CabdD24C8acD79CabeDcaC79bD55"{
+
+	origid=getImageID();
+	ncount=roiManager("count");
+	run("Select None");
+	faisseaux();//garde la couche bleue du rgb
+	Blur(param_fx_int[0]);
+  Seuil(seuil_fx_int);
+  ninit=	roiManager("count");
+	run("Analyze Particles...", "size="+param_fx_int[1]+"-"+param_fx_int[2]+" circularity="+param_fx_int[3]+"-1.00 show=Masks exclude include  add");
+	nfinal=	roiManager("count");
+	for (i=ninit; i<nfinal; i++) {    // lissage des fx
+		roiManager("Select", i);
+		run("Enlarge...", "enlarge="+param_fx_int[4]+" pixel");
+		run("Enlarge...", "enlarge=-"+param_fx_int[4]+" pixel");
+		roiManager("Update");
+		roiManager("Rename", "Fxi-"+(i-ninit+1));
+		roiManager("Set Color", "#00ff00");//green		
+		}
+	run("Select None");
+	selectWindow("fx");
+	close();	
+	selectWindow("Mask of fx");
+	close();
+	selectImage(origid);
+	roiManager("Show All");
+	
+
+		valid_fx_int=1;		
+							
+							
+	title = "Faisceaux de la zone interne";
+	msg = "Validation 0 pour supprimmer 1 pour ajouter";						
+	waitForUser(title, msg);						
+	roiManager("Deselect");
+	roiManager("Show All");
+	setTool("rectangle");
+	valid_fx_int=0;
+}
+/////////////////////
+macro 'Faisceaux_int Action Tool Options'  {
+
+		
+	}
+	
+
+////////////////////////////////////////////////////////////////AutoSegment Action Tool////////////////////////////////////////////
+
+
+macro "AutoSegment Action Tool - C113Db6C227D87C282D92C869DfcC901D2aD2bC676D6eC690Df5C8a9Da1C612Dd4C01aDb7C2a1D43C88aD90Ca12D4dC586D2eCe81D3bCb9bDfdC452D19C866D3eC384D09C87aDe0C930D1aC679D70C882D53Ced7D73C712Dd5C11bD98C2c3D1dC88bD06C912Dd6C697D51Ccc2D83CbacD0eC423Dc6C349Da8C571Dd2Cb57D5eC911D29C769D30D4fC682D62Ca9bDefDf8C542D37C23aDb8C3c1D52C98aD7fCa11Dc4C696DeaCf91DacCaabD8fC354Dd8C769DeeC495D42C889De1Cc30D6dC869D2fCcc1D79Cec9D49C763D89C11cDc8C4b4DdcC98bD20C923D6cC6a7De9Ccc3D55CdccD65C214Db5C219Da3C292D36C869D21C901D2cC779D80C680DbdCcc6D84C641D28C00bDa6C2c1D27C98aDddDffC821D3dC596D7eDc1Cf81D9cCa9cD0fC454D45C758DfbC594DcdC97aD12D31D32DfeCb40D8dC779D07Cbb2D78Cee8D9aDaaC624Dd7C12bDa7C3c2Df3C98bD24D6fDf1Cb22DadC6a7D26D91Dd1Cdc3D8bCcbdD01C434D77DcaC658D3fC471D2dC97aD22DedCa01Dc3C779D1eC783D56Ca9bD04C841De3C33bD94C5a2D9eCa8aD11DfaCa22D9dC597Df2Ccc2D58D68CbacDcfC355D57C769Dd0DdeC5a5D0bCc51D8cC879DceCcc2D6aCddaD9bDabC564D7aC11dD95C4b4De8Ca8bD50C923D47C7a8DbeCdd5D69CddcD4aC343D67C218Dc9C471D1cC879DecC678D0dC5a0Df4C9b9Df7C712De4C11aDc7C1b1Da2C97aD23C921D3cC687D08Ce90D48Cb9bD40C453D44C768D25C3a3D34C87aD10D5fCa31De6C779D60Cba3D76C812Dc5De5C11cD97C3b2De2C98bD03Ca12Db3CcbcDf9C434D46C668DafC581Db2C87aD1fC672D72C652Dc2C33aDb9C2a2D35C98aDb0Ca22D5cCcc2DbaCbacD00D02C444D7bC769D15C495D0aCb40D7dC879D16DdfCdd9D5aC654D88C22cD86C3c3D61Ca23D7cC6a7Db1Cdc4D4bCedbD64C336D93C428Db4C3a1DdbC87aD13C911Dd3C879D41C871De7CccaD59D75C741D1bC00bDa5C2c2D18Ca31D4cC687D17Ce84D3aCb9cDf0C374Dd9C768Dc0C495D33C860DccC77aD05Ccc2D5bD8aC12cD96C2c3D71Cd42D39Cdc3DbbCccdDa0C668D9fC472D82Ce10D38C779D85C692DaeCa9bDbfC742DcbC55aDa9C3d1Df6Cc12D5dC6a6D0cCdc2D54C474DdaC5a6D81Cd51DbcCcc3D66C454D6bC00eDa4C5c5D8eC98bD14C946D4eC8a8DebCee5D63CdcdD74C556D99"{
+	run("Options...", "iterations=1 count=1 edm=Overwrite do=Nothing");
+	getDateAndTime(year, month, dayOfWeek, dayOfMonth, hour, minute, second, msec);
+	print ("Debut a "+hour+" h "+minute+" mn");
+	origid=getImageID();
+	getPixelSize(unit, pixelWidth, pixelHeight);
+	run("Select None");
+	n = roiManager("count");
+	norig=n;
+		
+	//faisceaux
+	run("Duplicate...", "title=[Mask of fx]");
+	run("8-bit");
+	run("Select All");
+setForegroundColor(255, 255, 255);
+run("Fill", "slice");
+	for (i=0; i<n; i++) {
+		roiManager("Select", i);
+		nom_item=Roi.getName;
+		if (startsWith(nom_item, "Fxi")){
+			run("Clear", "slice");
+		}
+	}
+	run("Select None");
+	run("Invert"); 
+	//elimine les bords des fx
+	run("Options...", "iterations=5 count=1 edm=Overwrite do=Nothing");
+	run("Dilate");
+	run("Invert"); 
+	
+	//xyleme
+	selectImage(origid);
+	run("Select None");
+	xyleme();//8-bits invert
+	imageCalculator("Subtract", "xyl","Mask of fx");
+	selectWindow("xyl");
+	Blur(param_xyl[0]);
+	Seuil(seuil_xyl);
+	
+  run("Analyze Particles...", "size="+param_xyl[1]+"-"+param_xyl[2]+" circularity="+param_xyl[3]+"-1.00 show=Masks exclude");
+  selectWindow("xyl");
+  run("Set Scale...", "distance=1 known="+pixelWidth+" pixel="+(pixelHeight/pixelWidth)+" unit="+unit+"");
+  imageCalculator("Add create", "Mask of fx","Mask of xyl");
+	selectWindow("Result of Mask of fx");
+	rename ("Mask of fxyl");
+	//elimine les bords du xyleme
+	run("Options...", "iterations=2 count=1 edm=Overwrite do=Nothing");
+	run("Dilate");
+	selectWindow("Mask of fx");
+  close();
+  selectWindow("Mask of xyl");
+  close();
+  
+	//sclerenchyme
+	
+	selectImage(origid);
+	if (seuil_method_scl=="Deconv Color") sclerenchyme1();
+	if (seuil_method_scl=="Blue") sclerenchyme2();
+	Blur(param_scl[0]);
+	imageCalculator("Add", "scl","Mask of fxyl");
+	selectWindow("scl"); 
+	Seuil(seuil_scl);
+  run("Set Scale...", "distance=1 known="+pixelWidth+" pixel="+(pixelHeight/pixelWidth)+" unit="+unit+"");
+  //create selection pour le probleme des zonez entourantes
+  run("Create Selection");
+	roiManager("Add");
+	roiManager("Select", roiManager("count")-1);
+	roiManager("Rename", "create_scl");
+	run("Select None");
+	roiManager("Deselect");
+	create_scl=roiManager("count")-1;
+  
+	//phloeme
+	if (seuil_method_phl!="Aucune"){	
+  selectImage(origid);
+	  run("Duplicate...", "title=phl");
+	  Blur(param_phl[0]);
+		  if (seuil_method_phl=="8bits") phloeme1();
+		  if (seuil_method_phl=="RGB") phloeme2(min_phl,max_phl);
+		  if (seuil_method_phl=="Densitometry") phloeme3(mean_phl,ecart_phl); 
+		imageCalculator("Add", "phl","Mask of fxyl");
+		selectWindow("phl"); 
+		run("Set Scale...", "distance=1 known="+pixelWidth+" pixel="+(pixelHeight/pixelWidth)+" unit="+unit+"");
+	}
+  selectWindow("xyl");
+  run("Set Scale...", "distance=1 known="+pixelWidth+" pixel="+(pixelHeight/pixelWidth)+" unit="+unit+"");
+  selectWindow("Mask of fxyl");	
+  close();
+ 
+  selectImage(origid); 
+	n = roiManager("count")-1;////create_scl!
+	ni=n+1;
+
+		
+	// mesures pour chaque faisceaux
+	for (i=0; i<n; i++) {
+		roiManager("Select", i);
+		nom_item=Roi.getName;
+		if (startsWith(nom_item, "Fxi")){
+		if (nom_item=="Fxi"){
+			nom_item="Fxi-0";
+			roiManager("Rename", nom_item);			
+		}
+		selectWindow("xyl");
+		roiManager("Select", i);
+		
+		
+		//faisceaux
+		selectWindow("xyl");
+		//run("Set Measurements...", "area display redirect=None decimal=3");
+		roiManager("Select", i);
+		//roiManager("Rename", "Fxi-"+(i-norig+1));
+		roiManager("Set Color", "#00ff00");//green
+		//xyleme
+		particules (param_xyl);
+		nold=ni;
+		ni=	roiManager("count");
+		for (j=nold; j<ni; j++) {
+			roiManager("Select", j);
+			if (nom_item=="Fxi-0") roiManager("Rename", "Fx-0-Xyl"+(j-nold));
+			else roiManager("Rename", "Fx"+(i-norig+1)+"-Xyl"+(j-nold));
+			roiManager("Set Color", "#ffff00");//jaune
+			}
+		//sclerenchyme
+		selectWindow("scl");
+		run("Set Measurements...", "area limit display redirect=None decimal=3");
+		roiManager("Select", i);
+		ninit=	roiManager("count");
+		run("Analyze Particles...", "size="+param_scl[1]+"-"+param_scl[2]+" pixel circularity="+param_scl[3]+"-1.00 show=Nothing exclude include add ");
+		nfinal=	roiManager("count");
+		for (k=ninit; k<nfinal; k++) {
+			roiManager("Select", k);
+			run("Enlarge...", "enlarge="+param_scl[4]+" pixel");
+			run("Enlarge...", "enlarge=-"+param_scl[4]+" pixel");
+			roiManager("Update");
+			roiManager("Select", newArray(create_scl,k)); // correction avec le create scl
+			roiManager("AND");
+			roiManager("Add");
+			run("Select None");
+			roiManager("Deselect");
+		}
+		for (l=nfinal-1; l>=ninit; l--) {
+			roiManager("Select", l);
+			roiManager("Delete");
+			roiManager("Deselect");
+		}
+		roiManager("Select", i);
+		nold=ni;
+		ni=	roiManager("count");
+		for (j=nold; j<ni; j++) {
+			roiManager("Select", j);
+			if (nom_item=="Fxi-0") roiManager("Rename", "Fx-0-Scl"+(j-nold));
+			else roiManager("Rename", "Fx"+(i-norig+1)+"-Scl"+(j-nold));
+			roiManager("Set Color", "#ff0000");//red
+			}	
+		////////////phloeme
+		if (seuil_method_phl!="Aucune"){
+			selectWindow("phl");
+			run("Set Measurements...", "area display redirect=None decimal=3");
+			roiManager("Select", i);
+			particules (param_phl);
+			nold=ni;
+			ni=	roiManager("count");
+			for (j=nold; j<ni; j++) {
+				roiManager("Select", j);
+				roiManager("Rename", "Fx"+(i-norig+1)+"-Phl"+(j-nold));
+				roiManager("Set Color", "#0000ff");//blue
+			}	
+		}
+	}
+	}    // fin de boucle sur les faisceaux
+	
+	selectWindow("scl");
+	close();
+	if (seuil_method_phl!="Aucune"){
+		selectWindow("phl");
+		close();
+		}
+	selectWindow("xyl");
+	close();
+	if (isOpen("Colour_deconv_red")){
+		selectWindow("Colour_deconv_red");
+		close();
+	}
+	
+	selectImage(origid);
+
+	//sauvegardes
+	dir=getInfo("image.directory");
+	roiManager("Select", create_scl);
+	roiManager("Delete");	
+	roiManager("Save", dir+getTitle()+"-RoiSet.zip");
+	
+	//visualisation
+	selectImage(origid);
+	roiManager("Show All");
+	getDateAndTime(year, month, dayOfWeek, dayOfMonth, hour, minute, second, msec);
+	print ("Fin a "+hour+" h "+minute+" mn");
+}
+
+macro 'AutoSegment Action Tool Options'  {
+		//sauvegardes
+	
+					
+	
+    	
+}
+
+//////////////////////////////////////Parenchyme_couleur///////////////////////////////////////////
+
+macro "Couleur_Parenchyme Action Tool - C38aD72Ca8bC6bcD75CabdC769CbacDfaDfcC9bdD49CdbdD7cC69cD74De3CaacD0cD3dD6bDa9DafDbcDe9DefDf4C8bdDa3CbbdDf6C78bCcbdD1fD5fC8ceD03CdcdD1dD5dD7eDdbC48bD20Ca9cDdaC8adD95CaceD12C98aCcadD2cD5aD8dD98D9eDabDd8DdeC9cdD08D18D27D32D34D41D43Db1Dc0De2CdbdD2dD5bD6dD88D99D9fDacDd9DdfDebC6acD06Df2CaacD1bC8beCcbeD86Dc7C99bCcadD0fD4fDcdDcfC9ceD14D90Db6CcceC38aD62Cb8bD7fC7bdD40CaceD77C779CcadD7dC9bdCcbdD2bD3fD59D89D97D9dDaaDd7DddC69cD23Cb9cD3cD6aDa8DaeDbbDe8DeeC8bdDb5CcbdDd6C89bCcadC8ceD70CdcdC68bCb9bD4cD7aDb8DbeDcbDf8DfeC8bdD82Df1CbceD56Ca8aCbbdDe5Df5C9cdD61Db4Df3CdbdD8eC6acD25Da2CabdC8cdD30D38D52D54Dd1CbdeD24C99cCdbdD4bD6cD79Db7DbdDcaDf7DfdC9ceD09D28D42D44D94Dc1CdceD3eC658Ca8bD2eD6eDecC7bdD04CaceD16D71D84Db3C769CcacC9bdD07D0aD1aD29D39D45D55D91Dc2Dd2CdbdD0dD4dD7bD9cDb9DbfDccDf9DffC5acDc3Ca9cD2aD8bC8bdD00D05D48Dc4CcbdD96C78bDc6C9ceD19D35D36D92D93Da5Db2Dd3C59bDa4CaabC8bdD10D15D21D64CaceDa0C98bC9beDe0CcbeC5acD01CbadD3bD69Da7DadDbaDe7DedC8beD11D46Dd4CcceDc8C99bCcbdD2fD6fCcceDeaC58bD80Ca9bD1eD5eDdcDfbC7bdD37D51D53D65Dd0C88aCbadD4aC69cDe1CaacC7acDa1CcbdD3aDc9CdbeC59bD13Cb9cCadeC98bCbadC9cdD47C6adCbbdCcdeD68C9acCcadD8aC9ceD50CdceC67aD87Ca8bC7adD02D76Dc5CbbdD0bCbacDe4C9bdDd5C8bdD22C88bC58aD57Ca9cD9aC8bdC88bCaadD8cCa9bD5cC48bD85C7bdD17D31D33D81Db0C87aC6acD60Df0C7acC58bD58CbceD63C669C769CbadD9bC89bD78C49bD26Ca9cD0eD4eDceDe6CaceD66C5adD83C99cD1cC67bDa6C69bCb9cD8fCbdeD73C8acCdceCbceD67"{
+		origid=getImageID();
+		run("Select None");
+		run("Duplicate...", "title=hsb");
+		run("HSB Stack");
+		run("Next Slice [>]");
+		run("Delete Slice");
+		run("Next Slice [>]");
+		run("Delete Slice");
+		run("Invert");
+		n=roiManager("count");
+		for(i=0;i<n;i++){
+			nom_item_fx=call("ij.plugin.frame.RoiManager.getName", i);
+				if (startsWith(nom_item_fx, "Fxi")){
+					roiManager("Select", i);
+					run("Clear", "slice");
+					}
+				}
+		zone_interne();
+		Blur(param_par[0]);
+		ChoixSeuils("Zones bleues dans le parenchyme ",seuil_par);
+		run("Create Selection");
+		run("Enlarge...", "enlarge=-"+param_par[1]+" pixel");
+		run("Enlarge...", "enlarge="+(2*param_par[1])+" pixel");
+		run("Enlarge...", "enlarge=-"+param_par[1]+" pixel");
+		roiManager("Add");
+		n = roiManager("count");
+		roiManager("Select", n-1);
+		roiManager("Rename", "Parenchyme_bleu");
+		close();
+		selectImage(origid);
+		roiManager("Deselect");
+		roiManager("Show All");
+		//setTool("rectangle");
+}	
+
+
+macro 'Couleur_Parenchyme Action Tool Options'  {
+	  Dialog.create("Couleur_Parenchyme");
+  	Dialog.addNumber("Sigma Gauss:", param_par[0]);
+		Dialog.addNumber("Pixels lissage:", param_par[1]);
+		Dialog.show();    
+    param_par[0]=Dialog.getNumber();
+    param_par[1]=Dialog.getNumber();; 
+    	
+}
+
+
+
+/////////////////////////////////////////////////////Resultats xls/////////////////////////////////////////////////////////////////////////////////////
+
+macro "Resultats_xls Action Tool - C052DbfDcfDdfDebDecDedDeeDefCbebD5dDc6C364D84D85D93D94D95Da3CffeDa9C282D5bCdecD7aC798D83CfffD05D06D07D08D09D0aD0bD0cD0dD0eD1eD2eD3eD41D4eD51D5eD61D6eD71D73D7eD81D8eD91D97D9eDa1Da7Da8DaeDb1Db9DbaDbeDc1DcbDccDceDd1Dd2Dd3Dd4Dd5Dd6Dd7Dd8Dd9DdaDdbDddDdeC063D59CbceDf3Df4Df5Df6C7b4D65D9aCfffDa6Db4Db5Dc3Dc4DdcC592D4cCefeD12D14D32D63CacbD01C052DafCdedD16D17D18D19D1aD1bD1cD1dD23D24D25D26D27D28D35D36D52D62D72D82D92Da2Db2Dc2C385D7cCfffD13D22Db6DcaC382D4bD5cCdeeD00C9daDbdC163D5fDe5De6CbceDf0Df1Df2C8c5D56C6a1D3cCffeD04D31D8cCbceDf7Df8Df9CdddD74C484D75C364D86CdedD15D42Dc5C8c8D57C163D6fC8c4D67D89C493D33CacdDfaDfbDfcDfdDfeDffC172D5aC7a4D87C483D90Da0CeeeDa5CadaD3aC164D58C9c5D99C5a4D53CcecD2aD2bD2dD38D39D46D47Db8C273D1fDe1C798Db3C163D7fDe7De8C8b4D76C493D70CbebDb7C053D69C6a5D30C383Dd0CadaD9dC273D3fD4fDe3De4C9d4D78C5a3D44CcedD29D37C576Da4C373D0fDe0Cac8DaaC173D6aC9c4D77D88C593D50C272D6cC8b7D02D11C483D80CaeaD8dDc9C9c7D2cC7b4D55D9bCcdcD03D21C273D2fDe2C8b8D20C063D8fDe9C592D3bCaebD7dDc8C062D9fDeaC496D7bCadaDadDcdC593D68C9c7D64C493D43C172D4aD6bC6b5DbcCbdaD34C8c6D9cC5a4DacC8a9D96C8c4D66D8aC493D60CbebD6dDc7C5a6D49C383Db0Dc0C9c4D79C6a3D54DabCad9D8bC593D40C9c7D45CcebD98CacbD10CcecD4dCcdbDbbCcecD3dD48"{
+	dir=getInfo("image.directory");
+	nom=getTitle();
+	nom=replace(nom,".tif","");
+	
+	
+	
+	facteur_correction_complet=1;
+	facteur_correction_fxe=1;
+	area_total=-1;
+	diam=-1;
+	area_portion=0;
+	angle_portion=0;
+	area_zone1=-1;
+	pourcent_zone1=0;
+	area_zone2=-1;
+	pourcent_zone2=0;
+	angle_fxe=0;
+	nb_fxe=0;
+	densite_fxe=0;
+	nb_fxi=0;
+	densite_fxi=0;
+	area_scl=-1;
+	pourcent_scl=0;
+	area_blue=-1;
+	pourcent_blue=0;
+		
+	//dif_ncount=0;
+	
+	ncount=roiManager("count");
+	for(i=0;i<ncount;i++){
+			roiManager("Select", i);
+			nom_item=call("ij.plugin.frame.RoiManager.getName", i);
+			
+						if (nom_item=="Total"){
+							getStatistics(area);
+							area_total=area;////////////////////////////////////////////area_total
+							run("Set Measurements...", "area centroid feret's redirect=None decimal=3");
+							List.setMeasurements;
+							diam=List.getValue("Feret");////////////////diam
+							}
+						if (nom_item=="Angle"){
+							List.setMeasurements;
+							angle_portion=List.getValue("Angle");///////////////angle
+							}															
+						if (nom_item=="Portion"){
+							getStatistics(area);							
+							area_portion=area;////////////////////////////////////////////area_portion
+						}
+											
+						if (nom_item=="Zone"){
+							getStatistics(area);
+							area_zone1=area;////////////////////////////////////////////surfzone1
+							}
+						if (nom_item=="AngleFx"){
+							List.setMeasurements;
+							angle_fxe=List.getValue("Angle");///////////////angle fx
+							}
+						
+						if (nom_item=="Scl_Zone"){
+							getStatistics(area);
+							area_scl=area;////////////////////////////////////////////area_scl
+							}
+						
+						if (nom_item=="Parenchyme_bleu"){
+							getStatistics(area);
+							area_blue=area;////////////////////////////////////////////area_blue
+							}
+						if (startsWith(nom_item, "Fxe")){
+							nb_fxe++;////////////////////////////////////////////nb fx ext
+						}
+						if (startsWith(nom_item, "Fxi")){
+							nb_fxi++;////////////////////////////////////////////nb fx int
+						}	
+			
+			}	
+		run("Select None");
+		
+		///////////////facteur_correction en fonction de angle
+		if(angle_portion!=0){
+			if (area_portion>(area_total/2)) facteur_correction_complet=360/((360-angle_portion));
+			else facteur_correction_complet=360/angle_portion;
+		}
+		if(angle_fxe!=0){
+			 facteur_correction_fxe=360/angle_fxe;
+		}
+								//showMessage ("Facteur de correction = "+facteur_correction);
+		area_total=deux_decimal(area_total/1000000);
+		diam=deux_decimal(diam/1000);
+		area_portion=deux_decimal(area_portion/1000000);
+		area_zone1=deux_decimal(area_zone1/1000000);
+		area_scl=deux_decimal(area_scl/1000000);
+		area_blue=deux_decimal(area_blue/1000000);
+		
+		
+		if (facteur_correction_complet==1)area_portion=area_total;					
+		area_total_c=deux_decimal(area_portion*facteur_correction_complet);
+		angle_portion=deux_decimal(angle_portion);
+		pourcent_zone1=deux_decimal(100*(area_zone1/area_portion));
+		pourcent_scl=deux_decimal(100*(area_scl/area_zone1));
+		area_zone2=area_portion-area_zone1;
+		pourcent_zone2=deux_decimal(100*(area_zone2/area_portion));
+		nb_fxe_c=round(nb_fxe*facteur_correction_fxe);
+		densite_fxe=deux_decimal(nb_fxe_c/(area_zone1*facteur_correction_complet));
+		nb_fxi_c=round(nb_fxi*facteur_correction_complet);
+		densite_fxi=deux_decimal(nb_fxi/area_zone2);
+		pourcent_blue=deux_decimal(100*(area_blue/(area_zone2)));
+		facteur_correction_complet=deux_decimal(facteur_correction_complet);
+		facteur_correction_fxe=deux_decimal(facteur_correction_fxe);
+			
+		title1 = "Resultats";
+	  title2 = "["+title1+"]";
+	  fe = title2;		
+		run("Table...", "name="+title2+" width=1400 height=600");
+print(fe, "\\Headings:Image \tdiametre \tsurftotale \tsurfportion \tangle \tsurfze \tsurfsclze \tnbfxze \tnbfxzi \tsurfbluezi  \tfacteur_c \tsurftot_corr \t%ze \t%zi \t%sclze \tnbrefxze_corr \tdensitefxze \tnbrefxzi_corr \tdensitefxzi \t%bluezi");
+
+print(fe, nom+"\t"+diam+"\t"+area_total+"\t"+area_portion+"\t"+angle_portion+"\t"+area_zone1+"\t"+area_scl+"\t"+nb_fxe+"\t"+nb_fxi+"\t"+area_blue+"\t"+facteur_correction_complet+"\t"+area_total_c+"\t"+pourcent_zone1+"\t"+pourcent_zone2+"\t"+pourcent_scl+"\t"+nb_fxe_c+"\t"+densite_fxe+"\t"+nb_fxi_c+"\t"+densite_fxi+"\t"+pourcent_blue);
+
+
+
+	//Calcul par faisceaux	
+	titlec = "Surfaces Zone interne "+getTitle();
+	titled = "["+titlec+"]";
+	fi = titled;
+	run("Table...", "name="+titled+" width=600 height=600");
+	//print(seuil_method_phl);//
+	if (seuil_method_phl=="Aucune") print(fi, "\\Headings:Nom      \tSurface    \tXyleme     \tSclerenchyme ");	
+	else print(fi, "\\Headings:Nom      \tSurface    \tXyleme     \tSclerenchyme \tPhloeme ");
+	surface_fx_tot=-1;
+	surface_scl_tot=-1;
+	surface_xyl_tot=-1;
+	surface_phl_tot=-1;
+	n=roiManager("count");
+	for(i=0;i<n;i++){
+		nom_item_fx=call("ij.plugin.frame.RoiManager.getName", i);
+		if (startsWith(nom_item_fx, "Fxi")||startsWith(nom_item_fx, "Fvi")){
+			if (startsWith(nom_item_fx, "Fvi")) nom_item_fx=replace(nom_item_fx,"Fvi","Fxi");
+			surface_fx=-1;
+			surface_scl=-1;
+			surface_xyl=-1;
+			surface_phl=-1;
+			roiManager("Select", i);
+			getStatistics(area);
+			surface_fx=area;
+			debut=replace(nom_item_fx,"i","");
+			//print (debut);
+			for(j=0;j<n;j++){
+	
+				nom_item=call("ij.plugin.frame.RoiManager.getName", j);				
+				if (startsWith(nom_item, debut+"-Xyl")){
+					roiManager("Select", j);
+					getStatistics(area);
+					surface_xyl=area+surface_xyl;			
+				}
+				if (startsWith(nom_item, debut+"-Scl")){
+					roiManager("Select", j);
+					getStatistics(area);
+					surface_scl=area+surface_scl;			
+				}
+				if (startsWith(nom_item, debut+"-Phl")){
+					roiManager("Select", j);
+					getStatistics(area);
+					surface_phl=area+surface_phl;			
+				}
+				
+			}
+			print(fi, nom_item_fx + "\t" + round(surface_fx) + "\t" + round(surface_xyl)+ "\t" + round(surface_scl)+ "\t" + round(surface_phl));
+			surface_fx_tot=surface_fx_tot+surface_fx;
+			surface_xyl_tot=surface_xyl_tot+surface_xyl;
+			surface_scl_tot=surface_scl_tot+surface_scl;
+			surface_phl_tot=surface_phl_tot+surface_phl;			
+			
+		}
+
+}
+
+	print(fi, "Total" + "\t" + round(surface_fx_tot) + "\t" + round(surface_xyl_tot)+ "\t" + round(surface_scl_tot)+ "\t" + round(surface_phl));
+	print(fi, "Pourcentages" + "\t" + "" + "\t" + round((surface_xyl_tot*100)/surface_fx_tot) + "\t" + round((surface_scl_tot*100)/surface_fx_tot)+ "\t" + round((surface_phl_tot*100)/surface_fx_tot));
+
+
+
+}
+
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+macro "About These Macros Action Tool - C000C111C222C333C444C555D54D55D63D73D7cD7dD83D88D89D8aD8cD8dD93D97Da3Da4Da5Da6C555D7aDb5C555D72D82C555D45Da7C555D98C555D53C555D79C555C666Db4C666Db6C666C777D92C777D87C777D64C777D62C777C888D44C888D96C888D78C999D94C999CaaaCbbbD99Db3CbbbDa2CbbbDa8CbbbCcccDb7CcccD52CcccD43CcccD65CcccCdddD74CdddD77CdddD86CdddD84D95CdddD00D01D02D03D04D05D06D07D08D09D0aD0bD0cD0dD0eD0fD10D11D12D13D14D15D16D17D18D19D1aD1bD1cD1dD1eD1fD20D21D22D23D24D25D26D27D28D29D2aD2bD2cD2dD2eD2fD30D31D32D33D34D35D36D37D38D39D3aD3bD3cD3dD3eD3fD40D41D42D46D47D48D49D4aD4bD4cD4dD4eD4fD50D51D56D57D58D59D5aD5bD5cD5dD5eD5fD60D61D66D67D68D69D6aD6bD6cD6dD6eD6fD70D71D75D76D7bD7eD7fD80D81D85D8bD8eD8fD90D91D9aD9bD9cD9dD9eD9fDa0Da1Da9DaaDabDacDadDaeDafDb0Db1Db2Db8Db9DbaDbbDbcDbdDbeDbfDc0Dc1Dc2Dc3Dc4Dc5Dc6Dc7Dc8Dc9DcaDcbDccDcdDceDcfDd0Dd1Dd2Dd3Dd4Dd5Dd6Dd7Dd8Dd9DdaDdbDdcDddDdeDdfDe0De1De2De3De4De5De6De7De8De9DeaDebDecDedDeeDefDf0Df1Df2Df3Df4Df5Df6Df7Df8Df9DfaDfbDfcDfdDfeDff"{
+open(getDirectory("macros")+"toolsets\\PHIV_Shorgo_S2_toolset.txt");
+}
+
+
+
+//////////////////////////Shortcut Key/////////////////
+
+//supression de selection 
+macro "ROI Delete [n0]"{
+	if (valid_fx_int==1){
+		if(selectionType()!=-1 && selectionType()!=10){
+		roiManager("Delete");
+		run("Select None");
+	}
+	}else {
+	
+	nom_item=Roi.getName;
+	if (startsWith(nom_item, "Fxi")||startsWith(nom_item, "Fvi")){
+					if (startsWith(nom_item, "Fvi")) nom_item=replace(nom_item,"Fvi","Fxi");
+					roiManager("Rename", "Delete");
+					roiManager("Set Color", "#ffffff");
+					debut=replace(nom_item,"i","")+"-";
+					n=roiManager("count");
+					for(j=0;j<n;j++){
+						roiManager("Select", j);
+						nom_item2=call("ij.plugin.frame.RoiManager.getName", j);
+						if (startsWith(nom_item2, debut)){
+							 roiManager("Rename", "Delete");
+							 roiManager("Set Color", "#ffffff");
+							}
+					}	
+	}
+	else {
+		roiManager("Rename", "Delete");
+		roiManager("Set Color", "#ffffff");
+		
+	}
+}
+	roiManager("Show All with labels");
+	run("Labels...", "color=white font=12 show use draw");
+}
+
+
+//ajout de selection
+
+macro "ROI Ajoute [n1]"{
+	if (valid_autosegment==1){
+		Dialog.create("Ajout de selection");
+		items = newArray("Xyleme", "Sclerenchyme", "Phloeme");
+		Dialog.addRadioButtonGroup("Type de tissu", items, 3, 1, "Xyleme");
+		Dialog.show();
+		type_tissu=Dialog.getRadioButton;
+		if (type_tissu=="Xyleme"){
+			x=RoiCompte("Fx"+Num_Fxi+"-Xyl");
+			RoiAdd("Fx-"+Num_Fxi+"-Xyl"+x);
+			//roiManager("Rename", "Fx"+Num_Fxi+"-Xyl"+x);
+			roiManager("Set Color", "#ffff00");//jaune
+		}
+		if (type_tissu=="Sclerenchyme"){
+			x=RoiCompte("Fx"+Num_Fxi+"-Scl");
+			RoiAdd("Fx"+Num_Fxi+"-Scl"+x);
+			//roiManager("Rename", "Fx"+Num_Fxi+"-Scl"+x);
+			roiManager("Set Color", "#ff0000");//red
+		}
+		if (type_tissu=="Phloeme"){
+			x=RoiCompte("Fx"+Num_Fxi+"-Phl");
+			RoiAdd("Fx-"+Num_Fxi+"-Phl"+x);
+			//roiManager("Rename", "Fx"+Num_Fxi+"-Phl"+x);
+			roiManager("Set Color", "#0000ff");//blue
+		}
+						
+	}
+	if (valid_fx_ext==1){
+		if(selectionType()==10){
+		RoiAdd("Fxe");
+		//roiManager("Rename", "Fxe");
+		roiManager("Set Color", "#00ff00");//green		
+	}
+	}
+	if (valid_fx_int==1){
+		if(selectionType()!=-1 && selectionType()!=10){
+		RoiAdd("Fxi");
+		roiManager("Set Color", "#00ff00");//green	
+	}	
+	} else {
+	if  (valid_autosegment==0 && valid_fx_ext==0){
+		Dialog.create("Ajout de selection");
+		items = newArray("Faisceaux interne","Xyleme", "Sclerenchyme","Phloeme");
+		Dialog.addRadioButtonGroup("Type de tissu", items, 4, 1, "Faisceaux interne");
+		Dialog.show();
+		type_tissu=Dialog.getRadioButton;
+		if (type_tissu=="Faisceaux interne"){
+			x=RoiCompte("Fxi");
+			RoiAdd("Fxi-"+x);
+			//roiManager("Rename", "Fxi"+x);
+			roiManager("Set Color", "#00ff00");//green			
+		}
+		else {
+			Dialog.create("Numero de faisceaux");
+			Dialog.addString("Ajout dans le faisceaux Fxi:", "");
+			Dialog.show();
+			Num_Fxi = Dialog.getString();
+			if (type_tissu=="Xyleme"){
+			x=RoiCompte("Fx"+Num_Fxi+"-Xyl");
+			RoiAdd("Fx-"+Num_Fxi+"-Xyl"+x);
+			//roiManager("Rename", "Fx"+Num_Fxi+"-Xyl"+x);
+			roiManager("Set Color", "#ffff00");//jaune
+		}
+		if (type_tissu=="Sclerenchyme"){
+			x=RoiCompte("Fx"+Num_Fxi+"-Scl");
+			RoiAdd("Fx-"+Num_Fxi+"-Scl"+x);
+			//roiManager("Rename", "Fx"+Num_Fxi+"-Scl"+x);
+			roiManager("Set Color", "#ff0000");//red
+		}
+		if (type_tissu=="Phloeme"){
+			x=RoiCompte("Fx"+Num_Fxi+"-Phl");
+			RoiAdd("Fx"+Num_Fxi+"-Phl"+x);
+			//roiManager("Rename", "Fx"+Num_Fxi+"-Phl"+x);
+			roiManager("Set Color", "#0000ff");//blue
+		}
+			
+		}
+		
+	}
+}
+	roiManager("Show All with labels");
+	run("Labels...", "color=white font=12 show use draw");
+
+}
+
+
+
+//Zoom to selection
+
+macro "Zoom [n3]"{
+run("To Selection");
+}
+	
+macro "Clear_roi [n9]"{
+clear_roi();
+}
+	
+	
+	
+	/////////////////////////////////////////////////////FUNCTIONS///////////////////////////////////////////////////
+
+var function RoiAdd(nom) {
+	roiManager("Add");
+	n = roiManager("count");
+	roiManager("Select", n-1);	
+	roiManager("Rename", nom);
+}
+
+var function RoiCompte(string){
+	max=0;
+	n=roiManager("count");
+	for(i=0;i<n;i++){
+			nom_item=call("ij.plugin.frame.RoiManager.getName", i);
+			if (startsWith(nom_item, string)){
+				num=parseInt(replace(nom_item,string,""));
+				if (max<num) max=num;
+			}
+		}
+		return max+1;	
+}
+
+
+	///////////
+var function faisseaux() {
+	run("Duplicate...", "title=nb");
+	run("Set Scale...", "distance=0 known=0 pixel=1 unit=pixel");
+	run("Split Channels");
+	selectWindow("nb (red)");
+	close();
+	selectWindow("nb (green)");
+	close();
+	selectWindow("nb (blue)");
+	rename("fx");
+	setBackgroundColor(255,255,255);
+	zone_interne();
+	setBackgroundColor(0,0,0);
+}
+
+var function xyleme() {
+	run("Duplicate...", "title=xyl");
+	run("Set Scale...", "distance=0 known=0 pixel=1 unit=pixel");
+	run("8-bit");
+	run("Invert");
+	zone_interne();
+}
+	///////////
+var function colour_deconv(name){
+	if (!isOpen("Colour_deconv_red")){
+		run("Select None");
+		run("Duplicate...", "title=temp");
+		run("Set Scale...", "distance=0 known=0 pixel=1 unit=pixel");
+		run("Colour Deconvolution", "vectors=[FastRed FastBlue DAB]");
+		selectWindow("temp-(Colour_3)");
+		close();
+		selectWindow("temp-(Colour_2)");
+		close();
+		selectWindow("Colour Deconvolution");
+		close();
+		selectWindow("temp");
+		close();
+		selectWindow("temp-(Colour_1)");
+		//imageCalculator("Add create", "scl-(Colour_1)","xyl");
+		rename("Colour_deconv_red");
+		run("Select None");
+		run("Duplicate...", "title="+name);
+	}
+	else {
+		selectWindow("Colour_deconv_red");
+		run("Select None");
+		run("Duplicate...", "title="+name);
+	}
+	
+}
+	
+
+	
+var function sclerenchyme1() {
+	colour_deconv("scl");
+
+}
+
+	///////////
+var function sclerenchyme2() {
+		run("Duplicate...", "title=scl");
+		run("Set Scale...", "distance=0 known=0 pixel=1 unit=pixel");
+		run("Split Channels");
+		selectWindow("scl (red)");
+		close();
+		selectWindow("scl (green)");
+		close();
+		selectWindow("scl (blue)");
+		rename("scl");
+		//zone_interne();
+	
+
+}
+
+var function phloeme1() {
+	run("Set Scale...", "distance=0 known=0 pixel=1 unit=pixel");
+	run("8-bit");
+	//zone_interne();
+	}
+
+
+var function phloeme2(min,max) {
+run("Set Scale...", "distance=0 known=0 pixel=1 unit=pixel");
+run("RGB Stack");
+run("Convert Stack to Images");
+selectWindow("Red");
+rename("0");
+selectWindow("Green");
+rename("1");
+selectWindow("Blue");
+rename("2");
+for (i=0;i<3;i++){
+  selectWindow(""+i);
+  setThreshold(min[i], max[i]);
+  run("Convert to Mask");
+  }
+imageCalculator("AND create", "0","1");
+imageCalculator("AND create", "Result of 0","2");
+for (i=0;i<3;i++){
+  selectWindow(""+i);
+  close();
+}
+selectWindow("Result of 0");
+close();
+selectWindow("Result of Result of 0");
+rename("phl");
+run("Options...", "iterations=1 count=1 edm=Overwrite do=Nothing");
+run("Dilate");
+//zone_interne();
+}
+
+var function phloeme3(mean,ecart) {
+		run("Set Scale...", "distance=0 known=0 pixel=1 unit=pixel");
+		setForegroundColor(mean[0], mean[1], mean[2]);
+		run("Densitometry 3 Channel ", "red="+ecart[0]+" green="+ecart[1]+" blue="+ecart[2]+" binarization inverse");
+		run("Make Binary");
+		run("Invert");
+		run("Grays");
+		setForegroundColor(255, 255, 255);//premier plan blanc
+		setBackgroundColor(0,0,0);// fond noir 
+		rename("phl");
+		run("Options...", "iterations=1 count=1 edm=Overwrite do=Nothing");
+		run("Erode");
+		run("Dilate");
+		//zone_interne();
+}
+
+function rgb_get(moyenne, ecart){
+		run("Clear Results"); 
+		run("Set Measurements...", "area mean standard redirect=None decimal=3"); 
+		run("RGB Measure");
+		moyenne[0]=getResult("Mean", 0);
+		moyenne[1]=getResult("Mean", 1);
+		moyenne[2]=getResult("Mean", 2);
+		ecart[0]=getResult("StdDev", 0);
+		ecart[1]=getResult("StdDev", 1);
+		ecart[2]=getResult("StdDev", 2);	
+}
+
+///////////////////////////
+
+var function Blur(sigma){
+	run("Gaussian Blur...", "sigma="+sigma);
+}
+
+
+	
+	var function Seuil(seuils){
+	setThreshold(seuils[0], seuils[1]);
+	run("Convert to Mask");
+}
+
+
+var function particules (param){
+	ninit=	roiManager("count");
+	run("Analyze Particles...", "size="+param[1]+"-"+param[2]+" pixel circularity="+param[3]+"-1.00 show=Nothing exclude add ");
+	nfinal=	roiManager("count");
+	for (i=ninit; i<nfinal; i++) {
+		roiManager("Select", i);
+		run("Enlarge...", "enlarge="+param[4]+" pixel");
+		run("Enlarge...", "enlarge=-"+param[4]+" pixel");
+		roiManager("Update");
+		run("Select None");
+
+	}
+		return nfinal-ninit;
+	
+}
+
+function Validation_surface(zone,seuils){
+	run("Threshold...");
+	setThreshold(seuils[0], seuils[1]);
+	run("Threshold...");	
+	setTool("wand");
+	title = zone;
+	msg = "Regler le seuil puis selectionner avec la baguette";
+	waitForUser(title, msg);
+	getThreshold(lower, upper);
+	seuils[0]=lower;
+	seuils[1]=upper;
+	roiManager("Add");
+	n = roiManager("count");
+	roiManager("Select", n-1);
+	roiManager("Rename", zone);
+	close();
+  selectImage(origid);
+  roiManager("Select", n-1);
+	setTool("brush");
+	call("ij.gui.Toolbar.setBrushSize", 300); 
+	waitForUser(zone,"Correction de la selection");
+	//run("Interpolate", "interval=1");//voir feret!
+	roiManager("Update");	
+	roiManager("Deselect");
+	run("Select None");	
+	setTool("rectangle");
+}
+
+var function ChoixSeuils(titre,seuils){
+	run("Threshold...");
+	setThreshold(seuils[0], seuils[1]);
+	run("Threshold...");
+	waitForUser(titre,"Reglage du Seuil");
+	getThreshold(lower, upper);
+	seuils[0]=lower;
+	seuils[1]=upper;
+	}
+
+
+var function zone_interne(){
+		n=roiManager("count");
+		for(i=0;i<n;i++){
+			roiManager("Select", i);
+			nom_item=call("ij.plugin.frame.RoiManager.getName", i);
+			if (nom_item=="Total") run("Clear Outside");
+			if (nom_item=="Portion") run("Clear Outside");			
+			if (nom_item=="Zone") run("Clear");	
+		}	
+		run("Select None");	
+}
+
+
+var function raz(titre){
+	if (roiManager("count")>0){
+		roiManager("Deselect");
+		roiManager("Delete");
+		}	
+	run("Remove Overlay");
+	run("Clear Results");
+	print ("\\Clear");
+	/*select_active=1;
+	id_act=getImageID();
+	if (getTitle()==titre) select_active=0;
+  names = newArray(nImages);
+	for (i=0; i < names.length; i++){
+        selectImage(i+1);
+         if (getTitle()==titre) close();
+       } 
+   if(select_active==1) selectImage(id_act);
+   run("Remove Overlay");*/
+}
+
+
+
+var function clear_roi(){
+	valid_fx_ext=0;
+	valid_autosegment=0;
+	Num_Fxi="";
+	n=roiManager("count");
+	for(i=n-1;i>-1;i--){
+		roiManager("Select", i);
+		nom_item=Roi.getName;
+		if (startsWith(nom_item, "Delete")) roiManager("Delete");
+	}
+	roiManager("Deselect");
+	roiManager("Show None");
+	roiManager("UseNames", "true");
+	roiManager("Show All");
+	run("Select None");
+}
+
+
+function NA(valeur){
+	if (valeur==-1)valeur="NA";
+	return valeur;
+}
+
+function deux_decimal(valeur){
+	if (valeur!=-1){
+		valeur= round(valeur*100)/100;
+	}
+	else valeur="NA";
+	return valeur;
+}
+
+function centre_gravite(){
+	run("Set Measurements...", "area centroid shape display redirect=None decimal=3");
+	getPixelSize(unit, pixelWidth, pixelHeight);
+	run("Set Scale...", "distance=0 known=0 pixel=1 unit=pixel");
+	List.setMeasurements;
+	xg=List.getValue("X");
+	yg=List.getValue("Y");
+	run("Select None");
+	makePoint(xg, yg);
+	run("Set Scale...", "distance=1 known=&pixelWidth pixel=1 unit=&unit");
+	run("Add Selection...");
+}
+
+function mesure_angle(){
+	Roi.getCoordinates(xpoints, ypoints);
+	xpoints=Array.trim(xpoints,3);
+	ypoints=Array.trim(ypoints,3);
+	makeSelection("angle",xpoints,ypoints);
+	List.setMeasurements;
+	return List.getValue("Angle");		
+}
+
+function portion_roi(i,index_portion,nom){
+	roiManager("Select", newArray(i,index_portion));
+	roiManager("AND");
+	if(selectionType()!=-1) RoiAdd(nom+"_p");
+}

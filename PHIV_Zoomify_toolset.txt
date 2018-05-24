@@ -1,0 +1,630 @@
+// PHIV Zoomify Tool Set
+// Marc LARTAUD MRI PHIV
+// Boite a outils pour faciliter l export des fichiers ndpi issu du nanozoomer pour les mettre en Zoomify
+
+// installer loci bio formats
+//http://www.loci.wisc.edu/files/software/loci_tools.jar
+
+
+
+/*
+Outil Ndpi : Pour previsualuser le contenu d un fichier Ndpi a faible resolution (serie4)
+
+Outi CropLoci : Pour extraire au format tiff et a la resolution choisie (serie de 1 a 3)
+	une zone selectionnee sur la previsualisation via l outil Ndpi
+	Option clic droit pour le choix de la resolution
+
+
+
+*/
+
+//variables glogales
+var path="";
+var pathsansext="";
+var FacteurMultiplicatif=0;
+var NomImage="nom d image";
+var numserie=1;
+var numserie_crop=1;
+var dir_zoom_image="E:\\Mes donnees\\www\\phiv\\zoom\\images\\";
+var POIVISIBILITY=1;
+var LABELVISIBILITY=1;
+var NOTEVISIBILITY=1;
+var POI_NAME="";
+var NOTE_NAME="";
+var LABELS_NAME="";
+
+var IDlab=0;
+var interval=10;
+var CAPTION=1;
+var TOOLTIP=1;
+var TEXTCOLOR="Blanc";
+var BACKCOLOR="Noir";
+var LINECOLOR="Blanc";
+var FILLCOLOR="Blanc";
+var TEXTVISIBLE="1";
+var BACKVISIBLE="1";
+var LINEVISIBLE="1";
+var FILLVISIBLE="1";
+//crop
+var taille_crop=10; // mini en cm²
+var filtre_crop=5;
+var enlarge_crop=5;
+var SX=newArray (1);
+var SY=newArray (1);
+var tabIndexScenes=newArray (1);
+var seriesCount=0;
+var autocrop=true;
+
+var couleur_rgb=newArray("Blanc","Noir","Rouge","Vert","Bleu","Magenta","Jaune","Cyan");
+var couleur_hex=newArray("ffffff","000000","ff0000","00ff00","0000ff","ff00ff","ffff00","00ffff");
+
+var dir_toolset=getDirectory("macros")+"toolsets\\";
+
+macro "AutoRun"{
+	setTool("rectangle");
+	setForegroundColor(255, 255, 255);//premier plan blanc
+	setBackgroundColor(0,0,0);// fond noir
+	run("Set Measurements...", "area shape display redirect=None decimal=3");
+	requires("1.49p");
+}
+
+
+////////////////////////////////////////////////////////////////label=crop////////////////////////////////////////////
+macro "CropLoci Action Tool - C000D0fDedCdddD10D36D37D38D39D4dD5dD6dD7dD8dD9dDadDbdDe5C777DcaDf2CeeeD0cD21D31D41D51D61D71D81D91Da1Db1Dc1Dd1De0C444DffCdddD2fD32D3eD3fD42D46D47D48D49D4eD4fD52D56D57D58D59D5eD5fD62D66D67D68D69D6eD6fD72D76D77D78D79D7eD7fD82D86D87D88D89D8eD8fD92D96D97D98D99D9eD9fDa2Da6Da7Da8Da9DaeDafDb2Db6Db7Db8Db9DbeDbfDc2DceDcfDdfDe6De7De8De9DeaDf4Df5Df6Df7Df8Df9DfaDfbDfcCbbbD0dD2eD33D3aD43D53D63D73D83D93Da3Db3DdeDf3CeeeD04D05D06D07D08D09D0aD0bD20D30D40D50D60D70D80D90Da0Db0Dc0Dd0C333D01D34D44D54D64D74D84D94Da4Db4Dd5Dd6Dd7Dd8Dd9DdaDf1CaaaDe1De4DefDfdC666D23D2dDc5CcccD00D03D4aD5aD6aD7aD8aD9aDaaDbaC333D1eD25D26D27D28D29D2aD3bD4bD5bD6bD7bD8bD9bDabDbbDc4DeeC888D02D1fDddC666D4cD5cD6cD7cD8cD9cDacDbcDccCbbbD22D35D45D55D65D75D85D95Da5Db5Dc3Dd2CcccD3dDcdDebDf0C222D1dDd4C888D11D14Dc6Dc7Dc8Dc9C555D0eD3cDd3C999D15D16D17D18D19D1aD1bC111D12D2bD2cDcbDdcDe2C777D1cDecC444DfeC222D13DdbDe3C111D24"{
+
+list = getList("image.titles");
+if (list.length==0){
+	path = File.openDialog("Choose a file");
+	if (endsWith(path, "ndpi")) pathsansext=substring(path,0,indexOf(path,".ndpi"));
+	if (endsWith(path, "czi")) pathsansext=substring(path,0,indexOf(path,".czi"));
+	NomImage=File.getName(path);
+	Bio_meta(path);
+
+	Array.show("Dimensions", SX, SY);
+	Array.show(tabIndexScenes);
+
+	for (i=1;i<tabIndexScenes.length;i++){
+	if ((tabIndexScenes[i]-tabIndexScenes[i-1])>2) {
+		run("Bio-Formats Importer", "open=["+path+"] color_mode=Default view=Hyperstack stack_order=XYCZT series_"+(tabIndexScenes[i]-1));
+		Hyper2RGB();
+		rename("scene_"+tabIndexScenes[i]-1);
+		}
+	}
+}
+waitForUser("Faire une Selection");
+getSelectionBounds(x, y, width, height);
+num_serie=parseInt(replace(getTitle(),"scene_",""));
+print (num_serie);
+print (SX[num_serie]);
+serie_max=0;
+for (i=1;i<tabIndexScenes.length;i++){
+	if (tabIndexScenes[i]>num_serie) {
+		serie_max=tabIndexScenes[i-1];
+		i=tabIndexScenes.length;
+		}
+}
+print (serie_max);
+print (SX[serie_max]);
+
+FacteurMultiplicatif= SX[serie_max]/SX[num_serie];
+x=(FacteurMultiplicatif)*x;
+y=(FacteurMultiplicatif)*y;
+width=(FacteurMultiplicatif)*width;
+height=(FacteurMultiplicatif)*height;
+
+
+if (width*height < 2000000000 && width<64000 && height<64000){
+	run("Bio-Formats Importer", "open=["+path+"] color_mode=Default crop view=Hyperstack stack_order=XYCZT series_"+serie_max+" x_coordinate_"+serie_max+"="+x+" y_coordinate_"+serie_max+"="+y+" width_"+serie_max+"="+width+" height_"+serie_max+"="+height+"");
+	Hyper2RGB();
+	}
+	else {
+		print (width);
+		print (height);	
+		print ("Taille trop grande");
+	}
+}
+
+
+macro 'CropLoci Action Tool Options'  {
+    //on right-click, the corresponding 'Options' macro is run
+    
+  	}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+macro "PNG Action Tool - C065Df6CfffD00D01D02D03D04D0eD0fD10D11D12D13D14D1eD1fD20D21D22D23D24D2dD2eD2fD30D31D32D33D34D3bD3cD3dD3eD3fD40D41D42D43D44D4bD4cD4dD4eD4fD50D51D52D53D54D5bD5cD5dD5eD5fD60D61D62D63D64D6bD6cD6dD6eD6fD70D71D72D73D74D7bD7cD7dD7eD7fD80D81D82D83D84D8bD8cD8dD8eD8fD90D91D92D93D94D9bD9cD9dD9eD9fDa0Da1Da2Da3Da4Da5DabDacDadDaeDafDb0Db1Db2Db3Db4DbeDbfDc0Dc1Dc2Dc3Dc4DceDcfDd0Dd1Dd2Dd3Dd4DdeDdfDe0De1De2De3De4DeeDefDf0Df1Df2Df3Df4DfeDffCaa6Db7C386D16CaeeD7aDaaC464D08D0bCacbDcbC298Dc7CeedD29Dc5C462D06CcdaD57C586D9aCdedDddC584De6CedbDb6C5bbDfcCeffDd8C364D66D67Cbb7De7C387D96CdedD15D65De5C474D0cCaddDa7C3aaDc8CefeD27C375D97CddaDbcC597DdaCdfeDdbC795D39CdedD05D75C7cdD1cCfffDb5DbdC165Df9Cab6De9C277DfbCcedDf5C474D98D99C9ddD78D79C399D48CeeeD0dDcdC463D07D0aCddaD56D87C696DcaCdeeD35C585Dc6CeebD5aD8aC7ccD1bCfffD2bD2cD45C265DfaCcc8De8C587D6aCceeDd9C474DccCcedD25D85Dd5C5bbD19CffeD28C385D36CddaD88D89C5a7Dd6CdeeD95C895D37CeecDbbC9ddD77C9ddDa9C463D09CcdaD59C696DeaC6bbD17CeffD1dCbb7DebC497DdcC4aaD47C375D68D69C6a6D26C894Db8C9dcDa8C165Df7Cbb7Db9C288Dc9CcefD4aC5a9D3aC696D2aCdeeDedC695D86C7cdD18C265Df8CcdaD58C497D1aCcefDa6C485DecC5bbD49CffeD55C6a8D76CdeeDd7C9a5D38CfecDbaC9ddD46CeffDfd"{
+
+index=0;
+if (bitDepth() != 8) run("8-bit Color", "number=256");
+waitForUser("noter l index a mettre en transparence");
+Dialog.create("png");
+Dialog.addSlider("Index transparence", 0, 255, index);
+Dialog.show() ;
+index=Dialog.getNumber() ;
+  call("ij.Prefs.setTransparentIndex", 1);
+  saveAs("PNG"); 
+
+
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+macro "Reduction Action Tool - C8adDadDd5DdaCeefD02D13D69Da1C9bdD25Dd1DefCfffD03D04D05D06D07D08D09D0aD0bD0cD14D17D18D1bD27D28D30D37D38D3fD40D41D47D48D4eD4fD50D57D58D5fD60D67D68D6fD70D71D72D73D74D75D76D77D78D79D7aD7bD7cD7dD7eD7fD80D81D82D83D84D85D86D87D88D89D8aD8bD8cD8dD8eD8fD90D97D98D9fDa0Da7Da8DafDb0Db1Db7Db8DbeDbfDc0Dc7Dc8DcfDd7Dd8De4De7De8DebDf3Df4Df5Df6Df7Df8Df9DfaDfbDfcC8aeD4aDa4DabDacDbaDc4Dc5DcaDd3De1De2DeeCeffD0fD5eD91Dc1Dd0CcdeD29D2fD39D3eD49D59Da9Db2Db9Dc9DecDfdC8adDfeCeffD19D9eCbceD0eDdbC8beD22D2dD33D3cD54D5bDccDddCfffD00D15D1aD51D96D99CdeeD24D6eC7adDa3DbcCeefD0dD16D1cDceDdfCaceD10D63D64D65D6aD6bD6cDd4C8aeD45Db5Dc3Dd2CddeD20D31De6DeaDffC9bdD12D1dD23D2aD2cDcdDdeCcdeDbdC8beD44D4bCdefD2bD61D66D92D93D94D95D9aD9bD9cD9dDaeDe5De9Df0C7adD34D35D3aD3bD43Da5DaaDb3CacdD62D6dDe0C8adD21D2eD32D3dDdcDedCbdeD36D46Db6Dc6C7aeD11D1eD4cD53D55D5aD5cDcbC9bdD5dDc2CcdeD42Dd9C8bfDb4DbbCabdD1fD52C8adDa2Df1CbceD26D4dD56Dd6CcdeDa6De3Df2CbceD01"{
+
+run("Size...", "width=324 constrain average interpolation=Bilinear");
+//saveAs("Jpeg", dir_zoom_image+getTitle()+".jpg");
+
+
+
+
+}
+
+
+
+
+
+
+macro "Zoom_to Action Tool - C012D24D25D26D51D59D61D69D71D79D88D97D98Da4Da5Da6Da9DaaDb9DeeDfdDfeCeeeD00D01D02D03D04D05D06D07D08D09D0aD0bD0cD0dD0eD0fD10D11D12D13D14D15D16D17D18D19D1aD1bD1cD1dD1eD1fD20D21D22D28D29D2aD2bD2cD2dD2eD2fD30D31D35D39D3aD3bD3cD3dD3eD3fD40D44D45D46D4aD4bD4cD4dD4eD4fD53D54D55D56D57D5aD5bD5cD5dD5eD5fD60D62D63D64D65D66D67D68D6aD6bD6cD6dD6eD6fD70D73D74D75D76D77D7aD7bD7cD7dD7eD7fD80D84D85D86D87D8aD8bD8cD8dD8eD8fD90D91D95D99D9aD9bD9cD9dD9eD9fDa0Da1Da2Da8DacDadDaeDafDb0Db1Db2Db3Db4Db5Db6Db7Db8DbdDbeDbfDc0Dc1Dc2Dc3Dc4Dc5Dc6Dc7Dc8DceDcfDd0Dd1Dd2Dd3Dd4Dd5Dd6Dd7Dd8Dd9DdfDe0De1De2De3De4De5De6De7De8De9DeaDefDf0Df1Df2Df3Df4Df5Df6Df7Df8Df9DfaDfbDffCaaaD34D36D43D47D52D58D81D89D92Da3Da7Dc9DdaDebDfcC023D33D37D42D48D82D93DbbDcaDccDdbDddDecCaabD23D27D32D38D41D49D72D78D83D94D96DabDbcDcdDdeC677DbaDcbDdcDedCdddD50"{
+Dialog.create("Zoom to"); 
+Dialog.addNumber("X:", 0);
+Dialog.addNumber("Y:", 0);
+Dialog.addNumber("ZOOM:", 100);
+Dialog.show();
+Xz=Dialog.getNumber();
+Yz=Dialog.getNumber();
+Zz=Dialog.getNumber();
+run("Set... ", "zoom="+Zz+" x="+Xz+" y="+Yz+"");
+getDisplayedArea(x, y, width, height);
+run("Set... ", "zoom="+Zz+" x="+Xz+(width/2)+" y="+Yz+(height/2)+"");
+/*run("Specify...", "width=500 height=500 x="+Xz+" y="+Yz+" centered");
+run("To Selection");
+run("Select None");*/
+
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+macro "PixPerUnit Action Tool - C000D23D27D33D37D43D47D53D57Dd7CfffD00D01D02D0cD0dD0eD0fD10D11D12D1cD1dD1eD1fD20D21D22D2cD2dD2eD2fD30D31D32D34D35D36D38D39D3aD3bD3cD3dD3eD3fD40D41D42D44D45D46D48D49D4aD4bD4cD4dD4eD4fD50D51D52D58D59D5aD5bD5cD5dD5eD5fD60D61D62D68D69D6aD6bD6cD6dD6eD6fD70D71D72D73D77D78D79D7aD7bD7cD7dD7eD7fD80D81D82D84D8cD8dD8eD8fD90D91D92D94D9cD9dD9eD9fDa0Da1Da2Da4DacDadDaeDafDb0Db1Db2Db3Db4Db7Db8Db9DbcDbdDbeDbfDc0Dc1Dc2Dc3Dc4DccDcdDceDcfDd0Dd1Dd2Dd3Dd4Dd5DdbDdcDddDdeDdfDe0De1De2De3De4DecDedDeeDefDf0Df1Df2Df3Df4Df7Df8Df9DfcDfdDfeDffC06aDe9Df5C830D65DbbCcfcDdaC038DfbCaffD24D25D26D28D29D2aD2bDa3Da5Da6Da7Da8Da9DaaDf6Cfc8D03D04D05D06D07D08D09D0aD0bD56D83D85D86D87D88D89D8aD8bDbaDc8CffcD55C306D14D15D16D18D19D1aD1bD93D95D96D97D98D99D9aD9bCafaDd6Ca60Db5Dc9CffaD54Db6C338DcaC300D13D17C6afD67D75DcbC833DeaC8cfD74D76De8DfaCc83Dc7De5C38cD63Dc5De7CafcDabC666Dd9C303D66Dd8C606Dc6De6Cfa6DebC603D64"{
+
+getPixelSize(unit, pixelWidth, pixelHeight);
+print("\\Clear");
+print("&zPixelsPerUnit="+(1/pixelWidth));
+String.copy(getInfo("log"));
+
+
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+macro "Texte_zoomy Action Tool - C148Db5Db9DbaCbcdDf0CbcdD01CdefD11D13D23D33D43D53D63D73Df3C68bD58CcdfD16D17D26D55D83D96D97Dd7De6De7Df6Df7CbcfD1cD1dD2cD2dD3cD3dD4cD4dD5cD5dD6cD6dD7cD7dD8cD8dD9cD9dDacDadDbdDccDcdDdcDddDecDedDfcDfdCeefD30D40D50D60D70D80D90Da0Db0Dc0C369D76CcdfD19D87D99Dd9De9Df9CacfD1eD2eD3eD4eD5eD6eD7eD8eD9eDaeDbeDceDdeDeeCdefD12D21D22D31D32D41D42D51D52D61D62D71D72D81D82D91D92Da1Da2Db1Db2Dc1Dc2Dd0Dd1Dd2De1De2Df2C8adD7bCdefD14D15D20D24D25D34D35D44D45D54D64D74De3Df1Df4Df5C258D66CbdfD1aD1bD29D2aD2bD3aD3bD4bD5bD89D9aD9bDdaDdbDeaDebDfaDfbCacfD2fD3fD4fD5fD6fD7fD8fD9fDafDbfDcfDdfDfeC89cDc6Dc7C58bD56Da6CcdfD18D36D78D88D98Dd6Dd8De8Df8C9beD09D0aD0bD1fC258D48CcdfDe0CbceD02C79cD85Dc8Dc9C46aD49D69D6aC9beD0cD0dC369D7aD94Da4Db4Dc4C8adDcbC58bDa7Da8Da9DaaCabeD08D28C248Db6Db7Db8CcdfD93Da3Db3Dc3Dd3CbceD68C79cDcaC369DbbDc5Dd4C9bdD0eC359D57Da5C8adD39D5aD79C68bD67C258D38D59CacfDefC79cDabC57aD95Dd5CabeD46D65D8aCaacD0fCaceD06D07CbceD10CaceD03D04D05C68bD37C9adDffC259D47C79cD75CacfD6bD8bDbcC79cD84C9bdDe5CbcfD4aC9adDe4CccdD00CaceD86CbcfD27CabdD77"{
+
+
+print("\\Clear");
+
+getSelectionCoordinates(xpoints, ypoints);
+X=xpoints[0];
+Y=ypoints[0];
+
+Dialog.create("Parametres annotations"); 
+	Dialog.addString("NAME :", "",50);
+	Dialog.addNumber("ZOOM:", 100);
+	Dialog.addString("CAPTION :", "",50);
+		Dialog.addMessage("Couleurs");
+	Dialog.addCheckbox("Couleur du texte :", TEXTVISIBLE);
+	Dialog.addChoice("", couleur_rgb, TEXTCOLOR);//Dialog.addString("", TEXTCOLOR);
+	
+	Dialog.addCheckbox("Couleur du bord du texte :", BACKVISIBLE);
+	Dialog.addChoice("", couleur_rgb, BACKCOLOR);
+	
+	Dialog.addCheckbox("Couleur de la bordure :", LINEVISIBLE);
+	Dialog.addChoice("", couleur_rgb, LINECOLOR);
+	
+	Dialog.addCheckbox("Couleur de remplissage :", FILLVISIBLE);
+	Dialog.addChoice("", couleur_rgb, FILLCOLOR);
+	Dialog.show();
+	NAME=Dialog.getString();
+	ZOOM=Dialog.getNumber();
+	CAPTION=Dialog.getString();
+	TEXTCOLOR=Dialog.getChoice();
+	TEXTVISIBLE=Dialog.getCheckbox();
+	BACKCOLOR=Dialog.getChoice();
+	BACKVISIBLE=Dialog.getCheckbox();
+	LINECOLOR=Dialog.getChoice();
+	LINEVISIBLE=Dialog.getCheckbox();
+	FILLCOLOR=Dialog.getChoice();
+	FILLVISIBLE=Dialog.getCheckbox();
+	
+	
+print("<LABEL ");
+				print("ID=\""+parseInt(random*10000)+"\" ");
+				print("NAME=\""+NAME+"\" ");
+				print("MEDIATYPE=\"icon\"");
+				print("MEDIA=\"\"");
+				print("X=\""+X+"\" ");
+				print("Y=\""+Y+"\" ");
+				print("ZOOM=\""+ZOOM+"\" ");
+				print("XSCALE=\"100\" ");
+				print("YSCALE=\"100\" ");
+				print("CLICKURL=\"\" ");
+				print("URLTARGET=\"_blank\" ");
+				print("ROLLOVER=\"0\" ");
+				print("CAPTION=\""+CAPTION+"\" ");
+				print("TOOLTIP=\""+CAPTION+"\" ");
+				print("TEXTCOLOR=\""+couleur_cherche(TEXTCOLOR)+"\" ");
+				print("BACKCOLOR=\""+couleur_cherche(BACKCOLOR)+"\"");
+				print("LINECOLOR=\""+couleur_cherche(LINECOLOR)+"\" ");
+				print("FILLCOLOR=\""+couleur_cherche(FILLCOLOR)+"\"");
+				print("TEXTVISIBLE=\""+TEXTVISIBLE+"\" ");
+				print("BACKVISIBLE=\""+BACKVISIBLE+"\"");
+				print("LINEVISIBLE=\""+LINEVISIBLE+"\" ");
+				print("FILLVISIBLE=\""+FILLVISIBLE+"\"");
+				print("CAPTIONPOSITION=\"5\" >");
+			print("</LABEL>");
+RoiAdd(NAME);
+log2clipboard();
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+macro "Fleche_zoomy Action Tool - C147Da7CbceDe3CbceD00CdefD02D12D22D32D42D52D62D72D82D92Da2Db2Dc2Dd2De2Df2C68bDb9DbaDd8CcdfD06D07D16D17D26D45D84De6Df6Df7CbcfD0cD0dD1cD1dD2cD2dD3cD3dD4aD4cD4dD5cD5dD6bD6cD6dD7cD7dD8cD8dD9cD9dDadDbdDccDcdDdcDddDecDedDfcDfdCeefD20D30D40D50D60D70D80D90Da0Db0Dc0Dd0De0Df0C359D38CcdfD09D19De9Df9CacfD1eD2eD3eD4eD5eD6eD7eD8eD9eDaeDbeDceDdeDeeDfeCdefD10D11D21D31D41D51D61D71D81D91Da1Db1Dc1Dd1De1Df1C79dD9bCdefD03D04D13D14D23D24D33D34D43D44D53D54D63D64D73D83Df3Df4C258D66Db7CbdfD0aD0bD1aD1bD29D2aD2bD3aD3bD4bD5bD78DcaDd9DdaDdbDeaDebDfaDfbCacfD2fD3fD4fD5fD6fD7fD8fD9fDafDbfDcfDdfDefDffC79cD46D65Da3Dd3CddfD01C57aDb5CcdfD08D18D87D88Df8C9beD7bC248D47D48Db4Dc4CbcfDc9CbceD36D55C69cD94Db3Dc3C469D57D76C9bdDc5C259D7aDc7C79cDbbCcefD05D15D25D35Df5C57bD49D6aCaceDe8C148Da4Da5Da6Da8Da9DaaCbdeDe5CbceD77D93C68bD95D96D97D98C369D37D75DabDd7C9adD0fD85C258D59D69Dd4C58aDb6C9beD28CbdfD74CacfDacC9bdD68Dd5C89cD67C57bD79CaceD27CaceD89Dc6C68bD99C369Db8C9acDe4C57aD58Dc8C9beD39C9bdD5aCabeD8bCabeDe7CbcfDcbCacfDbcCabdD86C89cD8aC58bD9aCacfD0eC369D56CbcfDd6CacfD1f"{
+
+
+
+print("\\Clear");
+
+getSelectionCoordinates(xpoints, ypoints);
+X=xpoints[0];
+Y=ypoints[0];
+
+Dialog.create("Parametres annotations"); 
+	Dialog.addString("NAME :", "",50);
+	Dialog.addNumber("ZOOM:", 100);
+	Dialog.addString("CAPTION :", "",50);
+		Dialog.addMessage("Couleurs");
+	Dialog.addCheckbox("Couleur du texte :", TEXTVISIBLE);Dialog.addChoice("", couleur_rgb, TEXTCOLOR);//Dialog.addString("", TEXTCOLOR);
+	
+	Dialog.addCheckbox("Couleur du bord du texte :", BACKVISIBLE);Dialog.addChoice("", couleur_rgb, BACKCOLOR);
+	
+	Dialog.addCheckbox("Couleur de la bordure :", LINEVISIBLE);Dialog.addChoice("", couleur_rgb, LINECOLOR);
+	
+	Dialog.addCheckbox("Couleur de remplissage :", FILLVISIBLE);Dialog.addChoice("", couleur_rgb, FILLCOLOR);
+	Dialog.show();
+	NAME=Dialog.getString();
+	ZOOM=Dialog.getNumber();
+	CAPTION=Dialog.getString();
+	TEXTCOLOR=Dialog.getChoice();
+	TEXTVISIBLE=Dialog.getCheckbox();
+	BACKCOLOR=Dialog.getChoice();
+	BACKVISIBLE=Dialog.getCheckbox();
+	LINECOLOR=Dialog.getChoice();
+	LINEVISIBLE=Dialog.getCheckbox();
+	FILLCOLOR=Dialog.getChoice();
+	FILLVISIBLE=Dialog.getCheckbox();
+	
+	IDlab++;
+	
+print("<LABEL ");
+				print("ID=\""+parseInt(random*10000)+"\" ");
+				print("NAME=\""+NAME+"\" ");
+				print("MEDIATYPE=\"icon\"");
+				print("MEDIA=\"images/fleche.png\" ");
+				print("X=\""+X+80+"\" ");
+				print("Y=\""+Y+27+"\" ");
+				print("ZOOM=\""+ZOOM+"\" ");
+				print("XSCALE=\"100\" ");
+				print("YSCALE=\"100\" ");
+				print("CLICKURL=\"\" ");
+				print("URLTARGET=\"_blank\" ");
+				print("ROLLOVER=\"0\" ");
+				print("CAPTION=\""+CAPTION+"\" ");
+				print("TOOLTIP=\""+CAPTION+"\" ");
+				print("TEXTCOLOR=\""+couleur_cherche(TEXTCOLOR)+"\" ");
+				print("BACKCOLOR=\""+couleur_cherche(BACKCOLOR)+"\"");
+				print("LINECOLOR=\""+couleur_cherche(LINECOLOR)+"\" ");
+				print("FILLCOLOR=\""+couleur_cherche(FILLCOLOR)+"\"");
+				print("TEXTVISIBLE=\""+TEXTVISIBLE+"\" ");
+				print("BACKVISIBLE=\""+BACKVISIBLE+"\"");
+				print("LINEVISIBLE=\""+LINEVISIBLE+"\" ");
+				print("FILLVISIBLE=\""+FILLVISIBLE+"\"");
+				print("CAPTIONPOSITION=\"8\" >");
+			print("</LABEL>");
+
+RoiAdd(NAME);
+log2clipboard();
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+macro "Polygone_zoomy Action Tool - C147Da8CbceD00D93Df7CabdD77D86Da3Db3CdefD01D02D12D22D32D42D52D62D72D82D92Da2Db2Dc2Dd2De2Df0Df2C46aD37D56CcdfD08D09D18D78CbcfD0dD1dD2dD3dD4dD5bD5dD6dD7cD7dD8cD8dD9dDadDbdDcdDddDedDfdCeefD20D30D40D50D60D70D80D90Da0Db0Dc0Dd0De0C259D48D49D6aDabCcdfD0aD19D1aD2aDdaDeaDf8Df9DfaCacfD0eD1eD1fD2eD2fD3eD3fD4eD4fD5eD5fD6eD6fD7eD7fD8eD8fD9eD9fDaeDafDbeDbfDceDcfDdeDdfDeeDefDfeDffCdefD10D11D21D31D41D51D61D71D81D91Da1Db1Dc1Dd1De1Df1C79cD58CdefD03D04D05D13D14D15D23D24D25D33D34D35D43D44D45D53D54D63D64D73D83De3Df3Df4C258Da6CbdfD0bD1bD2bD3aD3bD4bD88DcaDcbDdbDe9DebDfbCaceD85Dc3C68bD75Db9CcdfD06D07D16D17D26D74D84C469D76C9adD79DacC248Da4Da5Da7Da9DaaDb4Dc8Dd5Dd7CbdfD0cD1cD2cD3cD4cD5cD6cDccDdcDecDfcC9beD27C57aDb5C369D57Dd8C9acDb6C258D59CbceDf6C68bD67Db7C469D95Dd4De5De7C9beD4aD6bC148D38Db8CbcfD68D87C57aD69D94Dc5C359D7aDe6C8adD46Dc9C258D47D66Dc4Dd6CabeD9cC68bD39Dc7C369D96D97D98C9bdD8aDe4CabeD8bDc6Dd9C58bD5aC369D99D9aC8adD65DbbCacfDbcC79cD28D7bCbdeDf5C47aD9bC8acDbaDe8CaceD29CbdfD36C9bfD0fCbcfD89CcdfD55Dd3"{
+
+
+
+print("\\Clear");
+run("Interpolate", "interval="+interval+" smooth adjust");
+getSelectionCoordinates(xpoints, ypoints);
+run("Set Measurements...", "area mean center feret's limit display redirect=None decimal=9");
+		List.setMeasurements;
+		XM=List.getValue("XM");
+		YM=List.getValue("YM");
+Dialog.create("Parametres annotations"); 
+	Dialog.addString("NAME :", "",50);
+	Dialog.addNumber("ZOOM:", 100);
+	Dialog.addString("CAPTION :", "",50);
+	Dialog.addMessage("Couleurs");
+	Dialog.addCheckbox("Couleur du texte :", TEXTVISIBLE);Dialog.addChoice("", couleur_rgb, TEXTCOLOR);//Dialog.addString("", TEXTCOLOR);
+	
+	Dialog.addCheckbox("Couleur du bord du texte :", BACKVISIBLE);Dialog.addChoice("", couleur_rgb, BACKCOLOR);
+	
+	Dialog.addCheckbox("Couleur de la bordure :", LINEVISIBLE);Dialog.addChoice("", couleur_rgb, LINECOLOR);
+	
+	Dialog.addCheckbox("Couleur de remplissage :", FILLVISIBLE);Dialog.addChoice("", couleur_rgb, FILLCOLOR);
+	Dialog.show();
+	NAME=Dialog.getString();
+	ZOOM=Dialog.getNumber();
+	CAPTION=Dialog.getString();
+	TEXTCOLOR=Dialog.getChoice();
+	TEXTVISIBLE=Dialog.getCheckbox();
+	BACKCOLOR=Dialog.getChoice();
+	BACKVISIBLE=Dialog.getCheckbox();
+	LINECOLOR=Dialog.getChoice();
+	LINEVISIBLE=Dialog.getCheckbox();
+	FILLCOLOR=Dialog.getChoice();
+	FILLVISIBLE=Dialog.getCheckbox();
+
+
+
+print("<LABEL ");
+				print("ID=\""+parseInt(random*10000)+"\" 	");
+				print("NAME=\""+NAME+"\" ");
+				print("MEDIATYPE=\"polygon\"");
+				print("MEDIA=\"polygon\" ");
+				print("X=\""+XM+"\" ");
+				print("Y=\""+YM+"\"  ");
+				print("ZOOM=\""+ZOOM+"\" ");
+				print("XSCALE=\"100\" ");
+				print("YSCALE=\"100\" ");
+				print("URL=\"\" ");
+				print("URLTARGET=\"_blank\" ");
+				print("ROLLOVER=\"0\" ");
+				print("CAPTION=\""+CAPTION+"\" ");
+				print("TOOLTIP=\""+CAPTION+"\" ");
+				print("TEXTCOLOR=\""+couleur_cherche(TEXTCOLOR)+"\" ");
+				print("BACKCOLOR=\""+couleur_cherche(BACKCOLOR)+"\"");
+				print("LINECOLOR=\""+couleur_cherche(LINECOLOR)+"\" ");
+				print("FILLCOLOR=\""+couleur_cherche(FILLCOLOR)+"\"");
+				print("TEXTVISIBLE=\""+TEXTVISIBLE+"\" ");
+				print("BACKVISIBLE=\""+BACKVISIBLE+"\"");
+				print("LINEVISIBLE=\""+LINEVISIBLE+"\" ");
+				print("FILLVISIBLE=\""+FILLVISIBLE+"\"");
+				print("CAPTIONPOSITION=\"5\" >");
+					
+					print("<POLYGON>");
+					for(j=0;j<xpoints.length;j++){
+					print ("<POINT X=\""+ parseInt(xpoints[j])+"\"   Y=\""+ parseInt(ypoints[j])+"\"   ></POINT>");
+					}
+					print("</POLYGON>");
+			print("</LABEL>	");	
+RoiAdd(NAME);
+log2clipboard();
+}
+
+macro 'Polygone_zoomy Action Tool Options'  {
+    //on right-click, the corresponding 'Options' macro is run
+    Dialog.create("Interval entre Points"); //e.g., put a dialog here
+	Dialog.addSlider("Interval:", 1, 400, interval);
+    Dialog.show();
+    interval = Dialog.getNumber();
+  	}
+
+	
+	
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+macro "ZAS Action Tool - C148DaaDc4CcdeDe3CabeD85CdefD02D12D22D32D42D52D62D72D82D92Da2Db2Dc2Dd2De2Df2C57aDc7CcdfD06D07D16D17D45D64D87D96De7Df6Df7CbcfD0cD0dD1cD1dD2cD2dD3cD3dD4cD4dD5cD5dD6cD6dD7cD7dD8cD8dD9dDadDbdDcdDddDecDedDfcDfdCeefD10D20D30D40D50D60D70D80D90Da0Db0Dc0Dd0De0Df0C358Db8CcdfD09D19D78Dd8Df9CacfD0eD1eD2eD3eD4eD5eD6eD7eD8eD9eDaeDbeDceDdeDeeDfeCdefD01D11D21D31D41D51D61D71D81D91Da1Db1Dc1Dd1De1Df1C89cDebCdefD03D04D13D14D23D24D33D34D43D44D53D54D63D73Df3Df4C258D37D66Da8CbdfD0aD0bD1aD1bD2aD2bD3aD3bD4bD5bDe9DfaDfbCacfD1fD2fD3fD4fD5fD6fD7fD8fD9fDafDbfDcfDdfDefDffC69cDa3Db3Dc3CcefD05D15D25D35Df5C36aDdaCcdfD08D18D26D88D97De6De8Df8C9adD7bC258Dd4CbcfD29CbcfD4aDa6Dd9C68bDb5C369DabDb6DbbDcaDcbDdbC8adDeaC258D56C79cD79C46aD49D6aD75D99D9bC9beD84C248D9aDa9Db7Dc5Dc6CbcfD74D77CacfD6bD9cDacDbcDccDdcC68aDb9C359D69D7aC9acDe4C79bDd6C9beD0fD98C258D38D47D48D59Da4Db4CcdfD83C68bD58D8aDa7C8adD8bC79cD28Dd3CabdDe5CbceD86Dd7C57aD57C259D94DbaC8adD27D39D5aC9bdDa5C9adD67Dc8C79cD93CabeD36D55D95C68bD46D65C369Dd5CcdfD00CaceD68D89Dc9C57aD76"{
+
+
+	Dialog.create("Parametres annotations"); 
+	Dialog.addCheckbox("POI visible :", POIVISIBILITY);Dialog.addString("", POI_NAME,50);
+	Dialog.addCheckbox("Notes visibles :", NOTEVISIBILITY);Dialog.addString("", NOTE_NAME,50);
+	Dialog.addString("Notes", "Commentaire", 100) ;
+	Dialog.addCheckbox("Labels visibles", LABELVISIBILITY);//Dialog.addString("", LABELS_NAME);
+		
+	Dialog.addSlider("Facteur Intervals :", 1, 100, interval);
+	Dialog.addMessage("Couleurs");
+	Dialog.addCheckbox("Couleur du texte :", TEXTVISIBLE);Dialog.addChoice("", couleur_rgb, TEXTCOLOR);//Dialog.addString("", TEXTCOLOR);
+	
+	Dialog.addCheckbox("Couleur du bord du texte :", BACKVISIBLE);Dialog.addChoice("", couleur_rgb, BACKCOLOR);
+	
+	Dialog.addCheckbox("Couleur de la bordure :", LINEVISIBLE);Dialog.addChoice("", couleur_rgb, LINECOLOR);
+	
+	Dialog.addCheckbox("Couleur de remplissage :", FILLVISIBLE);Dialog.addChoice("", couleur_rgb, FILLCOLOR);
+	
+	Dialog.addCheckbox("Texte", CAPTION);
+	Dialog.addCheckbox("Tip", TOOLTIP);
+    Dialog.show();
+	POI_NAME=Dialog.getString();
+	POIVISIBILITY=Dialog.getCheckbox();
+	NOTE_NAME=Dialog.getString();
+	NOTEVISIBILITY=Dialog.getCheckbox();
+	NOTES=Dialog.getString() ;
+	//LABELS_NAME=Dialog.getString();
+	LABELVISIBILITY=Dialog.getCheckbox();
+    interval = Dialog.getNumber();
+	TEXTCOLOR=Dialog.getChoice();
+	TEXTVISIBLE=Dialog.getCheckbox();
+	BACKCOLOR=Dialog.getChoice();
+	BACKVISIBLE=Dialog.getCheckbox();
+	LINECOLOR=Dialog.getChoice();
+	LINEVISIBLE=Dialog.getCheckbox();
+	FILLCOLOR=Dialog.getChoice();
+	FILLVISIBLE=Dialog.getCheckbox();
+	CAPTION=Dialog.getCheckbox();
+	TOOLTIP=Dialog.getCheckbox();
+
+
+print("\\Clear");
+print("<ZAS>");
+	print("<SETUP ");
+		print("PANELPOSITION=\"2\" ");
+		print("INITIALVISIBILITY=\"1\" ");
+		print("MINSCALE=\"0.20\" ");
+		print("MAXSCALE=\"2\" ");
+		print("POIVISIBILITY=\""+POIVISIBILITY+"\" ");
+		print("LABELVISIBILITY=\""+LABELVISIBILITY+"\" ");
+		print("NOTEVISIBILITY=\""+NOTEVISIBILITY+"\" >");		
+	print("</SETUP>");
+	
+
+
+
+	
+	print("<POI ");
+		print("ID=\"0\" ");
+		print("NAME=\""+POI_NAME+"\" ");
+		print("X=\"center\" ");
+		print("Y=\"center\" ");
+		print("ZOOM=\"-1\" ");
+		print(" >");
+		print("<NOTES>");
+			print("<NOTE ");
+				print("ID=\"0\" ");				
+				print("NAME=\""+NOTE_NAME+"\" ");
+				print("TEXT=\""+NOTES+"\" ");
+				print(">");
+			print("</NOTE>");
+		print("</NOTES>");
+print("<LABELS>");
+count=roiManager("count");
+for (i=0;i<count;i++){
+		roiManager("Select", i);
+		nom_item=Roi.getName;
+		run("Set Measurements...", "area mean center feret's limit display redirect=None decimal=9");
+		List.setMeasurements;
+		XM=List.getValue("XM");
+		YM=List.getValue("YM");
+		getStatistics(area, mean, min, max, std, histogram);
+		run("Interpolate", "interval="+area/(interval*1000)+" smooth adjust");
+		//run("Interpolate", "interval="+interval+" smooth adjust");
+		getSelectionCoordinates(xpoints, ypoints);
+		print("<LABEL ");
+				print("ID=\""+i+"\" 	");
+				print("NAME=\""+nom_item+"\" ");
+				print("MEDIATYPE=\"polygon\"");
+				print("MEDIA=\"polygon\" ");
+				print("X=\""+XM+"\" ");
+				print("Y=\""+YM+"\"  ");
+				print("ZOOM=\"10\" ");
+				print("XSCALE=\"100\" ");
+				print("YSCALE=\"100\" ");
+				print("URL=\"\" ");
+				print("URLTARGET=\"_blank\" ");
+				print("ROLLOVER=\"0\" ");
+				print("CAPTION=\""+nom_item+"\" ");
+				print("TOOLTIP=\""+nom_item+"\" ");
+				print("TEXTCOLOR=\""+couleur_cherche(TEXTCOLOR)+"\" ");
+				print("BACKCOLOR=\""+couleur_cherche(BACKCOLOR)+"\"");
+				print("LINECOLOR=\""+couleur_cherche(LINECOLOR)+"\" ");
+				print("FILLCOLOR=\""+couleur_cherche(FILLCOLOR)+"\"");
+				print("TEXTVISIBLE=\""+TEXTVISIBLE+"\" ");
+				print("BACKVISIBLE=\""+BACKVISIBLE+"\"");
+				print("LINEVISIBLE=\""+LINEVISIBLE+"\" ");
+				print("FILLVISIBLE=\""+FILLVISIBLE+"\"");
+				print("CAPTIONPOSITION=\"5\" >");
+					
+					print("<POLYGON>");
+					for(j=0;j<xpoints.length;j++){
+					print ("<POINT X=\""+ parseInt(xpoints[j])+"\"   Y=\""+ parseInt(ypoints[j])+"\"   ></POINT>");
+					}
+					print("</POLYGON>");
+			print("</LABEL>	");	
+	}
+
+			print("</LABELS>");
+		print("</POI>	");
+print("</ZAS>");
+dir=getDirectory("Repertoir de sauvegarde pour annotations.xml");
+selectWindow("Log");
+saveAs("Text", dir+"annotations.txt");
+if (File.exists(dir+"annotations.xml")) File.delete(dir+"annotations.xml");
+File.rename(dir+"annotations.txt", dir+"annotations.xml");
+
+}
+
+macro 'Labels Action Tool Options'  {
+    //on right-click, the corresponding 'Options' macro is run
+    
+  	}
+
+
+
+
+macro "About These Macros Action Tool - C000C111C222C333C444C555D54D55D63D73D7cD7dD83D88D89D8aD8cD8dD93D97Da3Da4Da5Da6C555D7aDb5C555D72D82C555D45Da7C555D98C555D53C555D79C555C666Db4C666Db6C666C777D92C777D87C777D64C777D62C777C888D44C888D96C888D78C999D94C999CaaaCbbbD99Db3CbbbDa2CbbbDa8CbbbCcccDb7CcccD52CcccD43CcccD65CcccCdddD74CdddD77CdddD86CdddD84D95CdddD00D01D02D03D04D05D06D07D08D09D0aD0bD0cD0dD0eD0fD10D11D12D13D14D15D16D17D18D19D1aD1bD1cD1dD1eD1fD20D21D22D23D24D25D26D27D28D29D2aD2bD2cD2dD2eD2fD30D31D32D33D34D35D36D37D38D39D3aD3bD3cD3dD3eD3fD40D41D42D46D47D48D49D4aD4bD4cD4dD4eD4fD50D51D56D57D58D59D5aD5bD5cD5dD5eD5fD60D61D66D67D68D69D6aD6bD6cD6dD6eD6fD70D71D75D76D7bD7eD7fD80D81D85D8bD8eD8fD90D91D9aD9bD9cD9dD9eD9fDa0Da1Da9DaaDabDacDadDaeDafDb0Db1Db2Db8Db9DbaDbbDbcDbdDbeDbfDc0Dc1Dc2Dc3Dc4Dc5Dc6Dc7Dc8Dc9DcaDcbDccDcdDceDcfDd0Dd1Dd2Dd3Dd4Dd5Dd6Dd7Dd8Dd9DdaDdbDdcDddDdeDdfDe0De1De2De3De4De5De6De7De8De9DeaDebDecDedDeeDefDf0Df1Df2Df3Df4Df5Df6Df7Df8Df9DfaDfbDfcDfdDfeDff"{
+open(getDirectory("macros")+"toolsets/PHIV_Zoomify_toolset.txt");
+}
+
+	
+
+function Bio_meta(path){
+	SX=Array.trim(SX, 1); 
+	SY=Array.trim(SY, 1); 
+	tabIndexScenes=Array.trim(tabIndexScenes, 1);
+	run("Bio-Formats Macro Extensions");
+	Ext.setId(path);
+	Ext.getCurrentFile(file);
+	Ext.getSeriesCount(seriesCount);
+	for (s=0; s<seriesCount; s++) {
+	  Ext.setSeries(s);
+	  Ext.getSizeX(sizeX);
+	  SX=Array.concat(SX,sizeX);
+	  Ext.getSizeY(sizeY);
+	  SY=Array.concat(SY,sizeY);
+	   }
+	   //((SX[s]>SX[s-1]) || (abs((SX[s]/SX[s-1])-(SY[s]/SY[s-1]))<0.01))
+		//(SX[s]>SX[s-1])
+	for (s=1;s<seriesCount;s++){
+		if ((SX[s]>SX[s-1]) || (abs((SX[s]/SX[s-1])-(SY[s]/SY[s-1]))>0.01))	tabIndexScenes=Array.concat(tabIndexScenes,s);	
+		}
+	   
+	 tabIndexScenes=Array.concat(tabIndexScenes,seriesCount); 
+	Ext.close();
+}
+
+function Hyper2RGB(){
+	setBatchMode(true);
+	titre=getTitle();
+	setSlice(1);
+	 setMetadata("Label", "r");
+	setSlice(2);
+	 setMetadata("Label", "g");
+	setSlice(3);
+	 setMetadata("Label", "b");
+	run("Stack to Images");
+	run("Merge Channels...", "c1=r c2=g c3=b");
+	selectWindow("RGB");
+	rename(titre);
+	setBatchMode(false);
+}
+
+function couleur_cherche(string){
+	for(i=0;i<couleur_rgb.length;i++){
+		if (couleur_rgb[i]==string) return couleur_hex[i];
+	}
+	print("rien");
+}
+
+function RoiAdd(nom) {
+	roiManager("Add");
+	n = roiManager("count");
+	roiManager("Select", n-1);	
+	roiManager("Rename", nom);
+}
+
+
+function log2clipboard(){
+	/*dir_toolset=getDirectory("macros")+"toolsets\\";
+	selectWindow("Log");
+	run("Text...", "save=["+dir_toolset+"log.txt]");
+	clipstring=File.openAsString(dir_toolset+"log.txt");
+	String.copy(clipstring);*/
+	String.copy(getInfo("log"));
+	
+	
+}

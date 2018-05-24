@@ -1,0 +1,438 @@
+// PHIV Alignement Tool Set
+// Marc LARTAUD MRI PHIV
+// Boite a outils pour faciliter l alignement des photos de coupes seriees
+
+/*
+
+
+
+//Outil NdpiExportBatch permet d exporter au format tif calibré les fichiers ndpi d un repertoire source
+dans un repertoire cible avec l option N° de serie allant de 3 à 5 de la plus forte a la plus petite resolution 
+en option (clic droit): choix du N° de serie
+
+//Outil Crop NDPI pour recuperrer les coupes detourees en blanc et les saugegarder dans un dossier
+
+Outil Resize pour mettre toutes les images d un dossier a la meme taille  (Canvas size et ajout de blanc)
+en option marge: nombre de pixels ajoutes a la taille maxi
+
+Outil binning 
+retaille les images d un dossier en x y 
+clic droit pour l option facteur de binning a 2 par defaut
+
+
+Outil AutoAlignement ne marche que sous fiji plugin linear stack alignement with SIFT
+http://fiji.sc/wiki/index.php/Linear_Stack_Alignment_with_SIFT
+http://fr.wikipedia.org/wiki/Scale-invariant_feature_transform
+premier passage avec flip en fonction de score (nombre de points verts dans alignement info)
+deuxieme passage pour l alignement
+
+Outil Noir2blanc met en blanc tous les pixels noirs
+
+Outil Normalize (en test) pour avoir une meme valeur moyenne d intensite
+
+
+
+Raccourci au pave numerique 
+4 slice precedente
+6 slice suivante
+*/
+
+var marge=2;
+var binning=2;
+var numserie=4;
+var debflip=1;
+
+
+
+//macro "Unused Tool-1 - " {}  // laisse une place libre!
+
+/*
+////////////////////////////////////////////////////////////////label=NdpiExportBatch////////////////////////////////////////////
+
+macro "NdpiMacroBatch Action Tool - C2a3D47CbceD89CbbcDaaCfffD00D01D02D03D04D05D06D07D09D0aD0bD0cD0dD0eD0fD10D11D12D13D1cD1dD1eD1fD20D21D2dD2eD2fD30D3eD3fD40D4eD4fD50D5fD60D6fD7fD8fD9fDa0DafDb0DbeDbfDc0Dc1DceDcfDd0Dd1Dd2DddDdfDe0De1De2DeaDebDedDefDf0Df1Df2Df3Df4Df5Df6Df7Df8Df9DfaDfbDfcDfdDfeDffCa99Dc6CffeDc8CcccD81C877D7cCeeeD4dD61DcdDd3DdcDe7CbbdD7aCbbbD7bDd4CfffD3dCcceD93C3c1D46CeeeD8eCcbcD6dCaaaD95Dc4CfffDd8De3De9CccdD68C998D9cCeefD18Da1DdaCbbdD8aC9d9D25CfffD08DaeDd9De8CddeD3aD3cD5aD7eC876D96Da6CeeeD15D23CbbbD8dCaaaDcbDd6CfffD14D1bD22D2cD41D70D80D90D9eDc2CcecD24C888Dc5CcccD2aDa2CacaD62CfffD5eDb1DdeDeeCdddD28C6b5D55CeeeD6eCbcbD58CaabDb4CdddD16C7a7D63CeffD17D51CccdDb9CbcbD76CeeeDb2Db8DdbDe4C4a4D37CeeeD19D29D39D4aDc9CabcD94D9aCaa9D97CccdD2bD49D92C887D8cCbbdD6aCbbbDbcCfffD31DecCdceD4bC4c2D45CbbcD59D74Da8CaabDbaCdddD91C998Db5CbcdD84CbcaD33C6a6D66CcbbD9dCba9Da7CdddD5dD75D82Dd7De6C988D86CcccDc3CacaD38D52D67CdedD32C6b6D34CeefD5bCbcbD72CbabD7dCdddD1aC8c6D43D54CccdD83D88CbdbD42C3a3D56CcceD69CbbcD98Db3Caa9D87CcccDadC777DbbCbbdDa9CabbD73CcceD78C3b2D36C988D9bCbbbDccC888DabCbbbD77CdddD71DbdC6d4D44CcccDc7CaabDa4C8a8D48CccdDa3C6a6D26Caa9D8bC987Db6CcbdD4cD5cCbbbDcaCddeD6bC4c3D35CbbaDb7Ca99Da5CbbeD99CadaD27C6b6D57CbbcD3bD6cCaaaDacC888Dd5C7b6D53CcdbD64CabbD85CcdbD65CccfD79CddcDe5"{
+XResolution=0;
+ImageWidth=0;
+ImageHeight=0;
+
+dir1 = getDirectory("Choix du Répertoire Source ");
+list = getFileList(dir1);
+dir2 = getDirectory("Choix du Répertoire Cible ");	
+//setBatchMode(true);
+      for (i=0; i<list.length; i++) {
+          showProgress(i+1, list.length);
+           if (endsWith(list[i], '.ndpi')){
+           	run("Bio-Formats Importer", "open=["+dir1+list[i]+"] color_mode=Default display_metadata view=[Metadata only] stack_order=Default");
+           
+           fichier=substring(list[i],0,indexOf(list[i],".ndpi"));
+           selectWindow("Original Metadata - "+list[i]);
+           	saveAs("Text", dir2+fichier+".xls"); //Creation d un fichier excel pour recuperrer les metadata
+						run("Close");
+						lines=split(File.openAsString(dir2+fichier+".xls"), "\n");
+						
+						xline=split(lines[11],"\t");
+						yline=split(lines[12],"\t");
+						resline=split(lines[(lines.length-3)],"\t");
+						xlineserie=split(lines[11+(12*(numserie-1))],"\t");
+						ylineserie=split(lines[12+(12*(numserie-1))],"\t");
+
+						XResolution=parseInt(resline[1]);
+						ImageHeight=parseInt(yline[1]);
+						ImageWidthtotal=parseInt(xline[1]);
+						ImageWidthserie=parseInt(xlineserie[1]);
+						ImageHeightserie=parseInt(ylineserie[1]);
+						pxparcm=XResolution/(ImageWidthtotal/ImageWidthserie);
+           
+           //print(pxparcm);
+           if (ImageWidthserie*ImageHeightserie < 20000*20000){
+           	run("Bio-Formats Importer", "open=["+dir1+list[i]+"] color_mode=Default crop view=Hyperstack stack_order=XYCZT series_"+numserie+" x_coordinate_4=0 y_coordinate_4=0 width_4=100000 height_4=100000");
+           composite=getImageID();   
+           run("RGB Color");
+           selectImage(composite);
+           close ();
+           
+           run("Set Scale...", "distance="+pxparcm+" known=10000 pixel=1 unit=µm");
+           saveAs("Tiff", dir2+fichier+".tif");
+           
+          close ();
+        }else print ("taille trop grande");
+          }
+          	
+        }
+
+//setBatchMode(false);
+  showMessage("Etat du process", "<html>"
+     +"<h1><font color=red><i>Fin</i></h1>");
+
+}
+
+macro 'NdpiMacroBatch Action Tool Options'  {
+    //on right-click, the corresponding 'Options' macro is run
+    Dialog.create("Espacement entre traits"); //e.g., put a dialog here
+    Dialog.addNumber("Numero de serie de 3 a 5 :", numserie);
+    Dialog.show();
+    numserie = Dialog.getNumber();
+  	}
+*/
+
+/*
+////////////////////////////////////////////////////////////////label=Crop ndpi////////////////////////////////////////////
+
+
+macro "Crop NDPI Action Tool - C000C111C222DbfDcfC222D5cD6cD7cD8cC222D4cD9cDacDdcDecDfcC222C333D6aC333D15D25D35D65D75D85D95Da5C333Da6C333D6bD7bDbeDceC333D8bC333D5bD79DbdDcdC333D97DbcDccC333D9bC333D5aC333D4bD88DabDbbDcbDdbDebDfbC333C444D4aD59Db9DbaDcaC444D49Dc9C444Db8C444Dc8C444Db7C444D48D58C444Dc7C444D47D57Db6Dc5C444Dc6C444Db5Dc4C444D46D56C444D45D55C444Db4Dd3C444D14D24D34D44D54D64D74D84D94Da4C444De2C555D41D42D43D51D52D53Df1C555C666C777C888C999Da7C999D96C999D36D66C999DadDddC999Da8C999CaaaD7aCaaaD76CaaaD69D86Da9CaaaD98D9dCaaaD6dCaaaD67CaaaD37D7dD87CaaaD26D5dD8dDaeDdeCaaaD99DaaDedCaaaD89D8aCaaaD68D77CaaaD33D63D9aDd4DdaCaaaDe3CaaaD4dD78CbbbD38D39Dd5Dd9CbbbD3aD9eDe4Df2CbbbD16D27D32D62Dd2Dd6CbbbD00D10D20D30D31D3bD40D50D60D61D70D80D90Da0DafDb0Dc0Dd0DdfDe0DeeDf0Df3DfdCbbbDc3Dd7Dd8De1CbbbD3cD6eD7eD8eCbbbDd1CbbbD21D23D5eD71D73CbbbDc1Dc2De5CbbbD01D11D81D91Da1Db1Df4CbbbD22D72Db3DeaCbbbD05D17D83D93Da3CbbbD28D3dD4eDb2DfeCbbbD02D06D12D13D29D82D92D9fDa2De9CcccD04D2aDefCcccDe6CcccD03D2bDfaCcccDf5CcccD07D2cDe7De8CcccD3eD6fD7fD8fCcccD09D18D19D5fDf9CcccD0aD1aD2dD4fDffCcccD08D0bD1bDf6CcccD0cD1cD2eD3fCcccD2fDf7Df8CcccD0dD0eD0fD1dD1eD1f"{
+setBackgroundColor(255, 255, 255);
+setForegroundColor(255, 255, 255);
+origID=getImageID();
+run("Select None");
+run("Duplicate...", "title=nb");
+run("8-bit");
+setAutoThreshold("Default");
+run("Convert to Mask");
+dirmacro=getDirectory("macros");
+if (getInfo("fiji.dir")!="") run("Install...", "install=["+dirmacro+"StartupMacros.fiji.ijm]");
+else run("Install...", "install=["+dirmacro+"StartupMacros.txt]");
+setTool("Paintbrush Tool");
+waitForUser("Correction du masque", "Couper avec un trait blanc les defauts");
+run("Install...", "install=["+dirmacro+"StartupMacros.fiji.ijm]");
+run("Analyze Particles...", "size=100000-Infinity pixel circularity=0.00-1.00 show=Nothing add");
+run("Install...", "install=["+dirmacro+"toolsets\\PHIV_Align_toolset.txt]");
+close();
+selectImage(origID);
+roiManager("Show None");
+waitForUser("Nom des coupes", "Renommer dans le ROI Manager");
+
+for(i=0;i<roiManager("count");i++){
+roiManager("Select", i);
+run("Duplicate...", "title="+ call("ij.plugin.frame.RoiManager.getName", i));
+run("Clear Outside");
+run("Select None");
+selectImage(origID);
+}
+roiManager("Deselect");
+roiManager("Delete");
+
+}
+
+macro 'Crop NDPI Action Tool Options'  {
+    //on right-click, the corresponding 'Options' macro is run
+    Dialog.create("Marge "); //e.g., put a dialog here
+    Dialog.addNumber("Nombre de pixels :", marge);
+    Dialog.show();
+    marge = Dialog.getNumber();
+  	}
+*/
+////////////////////////////////////////////////////////////////label=Resize////////////////////////////////////////////
+
+
+macro "Resize Action Tool - C789D8dD9eCdddD0eD4bD4cD5aD5bD6aD6bCbbcD7bCeeeD07D08D09D18D19D28D29D38D39D48D49D57D58D95Da4Dd2De1Df0Df1Df6C59dD65CddeD50CcddD1eCfffD73D83D84D93D94Da3Db3Dc2Dd1De0C9aaD8aCdeeD01D04CbcdDe7De8Df8CeefD52D63CbbbD9aDaaDbbDcbDdbCeeeD00CbceD14CfffD62D70D71D72D80D81D82D90D91D92Da0Da1Da2Db0Db1Db2Dc0Dc1Dd0C89aD8bCddeDf7CcccD0fD7eD98Da8Db8Dc8DdfDffC8beD23D41CeeeD0aD0bD1aD1bD2aD2bD3aD68D86De2Df2CdddD2dD3cD3dD4dD5cD5dD5eD6cD6dD6eCfffD61CaabD9bCeeeD06D0cD1cD4aD59Da5Db4Db5Dc3Dc4Dc5Dd3Dd4Dd5De3De4De5Df3Df4Df5CccdD1fD2eD2fD3eD3fD4eD4fD5fDd8Dd9CeefD16D17D25D26D27D35D36D37D46D47D60D85CabcDc7Dd7CdefD74CcdeD40D51C889D8cDaeDbeDceDdeDedDeeCdddD1dD69D6fD96Db6Dc6CbbcDf9C7aeD31D55CdeeD02D15D67CaabD89DacDbcDccDdcDfeCccdD78D9fDafDbfDc9DcfCabcD97Da7Db7DfaCcddD8fC99aDadDbdDcdCddeD03D05D0dD2cD3bD77D7fDa6Dd6De6C8beD33D44CabbD7cD7dD88DabDeaCabeD75CcdfD34D45CbbcD99Da9Db9DbaC7aeD22D32CaabD9cDebCcdeD20D24D56C89aD8eC9bdD11CaabDfbC9beD12CbccD79DcaDdaDefC7bfD43CcdeD10C9aaDfdC9beD42D64C9ceD13CbbcD7aC7adD21C9abDfcCcdeD30C99aD9dCbbcD87De9C6aeD54C99aDddDecC8beD66CacfD53CbceD76"{
+setBackgroundColor(255, 255, 255);
+setForegroundColor(255, 255, 255);
+dir1 = getDirectory("Choix du Répertoire Source ");
+list = getFileList(dir1);
+widthmax=0;
+heightmax=0;
+setBatchMode(true);
+      for (i=0; i<list.length; i++) {
+      	showProgress(i+1, list.length);
+      	if (endsWith(list[i], '.tif')){
+           	open(dir1+list[i]);  
+           	getDimensions(width, height, channels, slices, frames);
+           	if (width>widthmax) widthmax=width;
+           	if (height>heightmax) heightmax=height;  
+           	close();      	
+      }
+	}
+	 for (i=0; i<list.length; i++) {
+	 	showProgress(i+1, list.length);
+      	if (endsWith(list[i], '.tif')){
+           	open(dir1+list[i]);  
+           	run("Canvas Size...", "width="+widthmax+marge+" height="+heightmax+marge+" position=Center");
+           	run("Save");
+           	close();
+           	  	
+      	
+      	
+      }
+	}
+	
+	
+	setBatchMode(false);
+	print ("Largeur par hauteur :"+widthmax+marge+"  "+heightmax+marge);
+}
+
+macro 'Resize Action Tool Options'  {
+    //on right-click, the corresponding 'Options' macro is run
+    Dialog.create("Marge "); //e.g., put a dialog here
+    Dialog.addNumber("Nombre de pixels :", marge);
+    Dialog.show();
+    marge = Dialog.getNumber();
+  	}
+
+macro "Binning Action Tool - C000C111C222D09D0aD0bD0cD0dD0eD0fD19D1aD1bD1cD1dD1eD1fD29D2aD2bD2cD2dD2eD2fD39D3aD3bD3cD3dD3eD3fD49D4aD4bD4cD4dD4eD4fD59D5aD5bD5cD5dD5eD5fD69D6aD6bD6cD6dD6eD6fC222C333C444D99D9aD9bD9cD9dD9eD9fDa9DaaDabDacDadDaeDafDb9DbaDbbDbcDbdDbeDbfDc9DcaDcbDccDcdDceDcfDd9DdaDdbDdcDddDdeDdfDe9DeaDebDecDedDeeDefDf9DfaDfbDfcDfdDfeDffC444C555D00D01D02D03D04D05D06D10D11D12D13D14D15D16D20D21D22D23D24D25D26D30D31D32D33D34D35D36D40D41D42D43D44D45D46D50D51D52D53D54D55D56D60D61D62D63D64D65D66C555D90D91D92D93D94D95D96Da0Da1Da2Da3Da4Da5Da6Db0Db1Db2Db3Db4Db5Db6Dc0Dc1Dc2Dc3Dc4Dc5Dc6Dd0Dd1Dd2Dd3Dd4Dd5Dd6De0De1De2De3De4De5De6Df0Df1Df2Df3Df4Df5Df6C555C666C777C888C999CaaaCbbbCcccCdddCeeeCfffD07D08D17D18D27D28D37D38D47D48D57D58D67D68D70D71D72D73D74D75D76D77D78D79D7aD7bD7cD7dD7eD7fD80D81D82D83D84D85D86D87D88D89D8aD8bD8cD8dD8eD8fD97D98Da7Da8Db7Db8Dc7Dc8Dd7Dd8De7De8Df7Df8"{
+
+   dir1 = getDirectory("Dossier Source ");
+   list = getFileList(dir1);
+   dir2 = getDirectory("Dossier Cible ");
+   //start = getTime();
+   run("Image Sequence...", "open=["+dir1+"] sort use");
+   getDimensions(width, height, channels, slices, frames);
+   new_width=round(width/binning);
+   new_height=round(height/binning);
+   setBatchMode(true); // runs up to 6 times faster
+   for (i=0; i<list.length; i++) {
+   		showProgress(i+1, list.length);
+   		open(dir1+list[i]);
+   		getPixelSize(unit, pixelWidth, pixelHeight);
+			run("Size...", "width="+new_width+" height="+new_height+" constrain average interpolation=Bilinear");
+			if(pixelWidth!=1) run("Set Scale...", "distance=1 known="+(pixelWidth*binning)+" pixel=1 unit="+unit+"");
+		  saveAs("Tiff", dir2+list[i]);		
+		  close();		   		
+        }
+  setBatchMode(false); // runs up to 6 times faster
+  run("Image Sequence...", "open=["+dir2+"] sort use");
+  //print((getTime()-start)/1000);
+
+
+
+}
+macro 'Binning Action Tool Options'  {
+    //on right-click, the corresponding 'Options' macro is run
+    Dialog.create("Binning"); //e.g., put a dialog here
+    Dialog.addNumber("Binning :", binning);
+    Dialog.show();
+    binning = Dialog.getNumber();
+   
+    
+
+  	}
+
+////////////////////////////////////////////////////////////////label=AutoAlignement ////////////////////////////////////////////
+
+macro "AutoAligne Action Tool - C445DffCfffD08D09D0aD0bD0cD0dD0eD0fD12D13D14D15D16D18D19D1aD1bD1cD1dD1eD1fD22D23D24D25D26D28D29D2aD2bD2cD2dD2eD2fD32D33D3cD3dD3eD3fD42D43D46D47D48D49D4aD4cD4dD4eD4fD52D56D57D58D59D5aD5cD5dD5eD5fD62D66D67D76D77D7aD7bD7cD7dD7eD86D8aD8bD8cD8dD8eD96D9aD9bD9cDa0Da1Da2Da3DaaDabDb0Db1Db2Db3DbaDc0Dc1Dc2Dc3DcaDd0Dd1Dd2Dd3Dd4Dd5Dd6Dd7De0De1De2De3De4De5De6De7Df0Df1Df2Df3Df4Df5Df6Df7C889D07D3bD6fC46bD50D84Db8CdefDceDdeDecDeeC456DbfDefC9acD00D34D68C47eD61D95Dc9CfffD53D87DadDbbDbcC455DcfC99bD01D02D03D04D05D06D10D35D36D37D38D39D3aD44D69D6aD6bD6cD6dD6eD78C46dD71Da5Dd9CeffD63D83D97Db7DbeDcbDccDebC45aD60D70D80D94Da4Db4Dc8Dd8De8CdefDdcDddDedC69fD21D55D89CfffD72D82D9dD9eDa6DacDaeDb6DdaDeaC445D91D92D93Dc5Dc6Dc7DdfDf9DfaDfbDfcDfdDfeC89bD20D54D88C67cD30D64D98CeefD73Da7DbdDcdDdbC458D90Dc4Df8C8bfD11D45D79C58eD31D41D65D75D99Da9C555D17D4bD7fC36eD81Db5De9C57bD40D74Da8C556D27D5bD8fC47eD51D85Db9C556D9fDaf"{
+if (getInfo("fiji.dir")=="") showMessage("A utiliser dans Fiji!");
+else {
+
+dir1 = getDirectory("Choix du Répertoire Source ");
+list = getFileList(dir1);
+//setBatchMode(true);
+      for (i=debflip; i<list.length-1; i++) {
+          showProgress(i+1, list.length);
+           if (endsWith(list[i], '.tif')){
+           	open(dir1+list[i]);
+           	open(dir1+list[i+1]);
+           	run("Images to Stack");
+           	rename("Stacktemp");
+           	pos_orig=SIFT();
+           	print (list[i+1]+"  :  "+pos_orig);
+           	if (pos_orig==0){
+           		print ("flip pour " +list[i+1]);
+           		open(dir1+list[i+1]);
+           		run("Flip Vertically");
+           		run("Save");
+           		close();           		
+           	}
+           	else{
+           	selectWindow("Stacktemp");
+           	setSlice(2);
+           	run("Flip Vertically", "slice");
+           	pos_flip=SIFT();
+           	print (list[i+1]+"  :  "+pos_flip);
+           	if (pos_flip>pos_orig){
+           		print ("flip pour " +list[i+1]);
+           		open(dir1+list[i+1]);
+           		run("Flip Vertically");
+           		run("Save");
+           		close();
+           	}
+          }
+           	selectWindow("Stacktemp");
+           	close();
+
+			}
+			
+}
+
+run("Image Sequence...", "open=["+dir1+list[0]+"]  starting=1 increment=1 scale=100 file=[] or=[] sort use");
+for (i=1; i<=nSlices; i++){
+      Stack.setSlice(i);
+     list[i-1]= getMetadata("Label");
+        }
+
+run("Linear Stack Alignment with SIFT", "initial_gaussian_blur=1.60 steps_per_scale_octave=3 minimum_image_size=64 maximum_image_size=1024 feature_descriptor_size=4 feature_descriptor_orientation_bins=8 closest/next_closest_ratio=0.92 maximal_alignment_error=25 inlier_ratio=0.05 expected_transformation=Rigid");
+//setBatchMode(false);
+
+
+ for (i=1; i<=nSlices; i++){
+      Stack.setSlice(i);
+      setMetadata("Label", list[i-1]);
+        }
+
+}
+function SIFT (){
+	run("Linear Stack Alignment with SIFT", "initial_gaussian_blur=1.60 steps_per_scale_octave=3 minimum_image_size=64 maximum_image_size=1024 feature_descriptor_size=4 feature_descriptor_orientation_bins=8 closest/next_closest_ratio=0.92 maximal_alignment_error=25 inlier_ratio=0.05 expected_transformation=Rigid show_info");
+	close();
+	selectWindow("Alignment info");
+run("Duplicate...", "title=temp");
+selectWindow("Alignment info");
+close();
+selectWindow("temp");
+px_vert=nombre_px_vert();
+selectWindow("temp");
+close();
+return px_vert;
+
+}
+
+
+function nombre_px_vert (){
+// Color Thresholder 1.47b
+// Autogenerated macro, single images only!
+min=newArray(3);
+max=newArray(3);
+filter=newArray(3);
+a=getTitle();
+run("RGB Stack");
+run("Convert Stack to Images");
+selectWindow("Red");
+rename("0");
+selectWindow("Green");
+rename("1");
+selectWindow("Blue");
+rename("2");
+min[0]=0;
+max[0]=0;
+filter[0]="pass";
+min[1]=255;
+max[1]=255;
+filter[1]="pass";
+min[2]=0;
+max[2]=0;
+filter[2]="pass";
+for (i=0;i<3;i++){
+  selectWindow(""+i);
+  setThreshold(min[i], max[i]);
+  run("Convert to Mask");
+  if (filter[i]=="stop")  run("Invert");
+}
+imageCalculator("AND create", "0","1");
+imageCalculator("AND create", "Result of 0","2");
+for (i=0;i<3;i++){
+  selectWindow(""+i);
+  close();
+}
+selectWindow("Result of 0");
+close();
+selectWindow("Result of Result of 0");
+rename(a);
+// Colour Thresholding-------------
+getHistogram(values, counts, 256);
+return counts[255];
+
+}
+
+ showMessage("Etat du process", "<html>"
+     +"<h1><font color=red><i>Fin</i></h1>");
+
+}
+
+macro 'AutoAligne Action Tool Options'  {
+    //on right-click, the corresponding 'Options' macro is run
+    Dialog.create("Debut de verification de flip"); //e.g., put a dialog here
+    Dialog.addNumber("Slice :", debflip);
+    Dialog.show();
+    debflip = Dialog.getNumber()-1;
+   
+    
+
+  	}
+
+/////////////////////////////////////////////////////////////////////label=Noir2blanc///////////////////////////////////////
+
+//macro "Noir2Blanc Action Tool - C000D00D01D02D03D04D05D06D07D08D09D0aD0bD0cD0dD0eD0fD10D1fD20D28D29D2aD2bD2cD2dD2fD30D38D39D3aD3bD3cD3dD3fD40D48D49D4aD4bD4cD4dD4fD50D58D59D5aD5bD5cD5dD5fD60D68D69D6aD6bD6cD6dD6fD70D78D79D7aD7bD7cD7dD7fD80D88D89D8aD8bD8cD8dD8fD90D98D99D9aD9bD9cD9dD9fDa0Da8Da9DaaDabDacDadDafDb0Db8Db9DbaDbbDbcDbdDbfDc0Dc8Dc9DcaDcbDccDcdDcfDd0Dd8Dd9DdaDdbDdcDddDdfDe0DefDf0Df1Df2Df3Df4Df5Df6Df7Df8Df9DfaDfbDfcDfdDfeDffC888D11D12D13D14D15D16D17D18D19D1aD1bD1cD1dD1eD21D2eD31D3eD41D4eD51D5eD61D6eD71D7eD81D8eD91D9eDa1DaeDb1DbeDc1DceDd1DdeDe1De2De3De4De5De6De7De8De9DeaDebDecDedDeeCfffD22D23D24D25D26D27D32D33D34D35D36D37D42D43D44D45D46D47D52D53D54D55D56D57D62D63D64D65D66D67D72D73D74D75D76D77D82D83D84D85D86D87D92D93D94D95D96D97Da2Da3Da4Da5Da6Da7Db2Db3Db4Db5Db6Db7Dc2Dc3Dc4Dc5Dc6Dc7Dd2Dd3Dd4Dd5Dd6Dd7"{
+macro "Noir2Blanc Action Tool - C000D44D53D54D55D56D62D63D64D65D66D67D72D73D76D77D7bD82D83D86D87D88D8cD92D94D95D96D97D98Da2Da3Da4Da5Da6Da7Da8Da9Db3Db4Db5Db6Db7Db8Db9DbeDc3Dc4Dc5Dc6Dc7Dc8Dc9DcaDcbDccDcdDceDd4Dd5Dd6Dd7Dd8Dd9DdaDdbDdcDddDe5De6De7De8De9DeaDebDecDf7Df8Df9DfaCaaaD57C000D7cD93DafDbaCfffD00D01D02D03D04D05D0cD0dD0eD0fD10D11D12D13D1eD1fD20D21D22D25D26D27D28D29D2aD2bD2fD30D31D34D35D36D37D38D39D3aD3bD3cD3dD40D41D46D47D48D49D4aD4bD4cD4dD4eD50D58D59D5aD5bD5cD5dD5eD60D68D69D6aD6bD6cD6dD6eD70D74D75D79D7aD7eD80D84D85D89D8aD8dD8eD90D99D9aD9bD9cD9dD9eD9fDa0DaaDabDacDadDaeDb0DbcDc0Dc1Dd0Dd1De0De1De2DefDf0Df1Df2Df3DfeDffCfffD17D18D19D6fC888D06D07D08D09D0aD0bD14D15D16D1bD1cD1dD23D24D2dD2eD32D33D3eD3fD42D4fD51D52D5fD61D71D81D91Da1Db2DbfDc2DcfDd3DdeDe4DedDf6DfbDfcCeeeD7dDb1Dd2DdfDe3DeeDf4Df5DfdC444D8bCbbbD43C111D45C777D1aC666DbbC222D2cD7fD8fDbdC777D78"{
+for(i=1; i<=nSlices; i++) {
+            setSlice(i);
+			changeValues(0x000000,0x000000,0xffffff);
+}
+
+
+}
+macro "Manuel Action Tool - C211D7eD7fC9cdD19D32D52Db2Dc3C38bD2cD35D3cD4cD5cDccCfffD00D01D02D03D04D05D06D07D0fD10D12D17D1fD20D21D2fD30D3fD40D4fD50D5fD90Da0DafDb0DbfDc0Dc1DcfDd0Dd1Dd2Dd3Dd4Dd5Dd6Dd7DdfDe0De1De2De3De4De5De6De7De8DefDf0Df1Df2Df3Df4Df5Df6Df7Df8Df9DfaDfbDfcDfdDfeDffC38aD96Db6CdefDeaC59cDdbC357D66CcddD1eC49cD1bD54D5bC48aD1dCfffD11CbbbD80C222D75D76D77CbddD2eD3eD4eD5eDbeC49cD2bD3bD44D4bD94D9bDa4DabDb4DbbC38aD9dCfffDa8Dd8C8bdDc4C478D84CdeeD27C5acD2aD33D3aD43D4aD53D5aD93D9aDa3DaaDb3DbaDcaC999D68D6fCfffD08D13D14D15D16D31D41D51D91D9fDa1Db1CacdD37D47D57D97Da7Db7C222D79D7aD7bC9cdDd9C49bD1cC38aD2dD3dD4dD5dDadDbdDcdCeffD0eD48D98Db8De9C7bcD24C367D6bD85CcdeD0cD0dDc2DdeC689D82C323D73D74C38bD45D55D95D9cDa5DacDb5DbcCfffD28D38DeeC8cdD39D42D59D92D99Da2Da9Db9Dc9C478D83CdeeDc7DecCaaaD88D8fC212D7cD7dC38aD36D46D56Da6CdffD09C6acDdaC367D65D8cCbdeD22C689D62D89C332D71CeffD58Dc8C8bdD29C478D8aCceeD0aD0bC999D61C322D78CbddD9eDaeDceC49cD34DcbC8bcDc5C468D64D6aD8bC789D87C333D72CeffD18C788D67D6eCdeeDebDedCaaaD60C5acD1aC367D6cD86D8dC59aDddC49bDdcC8bcDc6C678D69C7abD26C478D63C8bdD23C889D8eC434D70CaaaD81C7acD25C8cdD49C356D6d"{
+	dir=getDirectory("Choisir un dossier de travail")
+	run("TrakEM2 (blank)", "select="+dir);
+	selectWindow("");
+}
+
+
+
+macro "Normalise Action Tool - C582Db3C9b8D81C47cD27D37D88CdeeD09D0aD0bD0cD0dD0eC25aD2aD3aD7bD8aDdcCabeD22D32C79cD95CfffD80Db0C24aD2bD3bD7cD8bDddC9bdD12D42D66D96DfbC68cD6aCffeDc1Dd2C35aD1cD4cCcddD2fC7adD33CfffD00D0fD50D60D61D62D63D70D73D83Db5Dc0Dc5Dd0Dd1Dd4Dd5De0De1De2De3De4De5Df0Df1Df2Df3Df4Df5C149D8dCaabD9fC58bD6bCeefD02D03D04D64Dc6Dd6De6C35bD7aDccCcceD5bD5cC79cDbdDbeC359D4dD7eD8eD9eCbbdDacC58dD25D77Dd9CfffD93C37bD79CcdeD55C9adDfcC249D2dD3dCaabD7fD8fC47cD78DdaCdefD05D06D07D08D52D53D54C25aD9cCbceDa8Da9C79dD15D75D85D97Dc9De9C25aD9dDcdDedCabdDb7Db8Db9DfaC69cD16D46CeffD01C46bD1bCddeD1fDefC8adDbbC349D2eD3eCbccD4fC58cD17D35D98DcaDeaC36bD28D38D89CcdeDa5Da6Da7C89cD11DbcC459D1eCdddD5fC69cD69CfffD10D40Df6C57aD6eCeedD90Da0C9bdD13D43D76DbaDc8De8C794D91Cab8Db4C47cD48D99CbceDaaDabDf7Df8Df9C68cD21D31Dc7Dd7De7CeefD51DffC36bD4bCcdeD58DdfC8adD65D67C249D2cD3cD7dD8cCabdDadC58cD47C36bD9bDdbDecCcdeD59D5aC79cD41CccdD5dD5eDcfCfffD20D30Db6C47bD49DcbDebCddeD74D84D94C8bdD86C8a6Dc3Cbc9Dc2C48cD26D36C25bD29D39CfffD71C36bD9aCcdeD56D57C8adD14Dd8C359D4eCccdDafDbfC8acDfdC35aD1dDceDdeDeeCdedD72Da4C69dD24D34D45C47bD19CefeDd3C793Db2Cab8Da3C7adD23CbbbD6fC57cD18C46bD4aC8adD44CccdD3fC57bD6dC7a4Da1Cbc9Db1CbbdDaeC58cD87C79dD68C9a6Da2CbcaDc4C46bD1aCdecD92C9acDfeC57bD6cCcdbD82"{
+meanmax = 0;
+for (i = 1; i <= nSlices; i++) {
+    setSlice(i);
+    getStatistics(area, mean);
+    if (mean>meanmax) meanmax=mean;
+}
+ run("Select None");
+for (i = 1; i <= nSlices; i++) {	  
+    setSlice(i);
+    run("Restore Selection");
+    getStatistics(area, mean);
+    difference = meanmax/mean;
+    run("Select None");
+    run("Multiply...", "slice value="+difference);
+}
+}
+
+
+
+macro "About These Macros Action Tool - C000C111C222C333C444C555D54D55D63D73D7cD7dD83D88D89D8aD8cD8dD93D97Da3Da4Da5Da6C555D7aDb5C555D72D82C555D45Da7C555D98C555D53C555D79C555C666Db4C666Db6C666C777D92C777D87C777D64C777D62C777C888D44C888D96C888D78C999D94C999CaaaCbbbD99Db3CbbbDa2CbbbDa8CbbbCcccDb7CcccD52CcccD43CcccD65CcccCdddD74CdddD77CdddD86CdddD84D95CdddD00D01D02D03D04D05D06D07D08D09D0aD0bD0cD0dD0eD0fD10D11D12D13D14D15D16D17D18D19D1aD1bD1cD1dD1eD1fD20D21D22D23D24D25D26D27D28D29D2aD2bD2cD2dD2eD2fD30D31D32D33D34D35D36D37D38D39D3aD3bD3cD3dD3eD3fD40D41D42D46D47D48D49D4aD4bD4cD4dD4eD4fD50D51D56D57D58D59D5aD5bD5cD5dD5eD5fD60D61D66D67D68D69D6aD6bD6cD6dD6eD6fD70D71D75D76D7bD7eD7fD80D81D85D8bD8eD8fD90D91D9aD9bD9cD9dD9eD9fDa0Da1Da9DaaDabDacDadDaeDafDb0Db1Db2Db8Db9DbaDbbDbcDbdDbeDbfDc0Dc1Dc2Dc3Dc4Dc5Dc6Dc7Dc8Dc9DcaDcbDccDcdDceDcfDd0Dd1Dd2Dd3Dd4Dd5Dd6Dd7Dd8Dd9DdaDdbDdcDddDdeDdfDe0De1De2De3De4De5De6De7De8De9DeaDebDecDedDeeDefDf0Df1Df2Df3Df4Df5Df6Df7Df8Df9DfaDfbDfcDfdDfeDff"{
+open(getDirectory("macros")+"toolsets/PHIV_Align_toolset.txt");
+}
+
+macro "avant 4 [n4]"{
+run("Previous Slice [<]");
+}
+
+}
+macro "apres 6 [n6]"{
+run("Next Slice [>]");
+}

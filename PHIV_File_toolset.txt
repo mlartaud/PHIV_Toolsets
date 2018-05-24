@@ -1,0 +1,147 @@
+// PHIV NDPI Tool Set
+// Marc LARTAUD MRI PHIV
+// Boite a outils pour faciliter l export des fichiers ndpi issu du nanozoomer
+
+// installer loci bio formats
+//http://www.loci.wisc.edu/files/software/loci_tools.jar
+
+
+
+/*
+
+
+ 
+
+Outil Renommer permet de renommer tous les fichiers d un repertoire
+	il faut choisir le repertoire
+	copier la liste des noms dans excel
+	ecrire les nouveaux noms dans la colonnes voisine correspondante
+	copier dans le presse papier les 2 colonnes
+	puis cliquer sur ok
+
+*/
+
+//variables glogales
+
+
+
+macro "AutoRun"{
+	setTool("rectangle");
+	setForegroundColor(255, 255, 255);//premier plan blanc
+	setBackgroundColor(0,0,0);// fond noir
+	run("Set Measurements...", "area shape display redirect=None decimal=3");
+	requires("1.49p");
+}
+
+
+////////////////////////////////////////////////////////////////label=Ndpi////////////////////////////////////////////
+
+
+macro "Deplace_vieux_fichiers Action Tool - C677D27D28D37D38D48D72D73D74D78D79D7aD7bD7cD7dD82D83D84D85D8dDa8Db8Dc7Dc8Dd7Dd8CddeDbdDf9CaaaD08CfffD00D01D02D03D04D05D10D11D12D13D14D20D21D22D23D30D31D32D40D41D42D50D51Da0Da1Da5Db0Db1Db2Dc0Dc1Dc2Dc3Dd0Dd1Dd2Dd3De0De1De2De3De4Df0Df1Df2Df3Df4Df5C677D8eCeeeDb4CdddD5bC677D47D57D58D67D68D75D76D77D86D87D88D89D8aD8bD8cD97D98Da7Db7De8CeeeD09D0aD0bD0cD0dD1aD1bD1cD1dD2bD2cD2dD34D3cD3dD43D44D5aDaaDb3Db5Dc4DccDcdDdbDdcDddDeaDebDecDedDfaDfbDfcDfdCbbbD46Db6DdaC788Dd6CffeD24D33CdddD0eD0fD1eD1fD2eD2fD3eD3fD4bD4eD4fD54D5eD5fD6fDa4DabDaeDafDbaDbbDbeDbfDceDcfDdeDdfDeeDefDfeDffCedeD4dCbbbD80C777D17D29D36D6cD6dD71D9cD9dDc6Dc9Dd9CeeeD06D60D90De5Df6CdddD4aCcccD56Da6C999D53CeffD15D55Dd4CabbD07D19D59D64D6bD94Da9C677D18D39D63D7eD81D93De7CbccD16D61D91C899D3aD5cDa3DacDcaCdeeD45CbbbD6aD70D95DadCdddD9fCdddD3bD4cD52DbcDcbC9aaD7fD8fD96Df8CaaaDe9CbbcD2aD5dD65De6C788D26D62D92CbbbD9aCcdcDa2Dd5C999D35D69D99Dc5CaaaD49D9eDb9CaabD6eD9bDf7CcddD25CaaaD66"{
+
+dir1 = getDirectory("Dossier source");
+dir2 = getDirectory("Dossier destination");
+
+Dialog.create("Age des fichiers a deplacer");
+Dialog.addNumber("En jours", 365);
+Dialog.show();
+nb_jour=Dialog.getNumber() ;
+
+dirmacro=getDirectory("macros");
+dirbin=dirmacro+"bin\\";
+print("\\Clear"); 
+//command=ROBOCOPY path1 path2 /MOVE /S /MINAGE:365    //en jours
+command="ROBOCOPY "+dir1+" "+dir2+ " /MOVE /S /MINAGE:"+nb_jour;
+//exec(command);
+
+print (command);
+//print(dirbin+"RED2.exe "+dir1);
+
+selectWindow("Log");//sauvegarder en .bat
+saveAs("Text",dirbin+"ROBOCOPY.txt");
+if (File.exists(dirbin+"ROBOCOPY.bat")) File.delete(dirbin+"ROBOCOPY.bat");
+File.rename(dirbin+"ROBOCOPY.txt",dirbin+"ROBOCOPY.bat");
+exec("cmd", "/c", "start", dirbin+"ROBOCOPY.bat");
+}
+
+
+macro "Suppr_dossiers_vides Action Tool - C000D63D73D93CeeeD16D19D1aD25D2bD4cD6fD7fD8cD8fD9fDb1DcbCaa9Dd9CfffD00D01D02D03D04D05D0bD0cD0dD0eD0fD10D11D12D13D1dD1eD1fD20D21D22D2eD2fD30D31D3fD40D4fD8eD9eDa0Db0DbfDc0Dc1DcfDd0Dd1Dd2Dd3Dd4DdeDdfDe0De1De2De3De4DedDeeDefDf0Df1Df2Df3Df4DfbDfcDfdDfeDffC555D77D84CfffD06D14D23D32D3cD3eD50D6eD7eD9dDacDadDaeDbcDbdDccDcdDdcDebDecDf6Df7Df8Df9DfaCcccD3aDd6C444D55D66D67D74CeeeD07D08D09D0aD15D1cD24D2dD4dD5dD5eD5fD6dD7dD8dD9cDafDbeDc2DceDdbDddDeaCbbbDc6C776D71CdddD26D7cD9bC222Da4CeeeD41DabDb9Dc7Dd5CbbaD38D51D7bC665Da2CdccDc9C554Db7CccbD34DaaC888Da8CdddD17D18D1bD2aD2cD33D3dD4eD60D90Dd7De7C211D72D82Da3CaaaD58C666D78D87D97Da6CcccD28D3bD6cDa9Db8De5De9C444D45D56D76D94D95CbbbD36D39D79DdaDe6C887Db2C432D92CbbbD69Dc3C765Db3CdddD27D29D5cD99DbbDe8Df5C455D86CcccD37D70D80D89C999Dc4C110D53CaaaD7aDcaDd8C555D96C444D85CbbbD42D8aD8bD9aC876D43C332D44C665D81C445D57Da5C998D5aC111D54D83CaaaD48D4aD4bDbaC566D68C888D61D6bDa1C432D62C666D91C999D49D59D6aDc5Caa9D35C555D46C777Dc8C222D64C888D5bC556D88D98C444D65D75C876D52C333Db5Db6C899D47C443Db4C666Da7"{
+
+dirmacro=getDirectory("macros");
+dirbin=dirmacro+"bin\\";
+exec("cmd", "/c", "start", dirbin+"RED2.exe");
+//exec("cmd", "/c", "start", dirbin+"RED2.exe - Raccourci");
+
+
+
+}
+
+
+macro "Suppr_fichiers_doublons Action Tool - C000D51CcaaD7bCb12D49D4aD5aD5bDcbDd9DdaDe7De8CfeeD1aD36C912Db3CdddD7fD9fCc55Dc2CfffD00D01D02D03D04D05D09D0aD0bD0cD0dD0eD0fD10D11D12D13D14D1bD1cD1dD1eD1fD20D21D22D23D2cD2dD2eD2fD30D3eD3fD4fDa0Db0DbdDc0DcdDd0DddDe0DecDedDf0Df1Df2Df3Df4Df5Df6DfbDfcDfdDfeC555D93CeaaD63Cb22DcaCfffD5fD81DdcDeeDffC923D2aCfddD78Cb9aD6eC500Da4CcccDe1Cc12D58D59D9aDc9Dd6Dd7Dd8Cb12D39D6cDe9CedeD8eD9eCb78D83C766Dc1CdccDf8Cb23Dc5Ca55D3cCeeeD08D24D82D90DdeCd99D18C422Dd4CdabD35DfaCa12D3aD4bD5cD7dDeaCeddD7aCc66D6bC666D72D95CdbbD25Cd12Db6Db7C944Da2CfeeD37Db9Cd99D9bC533D73CdccD7eCa23D48CeeeD15D33DaeDbeDceDcfDdfDefCe77Da9C777Da1CecdDadCd33D99C999De2De3CfeeD98CdaaDccC222D65CbabD44C912D3bD4cCdddD31D66D6fD85DafDbfCb67D8bC555D94CfbbD87D97Cc12Dc6Dc7Dc8Cb23Db5CeeeDbaDf7Cc99DebC811Db4Dc4CdbbD07Cc78D7cC777Db1CdddD32D80D8fCb33D8aCa77D5eCe9aD16C434D42CdbbD28Df9CeddD06D3dCd56D68C666D60CebbD53Cc23D89Cb44D96CcaaD86C711Da5CdccD8cCe78Db8C888De4CfccDa8Cb55De5C999D50CeaaD69C111D41D61CcaaD55C912Dc3Cb56D67C645Dd2CebbD27Cb23Dd5C934D57Cc9aD2bD84C611Da3Cb89D45C777D75Dd1Cb23De6C423D74CeddD62Cc77DabC755D64CebbD79Cb34D8dCc9aDacC644Dd3CcccD40Cd78D77C888D91CdddD9cCb44Db2CdaaD54D6aCcbbD19D4eCa12D29D6dCb67D46C656D43Cb34DdbCcccD34Cc88D9dCd23Da6Ca78D56CdaaDaaC444D92Ce66Da7CeccD88Cb45D38D47CdaaD52DbbC823D4dCdcdD76Ce88D17C888D71CeccD26Cb55DbcCaaaD70C912D5d"{
+
+dirmacro=getDirectory("macros");
+dirbin=dirmacro+"bin\\Duplicate_Cleaner\\";
+exec("cmd", "/c", "start", dirbin+"DuplicateCleaner.exe");
+
+}
+Duplicate Cleaner
+
+
+macro "Renommer Action Tool - C333D37D47D57D67D80D9eDa1Db1Db4DbaDbdDceDd0DdeCcccD0bD19D26D85D8dDc2C666D84D8aDa3Da4Da5Da6Da7Da8Da9DaaDabDd1CfffD00D01D02D0cD0dD0eD0fD10D11D12D1cD1dD1eD1fD20D21D22D2cD2dD2eD2fD30D31D32D3cD3dD3eD3fD40D41D42D4cD4dD4eD4fD50D51D52D5cD5dD5eD5fD60D61D62D6cD6dD6eD6fD72D7cD82D86D8cDd6Dd7Dd8DdcDe2DecDf2DfcC444DaeDeaCeeeD13D23D33D43D53D63D73D95D9bDd3De3Df1DffC999D15D28D36D46D56D66Db0C444D90DadDb3Db5Db6Db7Db8Db9DbcDc1CeeeD29D79D7dD92DbfDf0DfeC777D78DcdDfaC666D04D77DacCfffD03D83D87D88D89D93D96D97D98D99D9cDd2Dd9Df3DfdCbbbD25D35D45D55D65D75D7fD8bDd5DddC333D05D06D07D08D09D0aD8eDb2DbbCdddD39D49D59D69D94D9aDc6Dc7Dc8DccC777D81De5Df5Df6Df7Df8Df9C555D14D24D2aD34D3aD44D4aD54D5aD64D6aD74D7aDa2Dd4DdaDe4CbbbD1bD2bD3bD4bD5bD6bD71D76D7bDcfDdbDebC999D9dDe1De6De7De8Df4CdddDafDc3Dc9DedDfbC555D1aD38D48D58D68D91DbeDc0Dc4DcaDe0DeeCaaaD9fDc5DcbDefC888D8fDdfDe9CcccD16D17D18C888D27D70D7eDa0"{
+	rename_files();
+}
+
+
+
+
+
+
+macro "About These Macros Action Tool - C000C111C222C333C444C555D54D55D63D73D7cD7dD83D88D89D8aD8cD8dD93D97Da3Da4Da5Da6C555D7aDb5C555D72D82C555D45Da7C555D98C555D53C555D79C555C666Db4C666Db6C666C777D92C777D87C777D64C777D62C777C888D44C888D96C888D78C999D94C999CaaaCbbbD99Db3CbbbDa2CbbbDa8CbbbCcccDb7CcccD52CcccD43CcccD65CcccCdddD74CdddD77CdddD86CdddD84D95CdddD00D01D02D03D04D05D06D07D08D09D0aD0bD0cD0dD0eD0fD10D11D12D13D14D15D16D17D18D19D1aD1bD1cD1dD1eD1fD20D21D22D23D24D25D26D27D28D29D2aD2bD2cD2dD2eD2fD30D31D32D33D34D35D36D37D38D39D3aD3bD3cD3dD3eD3fD40D41D42D46D47D48D49D4aD4bD4cD4dD4eD4fD50D51D56D57D58D59D5aD5bD5cD5dD5eD5fD60D61D66D67D68D69D6aD6bD6cD6dD6eD6fD70D71D75D76D7bD7eD7fD80D81D85D8bD8eD8fD90D91D9aD9bD9cD9dD9eD9fDa0Da1Da9DaaDabDacDadDaeDafDb0Db1Db2Db8Db9DbaDbbDbcDbdDbeDbfDc0Dc1Dc2Dc3Dc4Dc5Dc6Dc7Dc8Dc9DcaDcbDccDcdDceDcfDd0Dd1Dd2Dd3Dd4Dd5Dd6Dd7Dd8Dd9DdaDdbDdcDddDdeDdfDe0De1De2De3De4De5De6De7De8De9DeaDebDecDedDeeDefDf0Df1Df2Df3Df4Df5Df6Df7Df8Df9DfaDfbDfcDfdDfeDff"{
+open(getDirectory("macros")+"toolsets/PHIV_File_toolset.txt");
+}
+
+	
+
+function rename_files(){
+
+dir = getDirectory("Choisir un repertoire source");
+list_old = getFileList(dir);
+list_ext=newArray(list_old.length);
+list_new=newArray(list_old.length);
+for (i=0; i<list_old.length; i++) {
+	list_ext[i]=substring(list_old[i],(lastIndexOf(list_old[i], ".")),lengthOf(list_old[i]));
+	  }
+String.resetBuffer;
+ for (i=0; i<list_old.length; i++) {
+		String.append(substring(list_old[i],0,lastIndexOf(list_old[i], ".")) + "\n");
+	  }
+  String.copy(String.buffer);
+  waitForUser("Coller dans excel","La liste des fichiers est dans le presse papier\nColler la dans excel (Ctrl-v), \nEcrire les nouveaux noms\ndans la colonne voisine\nCopier les 2 colonnes dans le presse papier (Ctrl-c)\npuis cliquer sur OK");
+  clipboard=String.paste;
+  //String.show(liste);
+  lines=split(clipboard, "\n");	
+if (lengthOf(lines)<1)  exit;
+for (i=0; i<lengthOf(lines); i++){
+			row=split(lines[i],"\t");
+			if (lengthOf(row)==2) list_new[i]=row[1];
+			}
+if (doublon(list_new)) exit("Il y a un doublon");
+for (i=0; i<lengthOf(lines); i++){
+	File.rename(dir+list_old[i],dir+"temp"+list_old[i]);
+	}
+for (i=0; i<lengthOf(lines); i++){
+	print (list_old[i]+"-->"+list_new[i]);
+	File.rename(dir+"temp"+list_old[i],dir+list_new[i]+list_ext[i]);
+	}
+	Array.show("titre",list_old,list_ext,list_new);
+}
+
+function doublon(Tableau){
+	double=false;
+	for (i=0;i<Tableau.length;i++){
+		for (j=0;j<Tableau.length;j++){
+		if ((Tableau[i]==Tableau[j])&&(i!=j)) double=true;		
+		}
+	 return double;
+	}
+}

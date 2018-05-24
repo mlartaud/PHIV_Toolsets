@@ -1,0 +1,243 @@
+// PHIV Tilapia Tool Set
+// Marc LARTAUD PHIV
+// Boite a outils estimer les proportions de cellules marquees
+// a partir de 2 acquisitions
+// une Dapi pour reperer les noyaux
+// une autre de marquage
+
+/* 
+Outil Maxi pour determiner les maxima
+
+
+
+ Outil Marquage : reglages de seuils (clic droit)  et comptage des cellules marquees
+ 
+ Outil Mesure : pour avoir les valeurs d intensite de marquage pour chaque cellules 
+ 
+ 
+ */
+
+
+
+
+
+
+
+
+//variables glogales
+var fmn=5;//parametre du find maxima
+var seuild=125;//seuils de comptage
+var seuil1=160;//seuils de comptage
+var seuil2=200;
+var taille_median=10;//taille du filtre
+compte_a=0;
+compte_b=0;
+compte_c=0;
+
+
+
+
+macro "Unused Tool-1 - " {}  // laisse une place libre!
+
+macro "Unused Tool-2 - " {}  // laisse une place libre!
+
+
+macro "Maxi Action Tool - C001D00C029D24D2dD60D8dC016D0bD0cD0eD13D1eD2fD31D6fD8eDe1De4DfeC02aDc7C003D8fDe8C02bD43C017D15DacDbbDc0Dd1Dd7DffC330D69C002DecC02aD29D2cD34Dc6C016D4fDe2De3C03dD4aD55D64D65D93D94D95Da6C015D05D06D07D08D09D0aD0dDd9De0DefDf0C02cD36D39D44D56Da2Db4Db5C018Db0Dc1Dd4C14dD47C002D10DcdDcfDdcDddDeaDebDf6Df7Df8Df9DfaC02aD26D3dD51D80D9cDb1DbaDc3C016D3fD5fC03dD45D46D49D4bD54D5aD5bD6bDa3Da4Da5C014D21C02bD35D3cD53D62D71D81D9bDb3Db9C018D16D17D18D19D1aD1bD1cD23D32D3eD41D50D7eDd2Dd3Dd5Dd6C770D68D79C003D02D11D20DccDdfDedDf5DfbC02aD27D2aD2bD4dD59D5dD61D6aD6dD96Dc4C027D86C03dD83C03cD4cD5cD6cC028D4eD5eD6eC9aeDb8C001D01DafDbeDbfDceC029D25D33D42D70D90Da0DabDc2C03cD3aD3bDa9C004D12D30De7DeeC02bD52D91D9aDa1DaaDb2Dc5C027D97C14cD37D8bDb7C003DdeC017D14D1dD2eD66D99D9dDcaC36dD73C016D1fD22D40Dd0C015D04D7fDadDbcDcbDf1Df2Df3DfdCff0D78C02cD63D72D92Db6C019Dc9C9bfD74D75C13aD8aC004D03D9eDdaDe6Df4DfcC558D76D98C002D9fDaeDbdDdbDe9C017D0fDd8C14eD84D85Da7C005De5C880D87C9beD48D7bDa8C02dD82C35bDc8C9aeD38D7cC78bD58D7aC13aD57C550D67D89C14bD8cC13aD7dCbb0D77D88C13bD28"{
+
+run("Find Maxima...", "noise="+fmn+" output=[Point Selection]");
+run("Enlarge...", "enlarge=3");
+run("ROI Manager...");
+roiManager("Add");
+roiManager("Select", 0);
+roiManager("Split");
+roiManager("Delete");
+roiManager("Show All without labels");
+}
+
+macro 'Maxi Action Tool Options'  {
+    //on right-click, the corresponding 'Options' macro is run
+    Dialog.create("Find Maxima"); //e.g., put a dialog here
+    Dialog.addNumber("noise:", fmn);
+    Dialog.show();
+    fmn = Dialog.getNumber();
+  	}
+
+/*
+macro "Cellules Action Tool - C004D00C05fD08D09D16D1aD24D2bD33D52D62D6cD7cD83D94D9eDa6Db9DcbDccDddDffC04fD0cD1cD41D50D60D6dD70D7eD7fD80D90Da1Db2Db3Dc8DeaDfaC06fD4bC02dDe8C06fD18D26D2aD34D53D63D84D8bD95D9bDa9DaaDabDafDbfDdfC05fD07D0aD15D1bD42D4cD5cD72D82D8dD8eD8fD93Da4Da5Db8DcaDdbDdcDecDedDeeDfeC0bfD48D49C01aDf7C06fD17D19D25D3bD43D73D8cD9cD9dD9fDa7Da8DacDadDaeDbaDbbDbcDbdDbeDcdDceDdeDefC04fD06D0bD14D23D2cD32D3cD51D61D71D7dD81D91D92Da2Da3Db4Db5Db6Db7Dc9DdaDebDfbDfcDfdC08fD9aC03fDc2Dd7C0ffD79D86C018De2C07fD36D37D38D39D45D54D64D74C03eDd5Df9C0dfD67D99C02cD2eD2fDf8C09fD68C03fD0dD31D40Da0Db1Dc4Dc5Dc6Dc7Dd9C0ffD56D57D58D59D66D76D87D88D89C017Df4C07fD28D29D3aD44D5bD6bD7bC03dD30D3dD4dC0dfD5aD65D6aD75D7aC02bD4eDd2De6C09fD4aD85C03fD22C019De3C03eD5dC0efD69D97D98C02cD5fDd3De7C0bfD47D55C016Df2Df3C07fD27D35DcfC02dD21Dc1Dd4C0bfD78C02bD20D3eD3fD4fDc0C09fD96C03eD13C018Dd0Df6C03eD1dD6eD6fDd6De9C0efD77C02cD12C0afD46C017D10De1Df1C02eD1eDb0C03fD0eD0fDc3Dd8C01aDd1De4C02cD5eC016D01C03dD04D2dC02aD03De5C018D02De0C02eD1fC017Df5C029Df0C0cfD8aC04eD05C02aD11"{
+	origid=getImageID();
+	nom=getInfo("image.filename");
+	compte_a=0;
+	compte_b=0;
+	run("Duplicate...", "title=nb");
+	run("8-bit");
+	count=roiManager("count");
+	for(i=0;i<count;i++){
+	roiManager("Select", i);
+	getStatistics(area, mean);
+	if (mean<seuild){
+		roiManager("Set Color", "#00ffff"); // rgb (magenta)
+  	roiManager("Set Line Width", 2);
+  	compte_a++;
+  	roiManager("Rename", "N1_"+compte_a);
+  }
+  else {
+  	roiManager("Set Color", "#ff00ff"); // rgb (magenta)
+  	roiManager("Set Line Width", 2);
+  	compte_b++;
+  	roiManager("Rename", "N2_"+compte_b);
+  }
+
+		}
+		close();
+selectImage(origid);
+roiManager("Show All");
+
+print (nom);
+print ("DAPI  seuil:"+seuild);
+print ("Nombre de Noyaux de classe1 :"+compte_a);
+print ("Nombre de Noyaux de classe2 :"+compte_b);
+print("--------------------------");
+}
+
+macro 'Cellules Action Tool Options'  {
+    //on right-click, the corresponding 'Options' macro is run
+    Dialog.create("Classes Cellules"); //e.g., put a dialog here
+    Dialog.addSlider("seuil1:", 0, 255, seuild);
+  	Dialog.show();
+    seuild = Dialog.getNumber();
+ 	 
+  	}
+*/
+
+macro "Marquage Action Tool - C248DabCabbD57C68bDccCdddD86Da7Da8C47bDceCbcdD79C79cD13Db2DbaCeeeD01D09D0aD0bD0cD10D19D1aD1bD1cD2aD2bD2cD2dD3aD3cD3fD49D4aD4cD4eD4fD5cD5dD5eD5fD66D6cD6dD6eD6fD77C46aDd1Dd3Dd4CbbbD58C69cD23CedeD3bD48D4bD67D87C58bD41D42De5CcddD78D94Dc9C9acD33DdcDe8C46aDe4CabdD72C79bDc7CddeD11D20D2eD2fD4dD5aD5bD6bD7cD7dD7eD7fD83D8fD97D98C67aD71CccdD88D93Da6Db8C8acD63C57aDaaDddDdfDefDf3Df9DfdCbcdD12D46Db6Db9C79bDc6CdeeD29D39D3dD3eC58bD16D43De0CdddD18D28D38D59D90D95CabcD0eD0fD64Da9DcaC46aDadDaeDcfDf1CbbcDb7C68cD8aCddeD00D1dD68D76C57bD15D62D9dDacDafDdeDe3De7Df5CccdD47D80D81D82Da1Da5C8acDd7C47aDc4Df8CbcdD30D75D7aDd8C79cD04D05D06D14D22Dd5Df2C68bD8bCccdD96C9bcD35D8cC46aD61D9aDbdDc2Dc3De1Df4Df6CbccD74Da2Da3C79bD31D9eDd6C67aD89CccdD02D1eD1fC9acDb4CbcdD08D7bC79cD03D26DfaDfeC68bD24Dd0De2De6DffCcdeD56D65C9bdD69C35aD9bCabcD37D45D55D73De9C68bD25D50DbbDeeC57bDc0C89cD32Db1Db3DdbCcccD92Dc8C68bD60D99Dc5DfcCdddD84D85Dd9C9acD17DeaDfbCabdD21D9fC78bD51D70DecC8acD07D40D9cC79bD44D54DebCcccD91CcddD0dCcdeD8eC9acD34D36Db5C359D52CabcD27C68bDcbC57bDbeDc1DedCbccDa0Da4DdaCabdD6aD8dC79bDb0C36aD53DcdDd2Df0C359DbcDbfC35aDf7"{
+compte_n1a=0;
+compte_n1b=0;
+compte_n1c=0;
+compte_n2a=0;
+compte_n2b=0;
+compte_n2c=0;
+origid=getImageID();
+nom=getInfo("image.filename");
+run("Duplicate...", "title=red");
+run("Split Channels");
+selectWindow("red (green)");
+selectWindow("red (blue)");
+close();
+selectWindow("red (green)");
+close();
+selectWindow("red (red)");
+run("Median...", "radius="+taille_median);
+count=roiManager("count");
+for(i=0;i<count;i++){
+	roiManager("Select", i);
+	nom_item=call("ij.plugin.frame.RoiManager.getName", i);
+	getStatistics(area, mean);
+	
+	//if (startsWith(nom_item, "N1_")){
+	
+	if (mean<seuil1){
+		roiManager("Set Color", "#00ff00"); // rgb (vert)
+  	roiManager("Set Line Width", 2);
+  	compte_n1a++;
+  	roiManager("Rename", "M2_"+compte_n1a);
+  } else {if  (mean<seuil2) {
+		roiManager("Set Color", "#0000ff"); // rgb (bleu)
+  	roiManager("Set Line Width", 2);
+  	compte_n1b++;
+  	roiManager("Rename", "M1_"+compte_n1b);
+  }
+  else {
+  	roiManager("Set Color", "#ff0000"); // rgb (rouge)
+  	roiManager("Set Line Width", 2);
+  	compte_n1c++;
+  	roiManager("Rename", "M0_"+compte_n1c);
+  }
+
+		}
+	//}
+	
+	/*	if (startsWith(nom_item, "N2_")){
+	
+	if (mean<seuil1){
+		roiManager("Set Color","#ffff00"); // rgb (jaune)
+  	roiManager("Set Line Width", 2);
+  	compte_n2a++;
+  	roiManager("Rename", "N2M0_"+compte_n2a);
+  } else {if  (mean<seuil2) {
+		roiManager("Set Color", "#00ffff"); // rgb (cyan)
+  	roiManager("Set Line Width", 2);
+  	compte_n2b++;
+  	roiManager("Rename", "N2M1_"+compte_n2b);
+  }
+  else {
+  	roiManager("Set Color","#ff00ff"); // rgb (magenta)
+  	roiManager("Set Line Width", 2);
+  	compte_n2c++;
+  	roiManager("Rename", "N2M2_"+compte_n2c);
+  }
+
+		}
+	}
+	
+	*/
+	
+	
+	}
+		close();
+selectImage(origid);
+roiManager("Show All");
+
+print (nom);
+print ("Marquage seuils: "+seuil1+" ; "+seuil2);
+print ("Nombre de cellules avec un marquage: \nfort (vert)\t "+compte_n1a+"\nfaible (bleu)\t "+compte_n1b+"\nnul (rouge)\t "+compte_n1c);
+//print ("Nombre de cellules Type N2 : jaune "+compte_n2a+";cyan "+compte_n2b+";magenta "+compte_n2c);
+print("--------------------------");
+}
+
+macro 'Marquage Action Tool Options'  {
+    //on right-click, the corresponding 'Options' macro is run
+    Dialog.create("Marquage"); //e.g., put a dialog here
+    Dialog.addNumber("Taille du filtre median:", taille_median);
+    Dialog.addSlider("seuil1:", 0, 255, seuil1);
+  	Dialog.addSlider("seuil2:", 0, 255, seuil2);
+    Dialog.show();
+    taille_median = Dialog.getNumber();
+    seuil1 = Dialog.getNumber();
+ 	 seuil2 = Dialog.getNumber();
+  	}
+
+
+
+macro "Mesure Action Tool - C00dDd1DdeDeeDffC8aeD12C22cD93CdcfDb8C00dDc0CcceD1aD36Dd6C37fD30D41D50D61CfffD28D29D2aD2bD3aD3bD4aD4bD59D5aD5bD69D6aD6bD7aD7bD89D8aD8bD98D9aD9bDa9DaaDabDbaDbbDcaDcbDdbDebDfbC00eD0fD1eD2eD2fD3eD3fD4eD4fD5eD5fD6eD6fD7eD7fD8eD8fD9eD9fDaeDafDbeDbfDceDcfDd0DdfDefDf0Df1CbadD16C47dD21CfffDc7DfaC01dD91CddeD05Dd7Dd8Dd9C99cDe7CaadD25D45Dc5C33cD63CefeD01C00dDa1CccfD0cD1cD2cD3cD4cD5cD6cD7cD8cD9cDacDbcDccDdcDecC57dD23CbbeD55D65Da5Db5C66dD94Dd4CfffD79C22dDd2C99cD47De6CaacDc6De5C32dD0dCdeeD02C21dD2dD3dD4dD5dD6dD9dDadDbdDcdCcceD35Dd5C37fD60D70D80CbaeDa7C35fD90CfffD0bD1bD27D49D58D68Df8Df9C22dDc2DedC88eD74D84Db4CbbdD75C24eD81CeffD00D97C00eD1fDe0De1C77dDfdCcbeD78C67cD54C13dD72C99dD77C8aeD24C22dD1dCeefDdaDfcC21cDa3CcbeD06C47eD31CbbdD95C47eD42CfffD39D99Db9Dc8Dc9C11dD82C99cDe8CbadD26C45cD53CeefD38D57D67D88Df7C01eD0eC58eD13C66dDa4C22dDa2C99cD76De9C9beD14C22eDf2CeeeDf5Df6CcceD15CbbeD07D08D09C37fD40C21dDddC88eDc4CabeD11C44eDc3C68eD33CbbeDb7C77dDe4C12eDa0CaadD17D18D19C8aeD34C22dDd3De3CddeD37D87C11dD7dD8dDc1DfeCbbdD96C46eD20D62C99cD46C33dD73C57eD22C23dD92CcceD85D86CbbeDf4C36fD71CaaeDa6Db6C33eD83Db2C78dD44C66dD64C8aeD03CcceD56D66CbbdDeaC11dDe2C8adD04C44dDb3C57fD52C57eD43CabeD10C33eDb1CcceD0aDa8C36fD51C69fD32C77eDf3C01dDb0CcbdD48"{
+setBatchMode(true);
+origid=getImageID();
+nom=getInfo("image.filename");
+run("Duplicate...", "title=red");
+run("Split Channels");
+selectWindow("red (green)");
+selectWindow("red (blue)");
+close();
+selectWindow("red (green)");
+close();
+selectWindow("red (red)");
+rename("ndg");
+run("Median...", "radius="+taille_median);
+
+roiManager("Deselect");
+roiManager("Sort");
+run("Set Measurements...", "  mean display redirect=None decimal=3");
+roiManager("Measure");
+		close();
+selectImage(origid);
+roiManager("Show All");
+
+print (nom);
+print ("Marquage seuils: "+seuil1+" ; "+seuil2);
+}
+
+
+
+macro "About These Macros Action Tool - C000C111C222C333C444C555D54D55D63D73D7cD7dD83D88D89D8aD8cD8dD93D97Da3Da4Da5Da6C555D7aDb5C555D72D82C555D45Da7C555D98C555D53C555D79C555C666Db4C666Db6C666C777D92C777D87C777D64C777D62C777C888D44C888D96C888D78C999D94C999CaaaCbbbD99Db3CbbbDa2CbbbDa8CbbbCcccDb7CcccD52CcccD43CcccD65CcccCdddD74CdddD77CdddD86CdddD84D95CdddD00D01D02D03D04D05D06D07D08D09D0aD0bD0cD0dD0eD0fD10D11D12D13D14D15D16D17D18D19D1aD1bD1cD1dD1eD1fD20D21D22D23D24D25D26D27D28D29D2aD2bD2cD2dD2eD2fD30D31D32D33D34D35D36D37D38D39D3aD3bD3cD3dD3eD3fD40D41D42D46D47D48D49D4aD4bD4cD4dD4eD4fD50D51D56D57D58D59D5aD5bD5cD5dD5eD5fD60D61D66D67D68D69D6aD6bD6cD6dD6eD6fD70D71D75D76D7bD7eD7fD80D81D85D8bD8eD8fD90D91D9aD9bD9cD9dD9eD9fDa0Da1Da9DaaDabDacDadDaeDafDb0Db1Db2Db8Db9DbaDbbDbcDbdDbeDbfDc0Dc1Dc2Dc3Dc4Dc5Dc6Dc7Dc8Dc9DcaDcbDccDcdDceDcfDd0Dd1Dd2Dd3Dd4Dd5Dd6Dd7Dd8Dd9DdaDdbDdcDddDdeDdfDe0De1De2De3De4De5De6De7De8De9DeaDebDecDedDeeDefDf0Df1Df2Df3Df4Df5Df6Df7Df8Df9DfaDfbDfcDfdDfeDff"{
+open(getDirectory("macros")+"toolsets/PHIV_Tilapia_toolset.txt");
+}
+

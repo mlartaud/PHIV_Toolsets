@@ -1,0 +1,320 @@
+// PHIV Pin Tool Set 
+// Marc LARTAUD MRI PHIV
+// Boite a outils pour faciliter les mesures 
+
+
+
+/*Outils
+- Axe_central permet de tracer l axe avec l outils ligne segmentee 
+	commencer par le meristeme (top)
+	double clic pour finir la tracer
+	on peut utiliser edit-->selection--> fit spline
+	
+- Droite : permet de tracer plusieurs points d interet a droite de l axe
+
+- Gauche : permet de tracer plusieurs points d interet a gauche de l axe
+
+- Moelle : mets en memoire dans le Roi Manager les traits pour mesurer la largeur de la moelle
+
+-Resultats : tableau de resultats avec
+		la longueur de l axe central
+		pour les points d interets a droite ou a gauche la distance de leur projection sur l axe au sommet de l axe
+			ainsi que l ecart entre 2 projections
+		pour la moelle la largeur et la distance au sommet de l axe 
+
+- Projection ortho d un point sur une ligne
+
+
+*/
+
+
+
+
+macro "AutoRun" {
+      setForegroundColor(0, 0, 0);
+			setBackgroundColor(255, 255, 255);
+			run("Options...", "iterations=1 count=1 edm=16-bit");		
+	
+   }
+macro "Axe_central Action Tool - C147D44D68Db8CbbbDffC8acDb6CbcfD3cD4cD5cD6cDbcDccC369D58Da8CacfD1dD2dD2eD3dD3eD4dD4eD5dD5eD6dD6eD7dD7eD8dD8eD9dD9eDadDaeDbdDbeDcdDceDddDdeDecDedC9beD0cD0dDfcDfdCdefD12D21D22D32D42D52D62D72D82D92Da2Db2Dc2Dd1Dd2De2C258D38D54CbceD03D25D33Df2Df3C8aeD0bCdefD13D23D73D83D93Da3Db3Dc3Dd3De3C57aDd7CcdfD63D75CaceD04D05D06Dc5Df4Df5CeefD31D41D51D61D71D81D91Da1Db1Dc1C258D2aDaaCbceD20D30D40D50D60D70D80D90Da0Db0Dc0Dd0C9adD0eD53Dd8DfeCcdfD16Db5C47aD9aCaceD07Df6Df7C258D59Db7CbceDe5C9beD0aC68bD8aCdefD11De1CacfD1eDeeC248D29D36D67D69D7aDa7Db9Dc7Dc9CbceD76C8acDefCbdfD4bD5bDe9C46aD1aD6aD7bD96D9bDdbCabeD08D18D3bD4aDbbDf8Df9C258D28D39D56Da6Da9DcaDd6C8beD2fD3fD4fD5fD6fD7fD8fD9fDafDbfDcfDdfC68aD65CacfD1cD2cD7cD8cD9cDacDdcC258D37Dc8C9adD99CdefD14D15D24D74D84D94Da4Db4Dc4Dd4De4C57aD46C259D49CbdfD86D88De7CabeD5aD89C79cD3aC148D45D55CccdD10De0C8adD26D6bD97C9beD09DfaDfbC57bD1bD8bC47aD27D57C358D79CbcfD98C9beDeaC68cDcbCdddD00Df0C8adDd5CcdfD17D85C58bD34C9adD64C57aD48D78C359D35D66DdaC8acD43D77DebCbcdD01Df1C47aDc6C79bDd9CbceD02C9acD1fD47C57bDabC9bdDa5C57aD2bC79cD19C8adD95CcdfD87De8C68bDbaCabdDe6CbbcD0f"{
+		
+		setTool("polyline");
+		run("Select None");
+		title = "Axe central";
+		msg = "Tracer l axe central";
+		waitForUser(title, msg);
+		AddToRoi("Axe central");
+		roiManager("Set Color", "#00ff00");
+		setTool("rectangle");
+		run("Select None");
+		roiManager("Deselect");
+		roiManager("Show All");
+
+
+}
+
+
+////////////////////////////////////////////////Droite////////////////////////////////////////////////////////////////////////////////////////
+
+   
+macro "Droite Action Tool - C147D24CbbbDffC8acD88CbdfD57DcaDcbDdaDdbDeaDebC369D67CbcfD1cD5cD6cD7cD8bD8cD9cDbcDccDdcDecC9beD0bD0cD0dDfcDfdCdefD12D52D62D72D82D92Da2Db2Dc2Dd2De2C258D6aCacfD1dD2dD2eD3dD3eD4dD4eD5dD5eD6dD6eD7dD7eD8dD8eD9dD9eDadDaeDbdDbeDcdDceDddDdeDedC8beD2fD3fD4fD5fD6fD7fD8fD9fDafDbfDcfDdfCdefD11D22D32D42D83D93Da3Db3Dc3Dd3De1De3C68bDb7CaceDf3CeefD21D31D41D51D61D71D81D91Da1Db1Dc1Dd1C258D77CbceD20D85Dd0C9bdD89Db8Db9DbaDc7CcdfD46D47De6De7C47aD14CabeDf8C369D79C9beD06D07D08C79cD1bCacfD1eDeeC248D25D26D27D28D29D54D5aD65D69Da7Db6CbceD02D30D40D50D60D70D80D90Da0Db0Dc0Df2C9adD0eD13D36D37D38D86DfeCcdfDc9Dd9De9C469D75C9beDf9DfaDfbC359D4aD66D68Dc6C68bD43CacfD2cD3cD49D4cD58D8aDacC258D34D44D76D78Da8Da9DaaCbdeD63CabdD74CdefD73D84D94Da4Db4Dc4Dd4De4De5C58bD5bCaceD03Df4Df5Df6C369D64D96D97D98D99D9aCaceD04C79cDa5C148D2aDa6CbcdD01D10De0Df1C9acD1fC47aD19D1aC259D3aC68bD23CbcfD7bC9beD09D0aC57aDabCaceDf7CabeD05D45DbbC89cD35D7aD87CcdfD48Dc8Dd8De8C47aD15D16D17D18C79cDb5Dc5CcdfDd5Dd7C68bD33D55CaceDd6C8acD39D95CcddD00Df0C8acD53DefC46aD2bD3bC46aD4bC68cD59CbceD56C8adD6bC68bD9bCbbcD0f"{
+	
+		setTool("multipoint");
+		run("Select None");
+		title = "Droite";
+		msg = "Points a droite";
+		waitForUser(title, msg);
+		AddToRoi("Droite");
+		/*Roi.getCoordinates(xpoints, ypoints);
+		nb_peripheral_xylem=xpoints.length;*/
+		setTool("rectangle");
+		run("Select None");
+		roiManager("Deselect");
+		roiManager("Show All");
+
+
+}   
+   
+   
+   
+   
+////////////////////////////////////////////////Gauche////////////////////////////////////////////////////////////////////////////////////////
+
+macro "Gauche Action Tool - C248D25D29D34D3aD6aDc6Dc8CbbbDffC69bD63CbcfD1bD1cD2cD3cD7cD8cD9cDecC359D27D4aD7aDa9CacfD4cD6cD8bDacDbcDdcC9aeD2bCdefD12D22D32D72D82D92Da2Db2Dc2Dd2De2C258D18D26D44D69D99DaaDd7CaceD03Df3C9acD1fCdefD11D13D42D52D62D93Da3Db3Dc3Dd3De1De3C46aD19D6bDabCbdfD86C9beD59CeefD21D31D41D51D61D71D81D91Da1Db1Dc1Dd1C258D57D67D68DcaCaceD04D49D76D87Df4Df5C89cD89CddfDe5C469D24D77DbbDd6CacfD1dD2dD2eD3dD3eD4dD4eD5dD5eD6dD6eD7dD7eD8dD8eD9dD9eDadDaeDbdDbeDccDcdDceDddDdeDedC9beD0cD0dDfcDfdC358D28D54D78D79CbceD20D84D85Dd0C9bdDe7C57aD15CcdfD23CabeDf8C258D17D64Dd8Dd9DdaCaceD37D73D95Dd5C79cD75Db9C369Da8CacfD1eDeeC8beD2fD3fD4fD5fD6fD7fD8fD9fDafDbfDcfDdfC258D16D2aDa6CbceD02D30D40D46D50D60D70D80D90Da0Db0Dc0De6Df2C8adD06D1aC57aD35C9beD0aD0bDf9DfaDfbCbceD14D55C8acDefCdefD83D94Da4Db4Dc4Dd4De4C259D9aDb8CabdD36C68bD39CacfD5cCbcdD01D10De0Df1C79cD7bD98C369D5aC9beD09C9adD0eDe8De9DfeC47aD96CabeD05D38D56D66C7adD08C9bdD48D65DebC58bD43D47Db5CaceDf6Df7C79dD07D9bC369D4bD5bD74Dc7Dc9C57aD53C8adDa7Db7CabdD88C68bD58Dc5CcddD00Df0C69cDa5C8acD33D8aC9bdD97C57bD3bDcbC47aDbaDdbC8adDeaC369Db6CabdD45CbbcD0f"{
+
+		setTool("multipoint");
+		run("Select None");
+		title = "Gauche";
+		msg = "Points a gauche";
+		waitForUser(title, msg);
+		AddToRoi("Gauche");
+		/*Roi.getCoordinates(xpoints, ypoints);
+		nb_peripheral_xylem=xpoints.length;*/
+		setTool("rectangle");
+		run("Select None");
+		roiManager("Deselect");
+		roiManager("Show All");
+
+
+}
+	
+
+
+
+
+
+
+
+macro "Moelle Action Tool - C147D33D34D43D55D68D7aD8aDb3Dc4Dc5Dc6Dc7Dc8Dc9DcaCbbbDffC57aDd5Dd6Dd7Dd8Dd9CbcfD1aD1bD1cD5bD5cDabDacDecC258D56CabfD6cC89cD42CdefD31D41D72D82Db1Dc1C248D54D67D8bD98Da4Da5CaceD04D05D06Df4Df5Df6C78bD4aD4bCdefD13D74D84C47aD28D29CbcfD5aDaaDeaDebC9beD0cD0dDfcDfdCeefD21D51D61D71D81D91Da1Dd1C148D35D36D37D38D39D3aD3bD44D79D7bD89D97Db4Dc3DcbCabeD09D9cDf9C58bDb9DbaDbbCbdfD18D19C369D88CacfD1dD2dD2eD3dD3eD4dD4eD5dD5eD6dD6eD7dD7eD8dD8eD9dD9eDadDaeDbdDbeDcdDceDddDdeDedC8beD2fD3fD4fD5fD6fD7fD8fD9fDafDbfDcfDdfCbceD20D63Dd0C79cD77CdefD11D12D62D73D83D92De1De2C57aD46Da7CcdfD75De6De7C9beD0aD0bDfaDfbCabdD76C67aDd4C358D66Da6CacfD1eDeeC9adDfeCbceD02D03D30D40D50D60D70D80D90Da0Db0Dc0Df2Df3C69cD6bD87C47aD95CbcfDe9CaceD22Da2C68cD58D7cD8cCcdfD16C469D57Db6C89cDa8Dc2C57aD23D9aDb7DdaDdbCcdfDe4De5CbbcD0fC258D69D96C8acD1fDefC79bD48D49C47aD24D25D26D27CaceD07D08Df7Df8C68bD3cDccCcdfD17C469D53C79cD32D9bDb2C57aD65CbcdD01D10De0Df1C68bD47Dd3C259D45C9adD0eCbdfD93De8CbceD52CcdfD14D15D85C46aD2aD2bD6aC8acD64CddfDe3CabdDa9C258Db5C8adDdcC369D78Da3CaceD86C58bDb8C8adD2cCcddD00Df0C8adD94C359D99C9adD4cCbceDd2C8aeDbcC9beD59"{
+	setTool("line");
+	run("Select None");
+	title = "Moelle";
+	msg = "Tracer un trait sur la largeur";
+	waitForUser(title, msg);
+	AddToRoi("Moelle");
+	roiManager("Set Color", "#ff00ff");
+	setTool("rectangle");
+	run("Select None");
+	roiManager("Deselect");
+	roiManager("Show All");
+		
+}
+
+
+
+
+
+macro "Resultats Action Tool - C052DbfDcfDdfDebDecDedDeeDefCbebD5dDc6C364D84D85D93D94D95Da3CffeDa9C282D5bCdecD7aC798D83CfffD05D06D07D08D09D0aD0bD0cD0dD0eD1eD2eD3eD41D4eD51D5eD61D6eD71D73D7eD81D8eD91D97D9eDa1Da7Da8DaeDb1Db9DbaDbeDc1DcbDccDceDd1Dd2Dd3Dd4Dd5Dd6Dd7Dd8Dd9DdaDdbDddDdeC063D59CbceDf3Df4Df5Df6C7b4D65D9aCfffDa6Db4Db5Dc3Dc4DdcC592D4cCefeD12D14D32D63CacbD01C052DafCdedD16D17D18D19D1aD1bD1cD1dD23D24D25D26D27D28D35D36D52D62D72D82D92Da2Db2Dc2C385D7cCfffD13D22Db6DcaC382D4bD5cCdeeD00C9daDbdC163D5fDe5De6CbceDf0Df1Df2C8c5D56C6a1D3cCffeD04D31D8cCbceDf7Df8Df9CdddD74C484D75C364D86CdedD15D42Dc5C8c8D57C163D6fC8c4D67D89C493D33CacdDfaDfbDfcDfdDfeDffC172D5aC7a4D87C483D90Da0CeeeDa5CadaD3aC164D58C9c5D99C5a4D53CcecD2aD2bD2dD38D39D46D47Db8C273D1fDe1C798Db3C163D7fDe7De8C8b4D76C493D70CbebDb7C053D69C6a5D30C383Dd0CadaD9dC273D3fD4fDe3De4C9d4D78C5a3D44CcedD29D37C576Da4C373D0fDe0Cac8DaaC173D6aC9c4D77D88C593D50C272D6cC8b7D02D11C483D80CaeaD8dDc9C9c7D2cC7b4D55D9bCcdcD03D21C273D2fDe2C8b8D20C063D8fDe9C592D3bCaebD7dDc8C062D9fDeaC496D7bCadaDadDcdC593D68C9c7D64C493D43C172D4aD6bC6b5DbcCbdaD34C8c6D9cC5a4DacC8a9D96C8c4D66D8aC493D60CbebD6dDc7C5a6D49C383Db0Dc0C9c4D79C6a3D54DabCad9D8bC593D40C9c7D45CcebD98CacbD10CcecD4dCcdbDbbCcecD3dD48"{
+	image_name=getTitle();
+	title1 = "Results "+image_name;
+	title2 = "["+title1+"]";
+	fe = title2;
+	run("Table...", "name="+title2+" width=800 height=600");
+	print(fe, "\\Headings:Image      \tSelection \tRang  \tLongueur \tTop \tInter");
+	roiManager("Sort");
+	n = roiManager("count");
+	for (i=0; i<n; i++) {
+		nameRoi=call("ij.plugin.frame.RoiManager.getName", i);
+		roiManager("Select", i);
+		if (nameRoi=="Axe central") {
+			List.setMeasurements;
+			length=List.getValue("Length");
+			getStatistics(area);
+			print(fe, getTitle() + "\t" + nameRoi + "\t" + ""+ "\t" + length+ "\t" );
+			run("Interpolate", "interval=10 smooth");
+			Roi.getCoordinates(xaxepoints, yaxepoints);
+			nbaxe=xaxepoints.length;
+		}	
+		if (nameRoi=="Gauche") {
+			Roi_Point_Mesure();
+	}
+		if (nameRoi=="Droite") {
+			
+			Roi_Point_Mesure();
+			
+			
+			}
+			if (startsWith(nameRoi, "Moelle")){
+				Roi.getCoordinates(xpoints, ypoints);
+				distax=100000;
+				x1=xpoints[0];
+				y1=ypoints[0];
+				x2=xpoints[1];
+				y2=ypoints[1];
+				largeur=sqrt(pow((x1-x2),2)+pow((y1-y2),2));
+				for (k=0;k<nbaxe;k++){
+					dist=sqrt(pow((x1-xaxepoints[k]),2)+pow((y1-yaxepoints[k]),2));
+					if (dist<distax){
+						distax=dist;
+						xp=xaxepoints[k];
+						yp=yaxepoints[k];						
+					}
+				}
+				
+				distop=sqrt(pow((xaxepoints[0]-xp),2)+pow((yaxepoints[0]-yp),2));
+				print(fe, getTitle() + "\t" + nameRoi + "\t" + ""+ "\t" + largeur+"\t" + distop+ "\t"+ ""+ "\t"  );
+				
+			}
+
+	}
+
+	roiManager("Show All");
+	
+}
+
+
+
+
+
+
+
+
+
+macro "Projection Action Tool - Cba2D22D44CfffD00D01D02D03D04D05D06D07D08D09D40D41D47D48D49D4aD4bD4cD50D51D52D58D59D5aD5bD5cD60D61D62D63D6aD6bD6cD70D71D72D73D74D7bD7cD80D81D82D83D84D85D8cD90D91D92D93D94D95D96Da0Da1Da2Da3Da4Da5Da6Da7Db0Db1Db2Db3Db4Db5Db6Db7Db8Db9Dc0Dc1Dc2Dc3Dc4Dc5Dc6Dc7Dc8Dc9DcaDd0Dd1Dd2Dd3Dd4Dd5Dd6Dd7Dd8Dd9DdaDdbDe0De1De2De3De4De5De6De7De8De9DeaDebDecDf0Df1Df2Df3Df4Df5Df6Df7Df8Df9DfaDfbDfcDfdCcc7DadCcb5DbbDefCeebDbaCcb3D9aDcdDceCed9D8dCed5D5eCffeD0eD0fCcb3DbcCdc8D87Ccb5D65CeedD38Ccb4D26D56CddaD31Ced6D1bD2bCfffD0aD0bD30D69D7aD97Da8Ccb3D24D77D88DabDbdCed7D2cCdc5D29D9eCeecD46Cdc3D78D89Cee9D79Ced6D2dD3fD4fD5fCffeD3cCcb3D21D25D32D67D99Ced8D16Cdc5D2aDbfCfeeD39D9cCdb4D27CedaD12DffCed6D1cD1dD1eD6fD7fD8fCca2D23D33D55D66Cdc7D9bCdc4DaeCeecD10D53Ccb4D43Ced9D14D6dD7dCfd5D2eD3eCffeD3bD86DfeCcb3DdeCdc9D20D35Ccb6DacCfedD75DdcCcb4D45D54DdfCeeaD4dD68Ced7D18D19Cec5D8eCeecDcbCed9D5dCffeD0cD0dD8bCee8D8aCed6D2fD9fDafCffeD3aDedCdc4D28CedbD42D57Cba3D34Cdc7DeeCeebD11Ced9D15Ced5D4eCed8D17Cdc5DccCdc4DbeCedaD13Da9CeecD36Cdd9D98D9dCed7D1aD1fCdc5DcfCcb4DaaCdc6D76DddCed5D6eD7eCeedD37D64Cee9D3d"{
+setTool("line");
+title = "Ligne";
+msg = "Selectionner la ligne";
+waitForUser(title, msg);
+run("Interpolate", "interval=5 smooth");
+Roi.getCoordinates(xbasepoints, ybasepoints);
+nbase=xbasepoints.length;
+setTool("point");
+title = "Point";
+msg = "Selectionner le point";
+waitForUser(title, msg);
+Roi.getCoordinates(xpoints, ypoints);
+x1=xpoints[0];
+y1=ypoints[0];
+distax=100000;
+for (i=0;i<nbase;i++){
+					dist=sqrt(pow((x1-xbasepoints[i]),2)+pow((y1-ybasepoints[i]),2));
+					if (dist<distax){
+						distax=dist;
+						xproject=xbasepoints[i];
+						yproject=ybasepoints[i];						
+					}
+				}	
+		makeLine(x1, y1, xproject, yproject);
+		run("Measure");
+		
+	}
+	
+	macro "About These Macros Action Tool - C000C111C222C333C444C555D54D55D63D73D7cD7dD83D88D89D8aD8cD8dD93D97Da3Da4Da5Da6C555D7aDb5C555D72D82C555D45Da7C555D98C555D53C555D79C555C666Db4C666Db6C666C777D92C777D87C777D64C777D62C777C888D44C888D96C888D78C999D94C999CaaaCbbbD99Db3CbbbDa2CbbbDa8CbbbCcccDb7CcccD52CcccD43CcccD65CcccCdddD74CdddD77CdddD86CdddD84D95CdddD00D01D02D03D04D05D06D07D08D09D0aD0bD0cD0dD0eD0fD10D11D12D13D14D15D16D17D18D19D1aD1bD1cD1dD1eD1fD20D21D22D23D24D25D26D27D28D29D2aD2bD2cD2dD2eD2fD30D31D32D33D34D35D36D37D38D39D3aD3bD3cD3dD3eD3fD40D41D42D46D47D48D49D4aD4bD4cD4dD4eD4fD50D51D56D57D58D59D5aD5bD5cD5dD5eD5fD60D61D66D67D68D69D6aD6bD6cD6dD6eD6fD70D71D75D76D7bD7eD7fD80D81D85D8bD8eD8fD90D91D9aD9bD9cD9dD9eD9fDa0Da1Da9DaaDabDacDadDaeDafDb0Db1Db2Db8Db9DbaDbbDbcDbdDbeDbfDc0Dc1Dc2Dc3Dc4Dc5Dc6Dc7Dc8Dc9DcaDcbDccDcdDceDcfDd0Dd1Dd2Dd3Dd4Dd5Dd6Dd7Dd8Dd9DdaDdbDdcDddDdeDdfDe0De1De2De3De4De5De6De7De8De9DeaDebDecDedDeeDefDf0Df1Df2Df3Df4Df5Df6Df7Df8Df9DfaDfbDfcDfdDfeDff"{
+open(getDirectory("macros")+"toolsets/PHIV_Pin_toolset.txt");
+}
+
+
+
+//////////////////////////////////Fonctions////////////////////////////////////
+
+
+function Roi_Point_Mesure(){
+			Roi.getCoordinates(xpoints, ypoints);
+			xproject=Array.copy(xpoints);
+			yproject=Array.copy(ypoints);
+			nb=xpoints.length;
+			for (j=0; j<nb; j++){
+				distax=100000;
+				x1=xpoints[j];
+				y1=ypoints[j];
+				for (k=0;k<nbaxe;k++){
+					dist=sqrt(pow((x1-xaxepoints[k]),2)+pow((y1-yaxepoints[k]),2));
+					if (dist<distax){
+						distax=dist;
+						xproject[j]=xaxepoints[k];
+						yproject[j]=yaxepoints[k];						
+					}
+				}
+				makeLine(x1, y1, xproject[j], yproject[j]);
+				AddToRoi(nameRoi+"Dist");
+				distop=sqrt(pow((xproject[j]-xaxepoints[0]),2)+pow((yproject[j]-yaxepoints[0]),2));
+				if (j>0) distinter=sqrt(pow((xproject[j]-xproject[j-1]),2)+pow((yproject[j]-yproject[j-1]),2));
+				else distinter=0;
+				print(fe, getTitle() + "\t" + nameRoi + "\t" + (j+1)+ "\t" + ""+ "\t" + distop+ "\t"+ distinter+ "\t"  );
+		}
+
+}
+
+
+
+
+
+function Roi_Select(nom){
+n = roiManager("count");
+indice=-1;
+for (i=0; i<n; i++) {
+nameRoi=call("ij.plugin.frame.RoiManager.getName", i);
+if (nameRoi==nom) indice=i;
+}
+if (indice!=-1) roiManager("Select", indice);
+}
+
+function Map_Roi(nom){
+Roi_Select(nom);
+run("Create Mask");
+rename("map");
+run("Distance Map");
+Roi_Select(nom);
+run("Clear Outside");
+}
+
+function AddToRoi(name){
+	roiManager("Add");
+	n = roiManager("count");
+	roiManager("Select", n-1);
+	roiManager("Rename", name);
+	//roiManager("Deselect");
+}
+
+function Map_Roi(name){
+	Roi_Select(name);
+	run("Create Mask");
+	rename("map");
+	run("Distance Map");
+	selectWindow("map");
+	close();
+	selectWindow("EDM of map");
+	rename("map");
+	Roi_Select(name);
+	setForegroundColor(0, 0, 0);
+	setBackgroundColor(255, 255, 255);
+	run("Clear Outside");
+	run("8-bit");
+}
+
+function Roi_Exist(name){
+	n = roiManager("count");
+	exist=0;
+	for (i=0; i<n; i++) {
+		nameRoi=call("ij.plugin.frame.RoiManager.getName", i);
+		if (nameRoi==name) exist=1;
+	}
+	return exist;
+}
+
+
+/*
+
+distances au top
+distance entre projections
+largeur moelle avec distance au top

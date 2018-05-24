@@ -1,0 +1,343 @@
+// PHIV Comet Tool Set
+// Marc LARTAUD PHIV
+// Boite a outils mesurer les comettes !
+
+
+/* 
+Outils Ndg pour creer l image de travail en niveaux de gris  Couche verte  Substrack Background Enhance Contrast LUT
+
+Outils Head metre en Roi Manager une selection Head avec dilatation (option de taille en clic droit)
+
+Outils Comet metre en Roi Manager une selection Comet avec lissage  (option de taille en clic droit)
+
+Outils Mesure pour creer le tableau de resultats
+
+Raccourcis sur pave numerique
+0 supprimme la selection du RoiManager
+1 ajoute une selection Head
+1 ajoute un eselection Comet
+3 zoom sur la selection
+4 erode une selection de 2px
+6 dilate une selection de 2px
+
+ 
+ */
+ var nom="";
+ var dir="";
+ 
+var enlarge_head=10;
+var enlarge_comet=10;
+
+var title1 = "Resultats";
+var title2 = "["+title1+"]";
+var fe = title2;
+
+
+
+
+macro "OpenComet Action Tool - C020DeaCeeeDeeC521DfaCfffD00D01D02D03D04D05D06D07D08D0bD0cD0dD0eD0fD10D11D12D13D14D15D1fD20D21D22D23D24D25D2fD30D31D32D33D34D40D41D42D43D44D50D51D52D53D54D60D61D62D63D64D70D71D72D73D74D80D81D82D83D84D90D91D92D93D94D95Da0Da1Da2Da3Da4Da5Db0Db1Db2Db3Db4Db5DbfDc0Dc1Dc2Dc3Dc4Dc5Dc6DcfDd0Dd1Dd2Dd3Dd4Dd5Dd6DdfDe0De1De2De3De4De5De6DefDf0Df1Df2Df3Df4Df5Df6Df7DffC160D4cD99CfeeD75Db6Cb67D2dC120DacCfffD1eD3fD4fD5fD6fD7fD8fD9fDafC650D78C190D6aCfffD09D0aCbbbD9eC030Dc9DcaCeeeDfeC742Df9C350D67CffeDe7CbaaD5eD6eC320DebC954DfbC2b0D48CfffD16D85CecbD17Da6Dd7C020D9cDc8C542D7cC180D57C997DcdC050Da9C662D8dC2a0D69CcdcDfdC040Da8C844DdcC270D2bCda9D26C250D3cC973D1aC2d0D3aCfccD55C020Dd9C640D6cC170D6bCb76Dc7C130DcbC561D27C390D68CbcbDaeC030D87D8cC742D76C252D9aCbbaD7eC330Da7C874DadC2c0D38D49D4aCeccDf8C030Db8DdaC742Db7C180D37D47D5bCaa9DddC150D5cC863D9dC2a0D29D59D5aCdddDceC040D98Ca44D5dC462D8aCbbbD1dC242DabCb75D18C3d0D39CfdcD65C020DdbDe9C730D2cC150D8bCa67DecC130D97C652D7bC2a0D2aD3bD4bD58CcbbD3eC931D66C460D46C320Dd8C964De8C633DccCba8D1cC150DaaC672D36CdddD2eC040Db9DbaC844D4dC280D28CcbaD4eC232DbbC985DbdCedcD45C640D56Cc97D96C140D9bC580D79CcccDbeCa34D6dC361D89CbbaDedC321DbcC965D86C753D7dCbaaDfcC250D88C773D19CdedDdeCb45D3dC581D7aCbbbD8eC530D77Cc96D1bCfedD35"{
+run("OpenComet ");
+}
+
+
+
+macro "Ndg Action Tool - C012D2dD3dC047D2aC026DddC059D00D06D99C024D9eDadDbcDbdDceDdeDeeDfeC048D7aC076D4aC05aDd7De0De7Df0Df1Df6Df7C014D7fDafC048D33D52D62D71D7cD91Da1Dc1Df8C037D01D11D20D22D30D32D40D60D7bD8bD9aDc9DecC069D15D34D73Da8Db7C025D08D09D1aD4bD5bD6dD9bD9dDabDbbDcbDccDedDfdC078Dc3C0b3D26D45C4f0D36C013D0fD1bD1fD2fD3fD4fD5dD5eD5fD6fC048D03D10D42D51D61D7dD81D8aD8cDb1Dc0C036D02D07D21D31D6bD70Db9Dd9DdbDdcDe9DebDf9C059D63C025D3bD7eD8eDacDcdC049D13D23D43D53Db8Dd8De8C0a5Da6C0f0D76C024D0aD2bD5cD6eD8fD9fDaeDbeDbfDcfDdfDefDffC069Dc7Dd5De5Df5C078D44D93Db3Db6De3De4C0d2D86C7f0D67C013D0bD0dD0eD1cD1dD1eD2cD2eD3cD3eD4cD4dD4eC047D19Da9C036D6cD9cDaaDbaDcaDdaDeaDfaDfbDfcC059D82D92Db2Dc2C067D3aC096D74D79Da7Db4Db5C05aDd6De6Df2C069D83Dc6Df3Df4C087D25C0a4D55C5f0D68C059D05D14D24Da2Dd2De2C068D54D89C096D94Da4C0e1D78C0c3D96Ccf3D37C013D0cC037D12D41D50D80D8dD90Da0Db0C049D04D72Dd0Dd1De1C058D18C078D64D98Da3Dc5Dd3Dd4C0b4D35D87C2d2D27C0a5D88D97C1f0D77C0d2D85D95Ccf2D58C068D17C087Dc4C0b4D65Da5C6f0D56C0c3D69C0c3D75Cff7D47C048Dc8C4e1D59C095D84C8f2D49C067D5aC6f0D46Cef6D38C058D6aC3d2D28C2f0D66Cef3D57C068D16C5e2D39C096D29CffaD48"{
+
+
+	origid=getImageID();
+	nom=getInfo("image.filename");
+	dir=getInfo("image.directory");
+	run("Duplicate...", "title=temp");
+	run("Split Channels");
+	selectWindow("temp (blue)");
+	close();
+	selectWindow("temp (green)");
+	selectWindow("temp (red)");
+	close();
+	selectWindow("temp (green)");
+	rename(nom+"_ndg");
+	run("Subtract Background...", "rolling=50");
+	run("Enhance Contrast...", "saturated=0.1");
+	run("Median...", "radius=2");
+	run("Green Fire Blue");
+	run("Threshold...");
+	resetThreshold();
+	setTool("wand");
+
+}
+
+macro "Head Action Tool - C013D0fD1fD2fC0e0D96C049D02D07D08D42D60D71D81D90D9dDdcC068D5dC037D0bD20D30D6eD8eD9eDbeDbfDceDddC096Df3C05aD05D23D33Db1Dd0De0C3d0D76C036D1dD4eDdeC0b4D35D85De4C059D62D72DbcDc0DccC069DacC048D11D21D51D61D70D80DfbC086D18Cf00D48D49D4aD58D59D5aD68D69D6aD78D79C3a2D5cC025D7fC0d2D27D45D55D9bDb5De5C049D32D52D91Da0Db0DebC087D16D34D74D93D9cDbbDd2De2Df2C048D01D0aD1cD31D41D50DadDbdDcdC0b4D7cDf4Df5Ce10D39D57C0f0Da6C037DafDcfC0c3D95C05aD12D13D22Da1C069D04D06D14D43Dd1DeaC048D09C087D64D84Dd9De9Cf00D7aC790D7bC024D1eD4fD5fC0d2Db9Dc6Dd6C058D4dD7dC077D17C037D00D10D2dD40DecC0a5D3cDabDc9Df8Cc50D47C1f0Da9C036D0cD5eD7eD9fDaeDedDfcC0b4D26D75Dc4Dd4De7C059D03D82Dc1DdbDf0DfaC078D15DcbDdaDf1C096D19D25D44D54Da3DcaDe3C3e0D46D97C025D3eD8fDdfDeeDefDfdDffC059D8dC0a5D2bDa4Db4Df6Df7Cd30D3aC1c1D6cC0c3Dd7De6C058D3dCf10D5bD67D88C6a0D3bC013D3fC0d1Db8C068D2cDa2C096D8cD94Db3Dc3Dd3Dd8De8C1e0D86C0a4Dc8C069D24D53D63D73D83D92De1C4d0D56D66C025D0dDfeCd20D77C0e1D36C0c3D65Da5DbaDc7C890D87C024D2eD6fC078Db2Dc2Df9C1f0Da7C059D1bCd30D38D6bC1c2D2aC6b0D37C0e1DaaDb7C068D6dC3c1D29C078D1aCc30D4bC2c1D28C8a0D98C014D0eC0e1Db6Dc5Dd5C2f0D9aCe20D89C2d1D8bCa70D8aC2f0Da8C0c3D4cC6c0D99"{
+SelectComet("Head_");
+
+}
+
+macro 'Head Action Tool Options'  {
+    //on right-click, the corresponding 'Options' macro is run
+    
+    Dialog.create("Lissage");
+    Dialog.addNumber("Dilatation (px):", enlarge_head);
+    Dialog.show();
+    enlarge_head=Dialog.getNumber();
+          
+  	}
+
+
+
+
+macro "Comet Action Tool - C012D1fC059DacDb2C037D13D20D52D61D70D9dDa0DadDb0Dc0DebDf0C932D66D86C036D02D31D41D8eD9eDbeDdcC047D5dC048D19Cf00D39D47D48D49D4aD4bD57D58D59D5aD5bD67D68D69D6aD6bD77D78D79D7aD7bD87D88D89D8aD97D98D99D9aDa6Da7Da8Db6Db7Dc6Dc7Dd6C025D0aD0bD7eDceDcfDddDedDeeDfeC069D17D84DdaDe9C048D04D23D62D63D72D73D82D91Da1DafDc1Df1Cc11Dd8C037D01D03D11D12D1bD22D30D40D42D50D51D60D80D90DaeDbdDbfDfbC356D8cC068D26D75DbbC024D0cD1dD4eD7fDefC059D07C048D08D10D2cD33D43D53D71D81D9fDb1DccDd0De0De1Cb21Db5De6C036D21D32D3dC158D2bD9cC049D00D14D18D44D83D92DbcDd1De2DeaC036D09D1cD8fDcdDecDfcDfdC069Dc3De3Df3Cf00D3aD8bDa9C654D76D95C077D85C013D0dD2eD3eD6fC059D34D64D74D93Dc2DcbDd2C047D1aD4dCa22D56C086Df5C048D7dD8dDdbDfaC069D45Dd3Df7Df8Cd10Dc8Dd7C554De5C078D55D65D94DcaC025D2dD5eD6eDdeDdfDffC059D15D16D35Db3Df9Cc11D3bD6cC05aD24Da3Ce00D96C734D29D7cC078De4C013D0eD0fD1eD2fD3fD4fD5fC049D05D54Da2Df2C843Dd5C147D6dCd11DaaC455D36De7Cb22D5cC077Da4C743Dc5C087Dc4Dd4Df4Ca32Da5C275Dc9Cd11D37C456D28DabCb22D9bC05aD06D25Cf00D38Db8C654Dd9C923D4cC266D27C077Df6C167De8C346D3cCa22D46C177Db4C743Db9C176DbaC545D2a"{
+SelectComet("Comet_");
+
+}
+macro 'Comet Action Tool Options'  {
+    //on right-click, the corresponding 'Options' macro is run
+    
+    Dialog.create("Lissage");
+    Dialog.addNumber("Dilatation Erosion (px):", enlarge_comet);
+    Dialog.show();
+    enlarge_comet=Dialog.getNumber();
+          
+  	}
+
+
+
+
+
+macro "Mesure Action Tool - C00dDd1DdeDeeDffC8aeD12C22cD93CdcfDb8C00dDc0CcceD1aD36Dd6C37fD30D41D50D61CfffD28D29D2aD2bD3aD3bD4aD4bD59D5aD5bD69D6aD6bD7aD7bD89D8aD8bD98D9aD9bDa9DaaDabDbaDbbDcaDcbDdbDebDfbC00eD0fD1eD2eD2fD3eD3fD4eD4fD5eD5fD6eD6fD7eD7fD8eD8fD9eD9fDaeDafDbeDbfDceDcfDd0DdfDefDf0Df1CbadD16C47dD21CfffDc7DfaC01dD91CddeD05Dd7Dd8Dd9C99cDe7CaadD25D45Dc5C33cD63CefeD01C00dDa1CccfD0cD1cD2cD3cD4cD5cD6cD7cD8cD9cDacDbcDccDdcDecC57dD23CbbeD55D65Da5Db5C66dD94Dd4CfffD79C22dDd2C99cD47De6CaacDc6De5C32dD0dCdeeD02C21dD2dD3dD4dD5dD6dD9dDadDbdDcdCcceD35Dd5C37fD60D70D80CbaeDa7C35fD90CfffD0bD1bD27D49D58D68Df8Df9C22dDc2DedC88eD74D84Db4CbbdD75C24eD81CeffD00D97C00eD1fDe0De1C77dDfdCcbeD78C67cD54C13dD72C99dD77C8aeD24C22dD1dCeefDdaDfcC21cDa3CcbeD06C47eD31CbbdD95C47eD42CfffD39D99Db9Dc8Dc9C11dD82C99cDe8CbadD26C45cD53CeefD38D57D67D88Df7C01eD0eC58eD13C66dDa4C22dDa2C99cD76De9C9beD14C22eDf2CeeeDf5Df6CcceD15CbbeD07D08D09C37fD40C21dDddC88eDc4CabeD11C44eDc3C68eD33CbbeDb7C77dDe4C12eDa0CaadD17D18D19C8aeD34C22dDd3De3CddeD37D87C11dD7dD8dDc1DfeCbbdD96C46eD20D62C99cD46C33dD73C57eD22C23dD92CcceD85D86CbbeDf4C36fD71CaaeDa6Db6C33eD83Db2C78dD44C66dD64C8aeD03CcceD56D66CbbdDeaC11dDe2C8adD04C44dDb3C57fD52C57eD43CabeD10C33eDb1CcceD0aDa8C36fD51C69fD32C77eDf3C01dDb0CcbdD48"{
+	nom_image=getTitle();
+	run("Set Measurements...", "area centroid center feret's integrated display redirect=None decimal=3");
+	ncount=roiManager("count");
+	for(i=0;i<ncount;i++){
+			roiManager("Select", i);
+			nom_item=call("ij.plugin.frame.RoiManager.getName", i);
+			if (startsWith(nom_item, "Comet_")) {
+			suffix=substring(nom_item, 6, 9);
+					//print("Comet_"+suffix);
+					roiManager("Select", i);
+					List.setMeasurements;
+					area_comet=List.getValue("Area");
+					int_comet=List.getValue("IntDen");
+					x_comet=List.getValue("X");
+					y_comet=List.getValue("Y");
+					xm_comet=List.getValue("XM");
+					ym_comet=List.getValue("YM");
+					feret_comet=List.getValue("Feret");
+					for(j=0;j<ncount;j++){
+							roiManager("Select", j);
+							nom_item=call("ij.plugin.frame.RoiManager.getName", j);
+							//print (nom_item);
+							//print("Head_"+IJ.pad(i,3));
+							if (nom_item=="Head_"+suffix){
+								roiManager("Select", j);
+								List.setMeasurements;
+								area_head=List.getValue("Area");
+								int_head=List.getValue("IntDen");
+								x_head=List.getValue("X");
+								y_head=List.getValue("Y");
+								xm_head=List.getValue("XM");
+								ym_head=List.getValue("YM");
+								feret_head=List.getValue("Feret");
+								area_tail=	area_comet	-	area_head;	
+								int_tail=	int_comet	-	int_head;
+								feret_tail=	feret_comet	-	feret_head;
+								dist=sqrt(pow((x_comet-x_head),2)+pow((y_comet-y_head),2));	
+								distm=sqrt(pow((xm_comet-xm_head),2)+pow((ym_comet-ym_head),2));	
+								per_surf=(area_tail/area_comet)*100;
+								per_int=(int_tail/int_comet)*100;
+
+							if( !isOpen("Resultats")){
+							run("Table...", "name="+title2+" width=1400 height=600");
+							print(fe, "\\Headings:Image \tComet \tsurf_head \tint_head \tferet_head \tsurf_tail \tint_tail \tferet_tail \tdist  \tdistm \tper_surf \tper_int");
+							}
+							print(fe, nom_image+"\t"+"Comet_"+suffix+"\t"+area_head+"\t"+int_head+"\t"+feret_head+"\t"+area_tail+"\t"+int_tail+"\t"+feret_tail+"\t"+dist+"\t"+distm+"\t"+per_surf+"\t"+per_int);
+
+
+
+								
+						}					
+					
+					}
+			}
+		}
+			
+	}
+
+
+macro "SaveRoi Action Tool - C36aDebCdedD5cC9c7D6aD7aD8aD9aDaaCdefD42C58cD23Db1CfffD10D11D12D13D14D15D16D17D18D19D1aD1bD1cD1dD1eD1fD20D2eD2fD30D3eD3fD40D4eD4fD50D5eD5fD60D6eD6fD70D7eD7fD80D8eD8fD90D9eD9fDa0DaeDafDb0DbeDbfDc0DceDcfDd0DdeDdfDe0DeeDefDf0Df1Df2Df3Df4Df5Df6Df7Df8Df9DfaDfbDfcDfdDfeDffC9beDd5CfffD52D53D54D72D73D74D82D83D84D92D93D94Da2Da3Da4Db2Db3Db4C47aDedCddfDc3C7aeD88CfffD59D69D79D89D99Da9Db9C69dD76D86CcdeDccC36bDe5De6CeeeD00D01D02D03D04D05D06D07D08D09D0aD0bD0cD0dD0eD0fC79cD31DdaCeffD55D65D75D85D95Da5Db5C79cD2dDdcCaceD37D3cC57cD26CdefD4cC89dDd9C79dD46D98CcdfD32D49C36aDcdDecCefdDbcCad8D5aCeefDc2C69dD56D66D96Dc6CabeD39C58cD2cC7aeD47D48D57D58D67D68D77D78D87C79dD63D64Da7Da8Db7Db8Dc7Dc8CbdeDcaC37bDe4Cbd9DbaC79cDe2CacfD36C58cD51D61D71D81D91Da1CdecD6cD7cD8cD9cDacC79eD97CcdfD43D44D4aD4bDc4C36bDe9DeaC69dDa6Db6C9beD3aD3bDd4C57cD27D28D29CbceDc9DcbC46bD6dD7dD8dC8acDd1CbceDc5Dd3C58cD24D25C8adDd6Dd7C46bD9dDadDbdCad9D6bD7bD8bD9bDabCaceD38C58cD3dCbdfD45C47bD4dD5dDe3CbbcDe1C79cD22DdbCacfD33D34D35C36aDddC68cD41Dc1C9beDd2C47cD2aD2bC8adDd8C36bDe7CbdaD5bC36bDe8C8acD21CcdeD62CcdbDbb"{
+
+roiManager("Deselect");
+showMessage("Sauvegarde du RoiManager");
+roiManager("Save", dir+nom+".zip");
+
+
+roiManager("Delete");
+
+
+}
+
+
+
+
+
+macro "About These Macros Action Tool - C000C111C222C333C444C555D54D55D63D73D7cD7dD83D88D89D8aD8cD8dD93D97Da3Da4Da5Da6C555D7aDb5C555D72D82C555D45Da7C555D98C555D53C555D79C555C666Db4C666Db6C666C777D92C777D87C777D64C777D62C777C888D44C888D96C888D78C999D94C999CaaaCbbbD99Db3CbbbDa2CbbbDa8CbbbCcccDb7CcccD52CcccD43CcccD65CcccCdddD74CdddD77CdddD86CdddD84D95CdddD00D01D02D03D04D05D06D07D08D09D0aD0bD0cD0dD0eD0fD10D11D12D13D14D15D16D17D18D19D1aD1bD1cD1dD1eD1fD20D21D22D23D24D25D26D27D28D29D2aD2bD2cD2dD2eD2fD30D31D32D33D34D35D36D37D38D39D3aD3bD3cD3dD3eD3fD40D41D42D46D47D48D49D4aD4bD4cD4dD4eD4fD50D51D56D57D58D59D5aD5bD5cD5dD5eD5fD60D61D66D67D68D69D6aD6bD6cD6dD6eD6fD70D71D75D76D7bD7eD7fD80D81D85D8bD8eD8fD90D91D9aD9bD9cD9dD9eD9fDa0Da1Da9DaaDabDacDadDaeDafDb0Db1Db2Db8Db9DbaDbbDbcDbdDbeDbfDc0Dc1Dc2Dc3Dc4Dc5Dc6Dc7Dc8Dc9DcaDcbDccDcdDceDcfDd0Dd1Dd2Dd3Dd4Dd5Dd6Dd7Dd8Dd9DdaDdbDdcDddDdeDdfDe0De1De2De3De4De5De6De7De8De9DeaDebDecDedDeeDefDf0Df1Df2Df3Df4Df5Df6Df7Df8Df9DfaDfbDfcDfdDfeDff"{
+open(getDirectory("macros")+"toolsets/PHIV_Comet_toolset.txt");
+}
+
+
+
+
+//////////////////////////Shortcut Key/////////////////
+
+//supression de selection 
+macro "ROI Delete [n0]"{
+	if(selectionType()!=-1 && selectionType()!=10){
+	
+		roiManager("Delete");
+		run("Select None");
+	}
+		
+}
+
+
+//ajout de selection
+
+macro "ROI Ajoute [n1]"{
+
+			SelectComet("Head_");
+		
+		
+	
+
+}
+
+macro "ROI Ajoute [n2]"{
+
+			SelectComet("Comet_");
+		
+		
+	
+
+}
+
+
+macro "ROI Ajoute [n4]"{
+
+			run("Enlarge...", "enlarge=-2");
+		
+		
+	
+
+}
+
+macro "ROI Ajoute [n6]"{
+
+			run("Enlarge...", "enlarge=2");
+		
+		
+	
+
+}
+
+
+
+
+//Zoom to selection
+
+macro "Zoom [n3]"{
+run("To Selection");
+}
+	
+/////////////////////////////////////////////////////FUNCTIONS///////////////////////////////////////////////////
+	
+	
+/*	
+function RoiAdd(nom) {
+	compte=0;
+	roiManager("Add");
+	n = roiManager("count");
+	for(i=0;i<n;i++){
+			nom_item=call("ij.plugin.frame.RoiManager.getName", i);
+			if (startsWith(nom_item, nom)){
+				compte++;
+				roiManager("Select", i);
+				if(compte==1) roiManager("Rename", nom);
+				else roiManager("Rename", nom+"-"+compte);
+				}
+		}	
+	roiManager("Select", n-1);	
+	roiManager("Rename", nom+"-"+compte+1);
+}
+*/
+
+function RoiAdd(nom) {
+	roiManager("Add");
+	n = roiManager("count");
+	roiManager("Select", n-1);	
+	roiManager("Rename", nom);
+}
+
+function SelectComet(prefix){
+	ncount=roiManager("count");
+	nb_prefix=0;
+	for(i=0;i<ncount;i++){
+			//roiManager("Select", i);
+			nom_item=call("ij.plugin.frame.RoiManager.getName", i);
+			if (startsWith(nom_item, prefix)) nb_prefix++;
+			}
+	if (prefix=="Head_") run("Enlarge...", "enlarge="+enlarge_head);
+	if (prefix=="Comet_"){
+		run("Enlarge...", "enlarge="+enlarge_comet);
+		run("Enlarge...", "enlarge="+(-enlarge_comet));
+	
+	} 
+	RoiAdd(prefix+IJ.pad(nb_prefix+1,3));
+}
+
+
+function RoiDedoublonne(string){
+	compte=0;
+	n=roiManager("count");
+	for(i=0;i<n;i++){
+			roiManager("Select", i);
+			nom_item=call("ij.plugin.frame.RoiManager.getName", i);
+			if (startsWith(nom_item, string)){
+				compte++;
+				roiManager("Rename", string+"-"+compte);
+			
+			
+			}
+		}
+	
+		roiManager( "Deselect");
+}
+
+
+
+function RoiDelete (nom){
+	ncount=roiManager("count");
+	for(i=ncount-1;i>=0;i--){
+		roiManager("Select", i);
+		nom_item=call("ij.plugin.frame.RoiManager.getName", i);
+		if (startsWith(nom_item, nom)) roiManager("Delete");
+		}
+
+
+}
+
+
+
+
+var function RoiCompte(string){
+	max=0;
+	n=roiManager("count");
+	for(i=0;i<n;i++){
+			nom_item=call("ij.plugin.frame.RoiManager.getName", i);
+			if (startsWith(nom_item, string)){
+				num=parseInt(replace(nom_item,string,""));
+				if (max<num) max=num;
+			}
+		}
+		return max+1;	
+}
+
+	
+

@@ -1,0 +1,149 @@
+// PHIV Pain Tool Set
+// Marc LARTAUD MRI PHIV
+// Boite a outils pour faciliter l exploitation d
+
+
+
+/*
+
+Outil Crop 
+	Choix d un repertoire source avec les images originales
+	Choix d un repertoire destination avec les images traitees
+	Pour chaque image selectionner la zone d interet
+	--> Crop, Remove scale, Save
+
+Outil Seuil
+	Premier seuillage pour selectioner la mie du pain
+	Deuxieme seuillage pour selectionner las alveoles
+	
+
+
+*/
+
+//variables glogales
+
+var taille_mini=50;
+
+var seuil_total=newArray(0,113);
+var seuil_alveole=newArray(0,130);
+
+
+////////////////////////////////////////////////////////////////label=Crop and Clear Outside////////////////////////////////////////////
+macro "Crop Action Tool - C000C111C222DbfDcfC222D5cD6cD7cD8cC222D4cD9cDacDdcDecDfcC222C333D6aC333D15D25D35D65D75D85D95Da5C333Da6C333D6bD7bDbeDceC333D8bC333D5bD79DbdDcdC333D97DbcDccC333D9bC333D5aC333D4bD88DabDbbDcbDdbDebDfbC333C444D4aD59Db9DbaDcaC444D49Dc9C444Db8C444Dc8C444Db7C444D48D58C444Dc7C444D47D57Db6Dc5C444Dc6C444Db5Dc4C444D46D56C444D45D55C444Db4Dd3C444D14D24D34D44D54D64D74D84D94Da4C444De2C555D41D42D43D51D52D53Df1C555C666C777C888C999Da7C999D96C999D36D66C999DadDddC999Da8C999CaaaD7aCaaaD76CaaaD69D86Da9CaaaD98D9dCaaaD6dCaaaD67CaaaD37D7dD87CaaaD26D5dD8dDaeDdeCaaaD99DaaDedCaaaD89D8aCaaaD68D77CaaaD33D63D9aDd4DdaCaaaDe3CaaaD4dD78CbbbD38D39Dd5Dd9CbbbD3aD9eDe4Df2CbbbD16D27D32D62Dd2Dd6CbbbD00D10D20D30D31D3bD40D50D60D61D70D80D90Da0DafDb0Dc0Dd0DdfDe0DeeDf0Df3DfdCbbbDc3Dd7Dd8De1CbbbD3cD6eD7eD8eCbbbDd1CbbbD21D23D5eD71D73CbbbDc1Dc2De5CbbbD01D11D81D91Da1Db1Df4CbbbD22D72Db3DeaCbbbD05D17D83D93Da3CbbbD28D3dD4eDb2DfeCbbbD02D06D12D13D29D82D92D9fDa2De9CcccD04D2aDefCcccDe6CcccD03D2bDfaCcccDf5CcccD07D2cDe7De8CcccD3eD6fD7fD8fCcccD09D18D19D5fDf9CcccD0aD1aD2dD4fDffCcccD08D0bD1bDf6CcccD0cD1cD2eD3fCcccD2fDf7Df8CcccD0dD0eD0fD1dD1eD1f"{
+   
+   dir1 = getDirectory("Choix du Répertoire Source ");
+	list = getFileList(dir1);
+	dir2 = getDirectory("Choix du Répertoire Cible ");	
+
+ for (i=0; i<list.length; i++) {
+   showProgress(i+1, list.length);
+   open(dir1+list[i]);  
+   while(selectionType()!=0)  waitForUser("Selection", "Faire une selection rectangulaire autour de la tranche");
+   run("Crop");
+   run("Set Scale...", "distance=0 known=0 pixel=1 unit=pixel");
+	saveAs("Tiff", dir2+list[i]);
+	close();
+   
+   
+   
+   
+		  }
+
+}
+
+
+	
+	
+	
+////////////////////////////////////////////////////////////////label=Seuil ////////////////////////////////////////////
+macro "Seuil Action Tool - C000D1fD24D25D26D27D28D29D2bD2cD2dD2eD31D32D33D34D35D38D39D3aD3bD3cD3dD3eD3fD44D46D48D49D4aD4bD4cD4eD4fD57D59D5aD5bD5cD5dD5eD5fCbedDacCe00DcfCfdeDa9CbecDb9CeeeD51DfeDffCe00D7dCfffD07D15D19CdddD00D01D06D0aD0bD0eD10D20D30D40D43D50D53D54D55D60D70D71D72D73D74D75D76D77D78D80D81D82D83D84D85D86D87D88D90D91D92D93D94D95D96D97D98Da0Da1Da2Da3Da4Da5Da6Da7Da8Db0Db1Db2Db3Db4Db5Db6Db7Db8Dc0Dc1Dc2Dc3Dc4Dc5Dc6Dc7Dc8Dd0De0De1De2De3De4De5De6De7De8Df1Df2Df3Df4Df5Df6Df7Df8CeceDeaCe00CfffD1cCcedD9cCedcDcdC777D62D67CeeeD02D04D0cD0dD0fD11D13D18D22D23D52DfaDfcCf00D7fCfeeDcaCcecD7bCf00CedeDabCf01DbeCdecDbdCeddDedC200DefCeddDeeDf0Cf00D7eD9fDafCfdeD9bCe00Cf00D9eCfdbD8cCaaaCeffCf11DbfCeeeCf02D7cD9dCfddD79C000CdeeDebDecC887Dd9Cc00DaeCdedD8aCccdDbbCe21D8eCeecDadCceeD99De9C587DdcC666CdccDbcC000D2aD2fD36D45D4dD58CdffDbaC987DdeCd00CdfeDccCdddC666CdcdDcbCa68DdaCd00D8dCddeD9aCdddD7aD8bC777D61D64D69D6bD6eCdddD03D16D21D41D42D56Df9DfbC888D65D66D6aCd02DceCdddD89C222D1eCddcDc9C888D63D68D6cD6dD6fDd1Dd2Dd3Dd4Dd5Dd6Dd7Dd8CdddC697C978DdbCd00D8fC876DdfC111D37CdccDaaC555C987DddCcccD05D08D09D12D14D17D1aD1bDfdC111D47CcccCbbbD1d"{
+origid=getImageID();
+run("Select None");
+run("Duplicate...", "title=[ndg]");
+run("8-bit");
+run("Gaussian Blur...", "sigma=2");
+Validation_surface("Mie",seuil_total);
+ChoixSeuils("Seuillage des Alveoles",seuil_alveole);
+run("Analyze Particles...", "size="+taille_mini+"-Infinity add");
+close();
+selectImage(origid);
+roiManager("Deselect");
+run("Select None");
+roiManager("Show All");
+
+}
+
+
+macro "About These Macros Action Tool - C000C111C222C333C444C555D54D55D63D73D7cD7dD83D88D89D8aD8cD8dD93D97Da3Da4Da5Da6C555D7aDb5C555D72D82C555D45Da7C555D98C555D53C555D79C555C666Db4C666Db6C666C777D92C777D87C777D64C777D62C777C888D44C888D96C888D78C999D94C999CaaaCbbbD99Db3CbbbDa2CbbbDa8CbbbCcccDb7CcccD52CcccD43CcccD65CcccCdddD74CdddD77CdddD86CdddD84D95CdddD00D01D02D03D04D05D06D07D08D09D0aD0bD0cD0dD0eD0fD10D11D12D13D14D15D16D17D18D19D1aD1bD1cD1dD1eD1fD20D21D22D23D24D25D26D27D28D29D2aD2bD2cD2dD2eD2fD30D31D32D33D34D35D36D37D38D39D3aD3bD3cD3dD3eD3fD40D41D42D46D47D48D49D4aD4bD4cD4dD4eD4fD50D51D56D57D58D59D5aD5bD5cD5dD5eD5fD60D61D66D67D68D69D6aD6bD6cD6dD6eD6fD70D71D75D76D7bD7eD7fD80D81D85D8bD8eD8fD90D91D9aD9bD9cD9dD9eD9fDa0Da1Da9DaaDabDacDadDaeDafDb0Db1Db2Db8Db9DbaDbbDbcDbdDbeDbfDc0Dc1Dc2Dc3Dc4Dc5Dc6Dc7Dc8Dc9DcaDcbDccDcdDceDcfDd0Dd1Dd2Dd3Dd4Dd5Dd6Dd7Dd8Dd9DdaDdbDdcDddDdeDdfDe0De1De2De3De4De5De6De7De8De9DeaDebDecDedDeeDefDf0Df1Df2Df3Df4Df5Df6Df7Df8Df9DfaDfbDfcDfdDfeDff"{
+open(getDirectory("macros")+"toolsets/PHIV_Pain_toolset");
+}
+
+var BrushSize
+//////////////////////////Shortcut Key/////////////////
+var BrushSize=15;
+call("ij.gui.Toolbar.setBrushSize", BrushSize); 
+//supression de selection 
+macro "Select_None [n0]"{
+	run("Select None");
+		
+}
+
+
+//ajout de selection
+
+macro "ROI-vert [n1]"{
+	roiManager("Add");
+	Stack.getPosition(channel, slice, frame) ;
+	Stack.setDisplayMode("color");
+	Stack.setPosition(1,slice,1);
+	run("Clear", "slice");
+	Stack.setPosition(3,slice,1);
+	run("Clear", "slice");
+	Stack.setDisplayMode("composite");
+}
+
+
+
+//Zoom to selection
+
+macro "Select_None [n4]"{
+	BrushSize--;
+	call("ij.gui.Toolbar.setBrushSize", BrushSize); 
+		
+}
+macro "Select_None [n6]"{
+	BrushSize++;
+	call("ij.gui.Toolbar.setBrushSize", BrushSize); 
+		
+}
+
+
+function Validation_surface(zone,seuils){
+	run("Threshold...");
+	setThreshold(seuils[0], seuils[1]);
+	run("Threshold...");	
+	setTool("wand");
+	title = zone;
+	msg = "Regler le seuil puis selectionner avec la baguette";
+	waitForUser(title, msg);
+	getThreshold(lower, upper);
+	seuils[0]=lower;
+	seuils[1]=upper;
+	run("Enlarge...", "enlarge=-20");
+	roiManager("Add");
+	n = roiManager("count");
+	roiManager("Select", n-1);
+	roiManager("Rename", zone);
+	
+}
+
+var function ChoixSeuils(titre,seuils){
+	run("Threshold...");
+	setThreshold(seuils[0], seuils[1]);
+	run("Threshold...");
+	waitForUser(titre,"Reglage du Seuil");
+	getThreshold(lower, upper);
+	seuils[0]=lower;
+	seuils[1]=upper;
+	}
+

@@ -1,0 +1,372 @@
+// a mettre dans ImageJ/Macros/Toolsets
+// PHIV NDPI Tool Set
+// Marc LARTAUD MRI PHIV
+// Boite a outils pour faciliter l export des fichiers ndpi issu du nanozoomer
+
+// installer loci bio formats
+//http://www.loci.wisc.edu/files/software/loci_tools.jar
+
+
+
+//variables glogales
+
+
+/*var Rmin=newArray(176,2,176);
+var Rmax=newArray(178,33,202);
+var Rfilter=newArray("stop","pass","pass");*/
+var Rmin=newArray(186,40,100);
+var Rmax=newArray(253,141,226);
+var Rfilter=newArray("pass","pass","pass");
+var Bmin=newArray(123,27,125);
+var Bmax=newArray(158,216,211);
+var Bfilter=newArray("pass","pass","pass");
+
+
+
+var path="";
+var FacteurMultiplicatif=0;
+var NomImage="nom d image";
+var numserie=2;
+var numserie_crop=2;
+//crop
+var taille_crop=10; // mini en cm²
+var filtre_crop=5;
+var enlarge_crop=5;
+var SX=newArray (6);
+var SY=newArray (6);
+var autocrop=true;
+
+
+
+
+macro "AutoRun"{
+	setTool("rectangle");
+	setForegroundColor(255, 255, 255);//premier plan blanc
+	setBackgroundColor(0,0,0);// fond noir
+	run("Set Measurements...", "area shape display redirect=None decimal=3");
+	requires("1.49p");
+}
+
+
+
+
+////////////////////////////////////////////////////////////////label=NdpiExportBatch////////////////////////////////////////////
+
+macro "NdpiMacroBatch Action Tool - C2a3D47CbceD89CbbcDaaCfffD00D01D02D03D04D05D06D07D09D0aD0bD0cD0dD0eD0fD10D11D12D13D1cD1dD1eD1fD20D21D2dD2eD2fD30D3eD3fD40D4eD4fD50D5fD60D6fD7fD8fD9fDa0DafDb0DbeDbfDc0Dc1DceDcfDd0Dd1Dd2DddDdfDe0De1De2DeaDebDedDefDf0Df1Df2Df3Df4Df5Df6Df7Df8Df9DfaDfbDfcDfdDfeDffCa99Dc6CffeDc8CcccD81C877D7cCeeeD4dD61DcdDd3DdcDe7CbbdD7aCbbbD7bDd4CfffD3dCcceD93C3c1D46CeeeD8eCcbcD6dCaaaD95Dc4CfffDd8De3De9CccdD68C998D9cCeefD18Da1DdaCbbdD8aC9d9D25CfffD08DaeDd9De8CddeD3aD3cD5aD7eC876D96Da6CeeeD15D23CbbbD8dCaaaDcbDd6CfffD14D1bD22D2cD41D70D80D90D9eDc2CcecD24C888Dc5CcccD2aDa2CacaD62CfffD5eDb1DdeDeeCdddD28C6b5D55CeeeD6eCbcbD58CaabDb4CdddD16C7a7D63CeffD17D51CccdDb9CbcbD76CeeeDb2Db8DdbDe4C4a4D37CeeeD19D29D39D4aDc9CabcD94D9aCaa9D97CccdD2bD49D92C887D8cCbbdD6aCbbbDbcCfffD31DecCdceD4bC4c2D45CbbcD59D74Da8CaabDbaCdddD91C998Db5CbcdD84CbcaD33C6a6D66CcbbD9dCba9Da7CdddD5dD75D82Dd7De6C988D86CcccDc3CacaD38D52D67CdedD32C6b6D34CeefD5bCbcbD72CbabD7dCdddD1aC8c6D43D54CccdD83D88CbdbD42C3a3D56CcceD69CbbcD98Db3Caa9D87CcccDadC777DbbCbbdDa9CabbD73CcceD78C3b2D36C988D9bCbbbDccC888DabCbbbD77CdddD71DbdC6d4D44CcccDc7CaabDa4C8a8D48CccdDa3C6a6D26Caa9D8bC987Db6CcbdD4cD5cCbbbDcaCddeD6bC4c3D35CbbaDb7Ca99Da5CbbeD99CadaD27C6b6D57CbbcD3bD6cCaaaDacC888Dd5C7b6D53CcdbD64CabbD85CcdbD65CccfD79CddcDe5"{
+
+Dialog.create("NdpiMacroBatch"); //e.g., put a dialog here
+	Dialog.addSlider("Numero de serie pour les ndpi:", 1, 3, numserie);
+	Dialog.addCheckbox("Crop Automatique", autocrop); 
+	Dialog.addNumber("Filtre Gaussien :", filtre_crop);
+    Dialog.addNumber("Taille mini (cm²) :", taille_crop);
+	Dialog.addNumber("Elargissement :", enlarge_crop);
+	Dialog.show();
+	numserie = Dialog.getNumber();
+	autocrop=Dialog.getCheckbox();
+    filtre_crop = Dialog.getNumber();
+	taille_crop = Dialog.getNumber();
+	enlarge_crop = Dialog.getNumber();
+	
+	
+dir1 = getDirectory("Choix du Repertoire Source ");
+list = getFileList(dir1);
+dir2 = getDirectory("Choix du Repertoire Cible ");	
+Vide_Roi();
+      for (i=0; i<list.length; i++) {
+          showProgress(i+1, list.length);
+			path=dir1+list[i];
+			nom=list[i];
+		if (autocrop){
+           if (endsWith(list[i], '.ndpi')){
+			nom=substring(nom,0,indexOf(nom,".ndpi"));
+			nom=replace(nom, " ", "");
+			Bio_meta(path);
+			run("Bio-Formats Importer", "open=["+path+"] color_mode=Default view=Hyperstack stack_order=XYCZT series_4");
+			Hyper2RGB();
+			origid=getImageID();
+			Detect_Roi(filtre_crop,taille_crop);
+			count=roiManager("count");
+			for(j=1;j<=count;j++){
+				selectImage(origid);
+				roiManager("Select", j-1);
+				run("Enlarge...", "enlarge="+enlarge_crop+" pixel");
+				getSelectionBounds(x, y, width, height);
+				for (s=1;s<4;s++){
+				if (s==numserie) FacteurMultiplicatif = SX[s-1]/SX[3];
+				}
+				x=(FacteurMultiplicatif)*x;
+				y=(FacteurMultiplicatif)*y;
+				width=(FacteurMultiplicatif)*width;
+				height=(FacteurMultiplicatif)*height;
+				if (width*height < 20000*20000){
+					run("Bio-Formats Importer", "open=["+path+"] color_mode=Default crop view=Hyperstack stack_order=XYCZT series_"+numserie+" x_coordinate_"+numserie+"="+x+" y_coordinate_"+numserie+"="+y+" width_"+numserie+"="+width+" height_"+numserie+"="+height+"");
+					Hyper2RGB();
+					}
+					else print ("Taille trop grande");	
+				saveAs("Tiff",dir2+nom+"-"+j);	
+				close();			
+				}
+			selectImage(origid);
+			close();
+			Vide_Roi();
+		   }
+		   if (endsWith(list[i], '.tif')){
+			nom=substring(nom,0,indexOf(nom,".tif"));
+			nom=replace(nom, " ", "");
+			open(path);
+			origid=getImageID();
+			Detect_Roi(filtre_crop,taille_crop);
+			count=roiManager("count");
+			for(j=1;j<=count;j++){
+				selectImage(origid);
+				roiManager("Select", j-1);
+				run("Enlarge...", "enlarge="+enlarge_crop+" pixel");
+				run("Duplicate...", "title="+nom+"-"+j);
+				run("Select None");
+				saveAs("Tiff",dir2+nom+"-"+j);	
+				close();				
+				}
+			close();
+			Vide_Roi();
+		   }
+		   }
+		   else {
+		   nom=substring(nom,0,indexOf(nom,".ndpi"));
+			nom=replace(nom, " ", "");
+			Bio_meta(path);
+			for (s=2;s<4;s++){
+					if (s==numserie)  Max=SX[s-1]*SY[s-1];
+				}					   
+			 if (Max < 20000*20000){
+			   run("Bio-Formats Importer", "open=["+path+"] color_mode=Default crop view=Hyperstack stack_order=XYCZT series_"+numserie);
+			   Hyper2RGB();
+			   saveAs("Tiff", dir2+nom+".tif");
+			   close ();
+			}
+			else print (nom+" taille trop grande");
+		   		   
+		   }
+		   
+	   }
+
+	}
+
+
+	
+	
+macro "Red Selection Action Tool - C147D54D55D56D57D58D59D5aD99DabCbbbDffC9acDb6CcdfD16D17D26D27D36D37Dc5Dc6Dc7Dd6Dd7De6De7C68bD84CbcfD1cD2cD3cD8bD8cDdcDecCacfD7cDccCdefD12D22D32D51D61D71D81Db2Dc2Dd2De2C258D93D96CbceD20D75Dd0CabeD09D7bDf9CdefD11D13D23D33Dc3Dd3De1De3C8acD43D44D52D76D82CcdfD19D29D39Db8Dc9Dd9De9CacfD1dD2dD2eD3dD3eD4dD4eD5dD5eD6dD6eD7dD7eD8dD8eD9dD9eDadDaeDbdDbeDcdDceDddDdeDedCeefD21D31D41D91Da1Db1Dc1Dd1C248D77D94D97D98Da4DaaCbceD02D03D30D40D50D60D70D80D90Da0Db0Dc0Df2Df3C9beD4cCdefD14D15D24D25D34D35Dc4Dd4Dd5De4De5C79cD62D72CbdfD1aD1bD2aD2bD3aD3bDcaDdaDdbDeaDebCacfD1eDeeC369D95CcdfD42Db3CaceD04D05D06D7aDcbDf4Df5Df6C8beD2fD3fD4fD5fD6fD7fD8fD9fDafDbfDcfDdfCcdfD18D28D38Dc8Dd8De8C148D53D5bD63D67D73D83D87Da5CbcdD01D10De0Df1C9beD0cD0dD9cDfcDfdC79bDa8C258D64CbcfD85Db7CaceD07D08Df7Df8C8acDb4C9beD0aD0bD8aDfaDfbC79cD49C47aD78CcdfDa2CcddD00Df0CabdD92C68bD5cC258D68D88D9aDa6C79cD4aD4bC369D65C79cD6cDbaDbcC359D69D6aD6bDa9C8acD1fDefC79cD45D46D47D48C47bD9bCbbcD0fC9adDfeC68bDa7C79bD74Db5C358D66CabeD79Db9C68bD86D89C469DbbC58aDa3C9adD0eC68bDac"{
+	
+	origid=getImageID();
+	run("Select None");
+	run("Duplicate...", "title=test");
+	//Red
+// Color Thresholder 1.49u
+// Autogenerated macro, single images only!
+/*min=newArray(3);
+max=newArray(3);
+filter=newArray(3);*/
+a=getTitle();
+run("HSB Stack");
+run("Convert Stack to Images");
+selectWindow("Hue");
+rename("0");
+selectWindow("Saturation");
+rename("1");
+selectWindow("Brightness");
+rename("2");
+/*min[0]=176;
+max[0]=178;
+filter[0]="stop";
+min[1]=2;
+max[1]=33;
+filter[1]="pass";
+min[2]=176;
+max[2]=202;
+filter[2]="pass";*/
+for (i=0;i<3;i++){
+  selectWindow(""+i);
+  setThreshold(Rmin[i], Rmax[i]);
+  run("Convert to Mask");
+  if (Rfilter[i]=="stop")  run("Invert");
+}
+imageCalculator("AND create", "0","1");
+imageCalculator("AND create", "Result of 0","2");
+for (i=0;i<3;i++){
+  selectWindow(""+i);
+  close();
+}
+selectWindow("Result of 0");
+close();
+selectWindow("Result of Result of 0");
+rename(a);
+run("Create Selection");
+close();
+run("Restore Selection");
+// Colour Thresholding-------------
+	
+	
+}
+macro 'Red Selection Action Tool Options'  {
+		Dialog.create("Seuillage Rouge");
+		Dialog.addMessage("Hue");
+		Dialog.addNumber("Min:", Rmin[0]);
+		Dialog.addNumber("Max:", Rmax[0]);
+		//Dialog.addChoice("Filtre", newArray("stop", "pass"));
+		Dialog.addMessage("Saturation");
+		Dialog.addNumber("Min:", Rmin[1]);
+		Dialog.addNumber("Max:", Rmax[1]);
+		//Dialog.addChoice("Filtre", newArray("stop", "pass"));
+		Dialog.addMessage("Brightness");
+		Dialog.addNumber("Min:", Rmin[2]);
+		Dialog.addNumber("Max:", Rmax[2]);
+		//Dialog.addChoice("Filtre", newArray("stop", "pass"));
+		Dialog.show();
+		Rmin[0]=Dialog.getNumber();
+		Rmax[0]=Dialog.getNumber();;
+		//Rfiltre[0] = Dialog.getChoice();
+		Rmin[1]=Dialog.getNumber();;;
+		Rmax[1]=Dialog.getNumber();;;;
+		//Rfiltre[1] = Dialog.getChoice();
+		Rmin[2]=Dialog.getNumber();;;;;
+		Rmax[2]=Dialog.getNumber();;;;;;
+		//Rfiltre[2] = Dialog.getChoice();
+    }
+	
+	
+macro "Blue Selection Action Tool - C147Da9DaaCbccD0fDffC9acD1fCcdfD18D28D38Dd8De8C369D65D69D84Da6CbceD52D82CacfD1eCdefD12D13D23D33Da2Dc3Dd3De3C258D8bDa5CbceD72C8beD3fD4fD5fD6fD7fD8fD9fDafDbfDcfCdefD14D15D24D25D34D35D42Db3Dc4Dc5Dd4Dd5De4De5C68bD9cCcdfD11D92De1CacfD1dD2dD2eD3dD3eD4dD4eD5eD6eD7eD8eD9eDadDaeDbdDbeDcdDceDddDdeDedCeefD31D41D51D61D71D81D91Da1Db1Dc1C248D77D87D96D9bDa8CbceD62D75Db4CabdD09D0aD0bD85Df9DfaDfbCcdfD16D17D26D27D36D37Dc6Dc7Dd6Dd7De6De7C57aD74Da7CbdfD1aD1bD2aD2bD3aD3bDdaDdbDeaDebCacfDbcCdefD21D22D32Db2Dc2Dd1Dd2De2C258D53CbceDb7C9beD4cC8acD44DbbCcdfD19D29D39Dc8Dd9De9C148D54D55D56D57D58D59D5aD5bD67D6bD97CbcdD02D03D04Df2Df3Df4C9adDa3C469D93Db9CbcfD1cD2cD3cDcbDccDdcDecCacfD6dD7dD8dC258D63D64D68D73D95D98CbceD20D30D40D50D60D70D80D90Da0Db0Dc0Dd0C79cD49CdddD00Df0CabdD07D08Db6Df7Df8C57aD88CacfD5dD9dC359D66D6aDa4DabCabeD79C8adD8aDacC247D94CabcD0eDfeC369D9aCbcfDc9DcaC258D7bC79cD86CccdD01D10De0Df1C47aD5cD8cCacfDeeC358D83CacdD05D06Df5Df6C8acD76C9bdD0cD0dD43DfcDfdC47aD6cD7cDbaC79cD45D46D47D48C57aD78C8beD2fDdfC9acDb5DefC79bDb8CbcfD89C79cD4aD4bC8adD7aC57bD99"{
+	
+
+	
+	origid=getImageID();
+	run("Select None");
+	run("Duplicate...", "title=test");
+	a=getTitle();
+	run("HSB Stack");
+	run("Convert Stack to Images");
+	selectWindow("Hue");
+	rename("0");
+	selectWindow("Saturation");
+	rename("1");
+	selectWindow("Brightness");
+	rename("2");
+
+	for (i=0;i<3;i++){
+	  selectWindow(""+i);
+	  setThreshold(Bmin[i], Bmax[i]);
+	  run("Convert to Mask");
+	  if (Bfilter[i]=="stop")  run("Invert");
+	}
+	imageCalculator("AND create", "0","1");
+	imageCalculator("AND create", "Result of 0","2");
+	for (i=0;i<3;i++){
+	  selectWindow(""+i);
+	  close();
+	}
+	selectWindow("Result of 0");
+	close();
+	selectWindow("Result of Result of 0");
+	rename(a);
+	run("Create Selection");
+	close();
+	run("Restore Selection");
+	// Colour Thresholding-------------
+	
+	
+}
+macro 'Blue Selection Action Tool Options'  {
+		Dialog.create("Seuillage Rouge");
+		Dialog.addMessage("Hue");
+		Dialog.addNumber("Min:", Bmin[0]);
+		Dialog.addNumber("Max:", Bmax[0]);
+		//Dialog.addChoice("Filtre", newArray("stop", "pass"));
+		Dialog.addMessage("Saturation");
+		Dialog.addNumber("Min:", Bmin[1]);
+		Dialog.addNumber("Max:", Bmax[1]);
+		//Dialog.addChoice("Filtre", newArray("stop", "pass"));
+		Dialog.addMessage("Brightness");
+		Dialog.addNumber("Min:", Bmin[2]);
+		Dialog.addNumber("Max:", Bmax[2]);
+		//Dialog.addChoice("Filtre", newArray("stop", "pass"));
+		Dialog.show();
+		Bmin[0]=Dialog.getNumber();
+		Bmax[0]=Dialog.getNumber();;
+		//Bfiltre[0] = Dialog.getChoice();
+		Bmin[1]=Dialog.getNumber();;;
+		Bmax[1]=Dialog.getNumber();;;;
+		//Bfiltre[1] = Dialog.getChoice();
+		Bmin[2]=Dialog.getNumber();;;;;
+		Bmax[2]=Dialog.getNumber();;;;;;
+		//Bfiltre[2] = Dialog.getChoice();
+    }
+
+
+macro "About These Macros Action Tool - C000C111C222C333C444C555D54D55D63D73D7cD7dD83D88D89D8aD8cD8dD93D97Da3Da4Da5Da6C555D7aDb5C555D72D82C555D45Da7C555D98C555D53C555D79C555C666Db4C666Db6C666C777D92C777D87C777D64C777D62C777C888D44C888D96C888D78C999D94C999CaaaCbbbD99Db3CbbbDa2CbbbDa8CbbbCcccDb7CcccD52CcccD43CcccD65CcccCdddD74CdddD77CdddD86CdddD84D95CdddD00D01D02D03D04D05D06D07D08D09D0aD0bD0cD0dD0eD0fD10D11D12D13D14D15D16D17D18D19D1aD1bD1cD1dD1eD1fD20D21D22D23D24D25D26D27D28D29D2aD2bD2cD2dD2eD2fD30D31D32D33D34D35D36D37D38D39D3aD3bD3cD3dD3eD3fD40D41D42D46D47D48D49D4aD4bD4cD4dD4eD4fD50D51D56D57D58D59D5aD5bD5cD5dD5eD5fD60D61D66D67D68D69D6aD6bD6cD6dD6eD6fD70D71D75D76D7bD7eD7fD80D81D85D8bD8eD8fD90D91D9aD9bD9cD9dD9eD9fDa0Da1Da9DaaDabDacDadDaeDafDb0Db1Db2Db8Db9DbaDbbDbcDbdDbeDbfDc0Dc1Dc2Dc3Dc4Dc5Dc6Dc7Dc8Dc9DcaDcbDccDcdDceDcfDd0Dd1Dd2Dd3Dd4Dd5Dd6Dd7Dd8Dd9DdaDdbDdcDddDdeDdfDe0De1De2De3De4De5De6De7De8De9DeaDebDecDedDeeDefDf0Df1Df2Df3Df4Df5Df6Df7Df8Df9DfaDfbDfcDfdDfeDff"{
+open(getDirectory("macros")+"toolsets/PHIV_RB_toolset.txt");
+}
+
+
+function RoiAdd(nom) {
+	roiManager("Add");
+	n = roiManager("count");
+	roiManager("Select", n-1);	
+	roiManager("Rename", nom);
+}
+
+
+function Vide_Roi(){
+if (isOpen("ROI Manager")){
+				roiManager("Deselect");
+				n = roiManager("count");
+				if (n>0) roiManager("Delete");
+			}
+}
+
+function Detect_Roi(filtre_crop,taille_crop){
+		run("Duplicate...", "title=temp");
+		run("8-bit");
+		run("Gaussian Blur...", "sigma="+filtre_crop+" scaled");
+		setAutoThreshold("Default");	
+		run("Analyze Particles...", "size="+(taille_crop*1000000)+"-Infinity include add");
+		count=roiManager("count");
+		for(i=0;i<count;i++){
+				roiManager("Select", i);
+				getSelectionBounds(x, y, width, height);
+				x=10000+x;
+				roiManager("Rename", ""+x);				
+			}
+		roiManager("Deselect");
+		roiManager("Sort");
+		close();
+
+}
+
+
+function Bio_meta(path){
+	run("Bio-Formats Macro Extensions");
+	Ext.setId(path);
+	for (s=0; s<6; s++) {
+	  Ext.setSeries(s);
+	  Ext.getSizeX(sizeX);
+	  SX[s]=sizeX;
+	  Ext.getSizeY(sizeY);
+	  SY[s]=sizeY;
+	  }
+	Ext.close();
+}
+
+
+function Hyper2RGB(){
+	setBatchMode(true);
+	titre=getTitle();
+	setSlice(1);
+	 setMetadata("Label", "r");
+	setSlice(2);
+	 setMetadata("Label", "g");
+	setSlice(3);
+	 setMetadata("Label", "b");
+	run("Stack to Images");
+	run("Merge Channels...", "c1=r c2=g c3=b");
+	selectWindow("RGB");
+	rename(titre);
+	setBatchMode(false);
+}

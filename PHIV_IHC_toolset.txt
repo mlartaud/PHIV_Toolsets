@@ -1,0 +1,586 @@
+// PHIV IHC Tool Set
+// Marc LARTAUD MRI PHIV
+// Boite a outils pour faciliter le comptage des cellules marquees de coupes de cerveau
+/*
+Installer bio formats version mini 5.8
+Installer bioformats_package.jar https://www.openmicroscopy.org/bio-formats/
+
+
+
+
+/*
+NdpiMacroBatch --> Permet d exporter au format tif calibré les fichiers ndpi d un repertoire source dans un repertoire cible
+	Option clic droit
+		Numero de serie a choisir dans le plugin Bioformat Importer a une serie correspond une resolution d image a importer
+
+Zeiss_scan tool --> Permet d exporter au format tif calibré les fichiers czi issus de l Axio scan
+	 en option (clic droit) choix du numero de serie de 1 à 6 de la plus forte a la plus petite resolution
+			
+Outil crop loci pour extraire a la resolution maximale une ROI d une scan ndpi ou czi
+
+Zonation --> Delimitation de l objet Total, 
+	Option clic droit : taille du filtre de lissage
+	
+Comptage --> Pour detecter les cellules marquees ,les mettre dans le ROI Manager et faire une image mask
+			On peut faire plusieurs essais en faisant varier les parametres ci dessous
+	Option clic droit : Discrimination par la taille (px) et la circularitetaille 
+						Erode l objet total pour eliminer les effets de bords
+						Enleve le Background
+						Seuillage manuel avec valeur de seuil
+						Ou Choix de methode de seuillage automatique
+
+Map --> Pour faire une cartographie de densite de cellules marquees
+	Option clic droit : 	taille du filtre maximum (taille des objets)
+							Taille du filtre moyen (densite moyenne)
+	
+Resultats --> tableau de Resultats 
+
+*/
+
+macro "AutoRun"{
+	setTool("rectangle");
+	setForegroundColor(255, 255, 255);//premier plan blanc
+	setBackgroundColor(0,0,0);// fond noir
+	run("Set Measurements...", "area shape display redirect=None decimal=3");
+	requires("1.49p");
+}
+
+/////////////////////variables glogales////////////////////////////
+// ndpi batch
+var numserie=2;
+var numserieZeiss_scan=3;
+var SX=newArray (6);
+var SY=newArray (6);
+
+
+//crop
+var path="";
+var SX=newArray (1);
+var SY=newArray (1);
+var tabIndexScenes=newArray (1);
+var seriesCount=0;
+
+//zones
+var origid=-1;
+var sigma_zone=20;
+
+
+//comptage
+
+var area_mini_cell=20; //surface mini  
+var area_max_cell=300; //surface max  
+var circ_mini_cell=0.2; //surface mini  
+var circ_max_cell=1; //surface max 
+var seuil_manu=false;
+var seuils=newArray(0,164);
+var tab_seuilauto=newArray("Default","Huang","Intermodes","IsoData","IJ_IsoData","Li","MaxEntropy","Mean","MinError","Minimum","Moments","Otsu","Percentile","RenyiEntropy","Shanbhag","Triangle","Yen");
+var seuilauto="MaxEntropy";
+var substract_background = false; 
+var erode_bord=50;
+//map
+var radius_maximum=20;
+var radius_mean=40;
+
+
+//result
+var title1 = "Resultats";
+var title2 = "["+title1+"]";
+var fe = title2;
+	
+macro "Ndpi Action Tool - C778D5eDcdCeefDe7Cc7fD59D5aDa4Db5CfffD00D10D12D15D16D17D18D19D1aD1bD1cD1dD20D24D25D26D27D28D29D2aD2bD2cD2dD34D35D36D37D38D39D3aD3bD3cD3dD41D44D45D46D47D4dD51D54D55D5dD61D71D77D78D79D7aD7fD81D85D86D87D88D89D8aD8fD91D95D96D97D98D99D9cD9fDa1Da2Da6Da7Da8DabDacDafDb1Db2DbbDbcDbfDc1Dc2Dc3DcaDcbDcfDd1Dd2Dd3Dd4Dd5Dd6Dd7Dd8Dd9DdaDdbDdeDdfDeeDefDfeDffCddeD7dDdcDe3CfffD48D6dDccCdafD4cD57D6bDb8Dc8CaaaD8eDedDf2CfefD56D9aDa9Cc8fD67Db9CeeeD02D03D04D05D06D07D08D09D0aD0bD0cD0dD5fDbeDd0De4De5De6De8De9DeaDebCfffD14D22D64D6aDc9CecfD92CaaaD1fDf3DfcCfffD30D31D6fDceCc8fD5cD72D73Da3Dc7CeeeD11D21D50D70D80D90Dc0CdbfD49D68CcccD3fCcafD6cDc5CfefD69D8cDb3DbaDc4C999Df4Df5Df6Df7Df8Df9DfaDfbCc8fD4bD52D58D5bD62D66D74D83D93Db4Dc6CdeeD40D60Db0CdbfD65D9bDa5Db7CbbbD2eCc9fD42D4aCedfD43D53D76C99aD3eCecfD13D32D33D63D7bD84CdddDe1De2CdafD23D82D8bD94DaaC889D4eCbbbD2fDf1Cc9fD75Db6CebfD7cCcddD1eCdeeDa0CbbcD0eCaaaD9dCdddD4fDaeDf0DfdC888D6eCaabDecCccdDe0CbbcD8dC999DadCdddD0fCcccD9eC999D7eDddC788DbdCccdD01"{
+
+	run("Close All");
+	dir1 = getDirectory("Choisir un repertoire source");
+	list = getFileList(dir1);
+	dir2 = getDirectory("Choisir un repertoire destination");
+	for (i=0; i<list.length; i++) {	
+			if (endsWith(list[i], ".ndpi")){
+				path=dir1+list[i];
+				nom=substring(list[i],0,indexOf(list[i],"."));			
+				ndpi(path);			
+				saveAs("Tiff", dir2+nom+".tif");
+				close();
+			}
+	}		
+}
+macro "Ndpi Action Tool Options"  {
+	Dialog.create("Ndpi"); 
+	Dialog.addSlider("Numero de serie pour les ndpi:", 1, 3, numserie);
+    Dialog.show();
+    numserie = Dialog.getNumber();
+    
+  	}
+	
+
+macro "Zeiss_scan Action Tool - C049D00D01D02D03D07D08D0dD0eD0fD10D11D12D17D1dD1eD1fD20D21D22D2dD2eD2fD30D31D32D3dD3eD3fD40D41D42D4dD4eD4fD50D51D52D5dD5eD5fD60D61D62D6dD6eD6fD70D71D72D77D78D7dD7eD7fD80D81D82D86D87D88D8dD8eD8fD90D91D92D9dD9eD9fDa0Da1Da2DadDaeDafDb0Db1Db2DbdDbeDbfDc0Dc1Dc2DcdDceDcfDd0Dd1Dd2DddDdeDdfDe0De1De2DedDeeDefDf0Df1Df2Df7Df8DfdDfeDffC36aD26C049D06D09D0cCbcdD7aC78cD8bC25aD18CfffD46C67bDe6C259D68De7De8CddeD6aDdbCabdD14D4aC26aD0bD2cD3cD4cD5cD6cD9cDacDbcDccDdcDecCfffD24D29D2aD38D39D3aD47D48D54D55D56D57D64D65Da4Da5Da6Da7Da8Da9DaaDb4Db5Db6Db7Db8Db9DbaDe4C47bD27D76Dc9C149D85CcdeD49D9aDcbDd4C8acD19C68bDc6C25aD0aD1cD7cCeefD66D94Dc7DeaCbbdD58C46aD35D83Df3C149D04D05CcceD1aD28D34D74Dc4Dd7Dd8De5C89cD84C68bD23D33D36D43D53D63D69D93Da3Db3Dc3Dd3De3CeeeD2bDabDbbDebCabdD25D96D97D98D99C57bD73Dd9Df6C159D89D8cDfcCddeD4bD5bD9bC9adD79CbcdD95Dc8C46aD13D8aDd5CcceD1bC79cDcaDdaC58bD5aCdeeD37D3bD6bCabdDf4Df5DfaC57bD16C9acDe9CbbdD45C89cDd6Df9C57bDc5C9bdD75C36aD59CddeD44C89cD67CaadD15D7bC9acDfb"{
+
+	run("Close All");
+	// Macro modifiee pour les scenes et la calibration !
+	// This macro will convert AxioScan JPEGXR compressed .CZI files to standard .tif files and separate each scene into a single image.
+		//You will need enough free RAM to open the UNCOMPRESSED full resolution file.
+		//Files exceeding the 32-bit .tif pixel limit will not open/convert (approximately 4GB uncompressed)
+		//Tested with Bioformats version 5.7.2
+		//Written by D Richardson 11/22/2017
+		
+		//All .CZI files should be placed in a single folder.  A second empty "output" folder also needs to be created. 
+		//The macro will initialize by askign you fo rthe location of these.
+
+		inputDir = getDirectory("Choose input Directory");
+		dir_array = getFileList(inputDir);
+		dir_length = dir_array.length;
+		outputDir= getDirectory("Choose an different output Directory");
+		showProgress(1/dir_array.length);
+
+
+		setBatchMode (true);
+
+		//iterate through all files in input directory
+
+		for (i=0; i < dir_array.length; i++) {
+			//create folder for each file in the output directory
+			file_Dir = outputDir + File.separator + dir_array[i]+"_s"+numserieZeiss_scan;
+			File.makeDirectory(file_Dir);
+
+			
+			run("Bio-Formats Macro Extensions");
+			path = inputDir + File.separator + dir_array[i];
+			
+			Ext.setId(path);
+			Ext.getCurrentFile(file);
+			Ext.getSeriesCount(seriesCount);
+			
+			//determine which scene is the label
+			label = seriesCount - 1;
+			
+			Ext.getPixelsPhysicalSizeX(sizeX);
+			calib=sizeX;
+			
+			tabX=newArray(seriesCount-2);
+			
+			for (i=0;i<seriesCount-2;i++){
+				Ext.setSeries(i);
+				Ext.getSizeX(sizeX);
+				tabX[i]=sizeX;
+				}
+			//Array.show(tabX) ;
+			scenesCount=1;
+			for (i=1;i<seriesCount-2;i++){
+				if (tabX[i]>tabX[i-1]) 	scenesCount++;	
+				}
+			//print (scenesCount);
+			tabIndexScenes=newArray(scenesCount);
+			tabIndexScenes[0]=1;
+			for (i=1;i<seriesCount-2;i++){
+				index=1;
+				if (tabX[i]>tabX[i-1]) {
+					tabIndexScenes[index]=i;
+					index++;
+				}
+			}
+						
+			//open each scene and resave as .tif
+			if (numserieZeiss_scan!=1) calib=calib*pow(2,numserieZeiss_scan-1);
+			for (s=1; s<=scenesCount; s++) {
+				//print (s);
+				run("Bio-Formats Importer", "open=&path autoscale color_mode=Default view=Hyperstack stack_order=XYCZT series_"+ (tabIndexScenes[s-1]+(numserieZeiss_scan-1)));
+				out_path = file_Dir + File.separator + "Scene_" + s + ".tif";
+				run("Set Scale...", "distance=1 known="+calib+" pixel=[] unit=µm");
+				Hyper2RGB();
+				changeValues(0x000000,0x000000,0xffffff);
+				saveAs("tiff", out_path);
+				close();
+				
+			}
+			//save image of slide label in same folder
+			run("Bio-Formats Importer", "open=&path autoscale color_mode=Default view=Hyperstack stack_order=XYCZT series_"+ label);
+			out_path = file_Dir + File.separator + "Label.tif";
+			saveAs("tiff", out_path);
+			close();
+			//save preview image of slide in same folder
+			run("Bio-Formats Importer", "open=&path autoscale color_mode=Default view=Hyperstack stack_order=XYCZT series_"+ seriesCount);
+			out_path = file_Dir + File.separator + "Preview.tif";
+			saveAs("tiff", out_path);
+			close();
+			call("java.lang.System.gc");
+		}
+print("Fin");
+	
+}
+	
+}
+macro "Zeiss_scan Action Tool Options"  {
+	Dialog.create("Zeiss_scan"); 
+	Dialog.addSlider("Numero de serie pour les scans:", 1, 6, numserieZeiss_scan);
+    Dialog.show();
+    numserieZeiss_scan = Dialog.getNumber();
+    
+  	}
+	
+/////////////////////////////////////////////////Crop///////////////////////////////////////////////////////////
+	
+	
+macro "CropLoci Action Tool - C000D0fDedCdddD10D36D37D38D39D4dD5dD6dD7dD8dD9dDadDbdDe5C777DcaDf2CeeeD0cD21D31D41D51D61D71D81D91Da1Db1Dc1Dd1De0C444DffCdddD2fD32D3eD3fD42D46D47D48D49D4eD4fD52D56D57D58D59D5eD5fD62D66D67D68D69D6eD6fD72D76D77D78D79D7eD7fD82D86D87D88D89D8eD8fD92D96D97D98D99D9eD9fDa2Da6Da7Da8Da9DaeDafDb2Db6Db7Db8Db9DbeDbfDc2DceDcfDdfDe6De7De8De9DeaDf4Df5Df6Df7Df8Df9DfaDfbDfcCbbbD0dD2eD33D3aD43D53D63D73D83D93Da3Db3DdeDf3CeeeD04D05D06D07D08D09D0aD0bD20D30D40D50D60D70D80D90Da0Db0Dc0Dd0C333D01D34D44D54D64D74D84D94Da4Db4Dd5Dd6Dd7Dd8Dd9DdaDf1CaaaDe1De4DefDfdC666D23D2dDc5CcccD00D03D4aD5aD6aD7aD8aD9aDaaDbaC333D1eD25D26D27D28D29D2aD3bD4bD5bD6bD7bD8bD9bDabDbbDc4DeeC888D02D1fDddC666D4cD5cD6cD7cD8cD9cDacDbcDccCbbbD22D35D45D55D65D75D85D95Da5Db5Dc3Dd2CcccD3dDcdDebDf0C222D1dDd4C888D11D14Dc6Dc7Dc8Dc9C555D0eD3cDd3C999D15D16D17D18D19D1aD1bC111D12D2bD2cDcbDdcDe2C777D1cDecC444DfeC222D13DdbDe3C111D24"{
+
+list = getList("image.titles");
+if (list.length==0){
+	path = File.openDialog("Choose a file");
+	if (endsWith(path, "ndpi")) pathsansext=substring(path,0,indexOf(path,".ndpi"));
+	if (endsWith(path, "czi")) pathsansext=substring(path,0,indexOf(path,".czi"));
+	NomImage=File.getName(path);
+	Bio_meta(path);
+
+	//Array.show("Dimensions", SX, SY);
+	//Array.show(tabIndexScenes);
+
+	for (i=1;i<tabIndexScenes.length;i++){
+	if ((tabIndexScenes[i]-tabIndexScenes[i-1])>2) {
+		run("Bio-Formats Importer", "open=["+path+"] color_mode=Default view=Hyperstack stack_order=XYCZT series_"+(tabIndexScenes[i]-1));
+		Hyper2RGB();
+		rename("scene_"+tabIndexScenes[i]-1);
+		}
+	}
+}
+waitForUser("Faire une Selection");
+getSelectionBounds(x, y, width, height);
+num_serie=parseInt(replace(getTitle(),"scene_",""));
+//print (num_serie);
+//print (SX[num_serie]);
+serie_max=0;
+for (i=1;i<tabIndexScenes.length;i++){
+	if (tabIndexScenes[i]>num_serie) {
+		serie_max=tabIndexScenes[i-1];
+		i=tabIndexScenes.length;
+		}
+}
+//print (serie_max);
+//print (SX[serie_max]);
+
+FacteurMultiplicatif= SX[serie_max]/SX[num_serie];
+x=(FacteurMultiplicatif)*x;
+y=(FacteurMultiplicatif)*y;
+width=(FacteurMultiplicatif)*width;
+height=(FacteurMultiplicatif)*height;
+
+
+if (width*height < 2000000000 && width<64000 && height<64000){
+	run("Bio-Formats Importer", "open=["+path+"] color_mode=Default crop view=Hyperstack stack_order=XYCZT series_"+serie_max+" x_coordinate_"+serie_max+"="+x+" y_coordinate_"+serie_max+"="+y+" width_"+serie_max+"="+width+" height_"+serie_max+"="+height+"");
+	Hyper2RGB();
+	}
+	else {
+		print (width);
+		print (height);	
+		print ("Taille trop grande");
+	}
+}
+
+/////////////////////////////////////////////////Zonation///////////////////////////////////////////////////////////////////////////////
+
+macro "Zonation Action Tool - C147D6aD6bD87D94CbccD0eCaabDefCcdfD15D16D26D27D36D37D43D46D47D56D57D66Db7Dc6Dc7Dd6Dd7De6De7C469D97CbdfD19D1aD2aD2bD3aD3bDcaDdaDdbDeaDebCabfD4bD6dD7dD8dD9dDadCdefD23D33Db2Dd3De3C358D86Da5CcdeD11CabdDf6Df7Df8CddfDc4C9abD2fCcdfD17D28D38D48D58Db8Dc8Dd8De8CacfDbaCeefD31D41D51D61D71D81D91Da1Db1Dc1C258D84D88D8bD9bDabCcccDffCabdDf9DfaDfbC8abD3fD4fD5fD6fD7fD8fD9fDafDbfDcfDdfCcdfD18D29D39D49Da8Da9Db9Dc9Dd9De9CacfD1dD2eD3eD4eD5dD5eD6eD7eD8eD9eDaeDbeDceDdeCdefD21D22D32D42Dc2Dd1Dd2De2C46aDa3CcdfD55Db6CacdDf4Df5CdefD12D13D14D24D25D34D35D45D52Dc3Dc5Dd4Dd5De4De5C9bdD1eDfcCacfD1cD2dD3dD4dDcdDddDedC248D78D79D7bD96Da4CbceD20D30D40D50D60D70D80D90Da0Db0Dc0Dd0CabdD04D05D06D07D08D09D0aC67aD89CacfD4cDbdC369D63D6cD73D7cD83D8cD93D9cDacCbcfD1bD2cD3cD4aDdcDecCabeD76C9bdDb3DfdCbcfD99DcbC258D7aCdddD0fCbcdD03C79cD68CcdfD62D72D82D92Da2De1CaceDa7C9beDeeC148D95CbcdD02CabcD0dC57bD5cC369D69CbdfD67C8acD98CccdDe0Df1CcdfD44CbcdDf2Df3C68bDbcCacfDccCabeD59CdddDf0C89cD8aCbceD65D75CbbbD1fC57aD54D77C359D5bD64D74CccdD01C68bD85DbbC9beD9aDaaCcddD10CabdD0bD0cC58bD53D5aC78bDa6CdddD00CabdDb5CabcDfeC79bDb4"{
+	
+	ncount=roiManager("count");
+	for(i=ncount-1;i>=0;i--){
+		roiManager("Select", i);
+		nom_item=call("ij.plugin.frame.RoiManager.getName", i);
+		if (startsWith(nom_item, "Total")) roiManager("Delete");
+		}
+	
+	
+	
+	origid=getImageID();
+	//info_genotype_etat();
+	run("Select None");
+	
+	//Total
+	run("Duplicate...", "title=nb");
+	run("8-bit");
+	run("Gaussian Blur...", "sigma="+sigma_zone);
+	run("Threshold...");
+	setAutoThreshold("Default");
+	title = "Total";
+	msg = "Regler le seuil puis Valider en cliquant sur OK";
+	waitForUser(title, msg);
+	run("Create Selection");
+	//run("Enlarge...", "enlarge=-"+(sigma_zone/2)+" pixel");
+	roiManager("Add");
+	n = roiManager("count");
+	roiManager("Select", n-1);
+	roiManager("Rename", "Total"+origid);
+	close();
+	selectImage(origid);
+	roiManager("Deselect");
+	roiManager("Show All");
+	//setTool("rectangle");
+	
+	}
+
+
+macro 'Zonation Action Tool Options'  {
+    Dialog.create("Zonation");
+    Dialog.addMessage("Tailles des filtres");
+    Dialog.addNumber("Filtre Total:", sigma_zone);
+  	Dialog.show();
+    sigma_zone=Dialog.getNumber();
+        
+  	}
+
+	
+//////////////////////////////////Comptage///////////////////////////////////////////////////////////////////
+
+
+macro "Comptage Action Tool - C147D56D57D58D59D5aD64D6bD7cD83D8cD93D9cDacCcdeDb2CbcdD00Df0CdefD01D03D13D23D33D43Dc2Dd3De3Df1Df3C46aD63D8dD9dCcefD06D16D26D96Dd6De6Df6CbdfD0bD0cD1bD1cD2bD2cD3aD3bD3cD8aDaaDdbDebDecDfbDfcCeefD20D30D40D50D60D70D80D90Da0Db0Dc0Dd0C258Db4CcdfD07D08D17D18D27D28D86D87D88D97D98Da6Da7Da8Db6Db7Db8Dc6Dc7Dc8Dd7Dd8De7De8Df7Df8CbcfD0dD0eD1dD1eD2dD2eD3dD3eD4cD4dD4eD5eDceDdcDddDdeDedDeeDfdDfeCdefD02D11D12D21D22D31D32D41D42D51D52D61D71D81D91Da1Db1Dc1Dd1Dd2De1De2Df2C89cDbdCdefD04D05D14D15D24D25D34D35Dd4Dd5De4De5Df4Df5C248D55D65D6aD73D74Da3CcdfD09D19D29D36D89D99Da9Db9Dc9Dd9De9Df9CacfD0fD1fD2fD3fD4fD5dD5fD6eD6fD7fD8fD9fDafDbeDbfDcfDdfDefDffC68aD75C369D67Da4C8adD6dCcdfD0aD1aD2aD9aDdaDeaDfaCbceDa5C57aD94C258D7bC8acDa2C79bD92C469D68CabeD79CcdfD10D62D95De0CbceD85C47aD46C258D5bD6cDbcC8acDb5DccC69cD5cD9bC369D47D49CabeDbaCacfD7eC57bD4aC259DbbC9bdD72C79cD45D7aC469D54D84Db3CacfDaeDcdCbceD77Dc3Dc5C8acDcbC58bD8bC8adD4bCbcfD38D39DcaC57aDabC358D66C9acDc4C79cD82CaceD53CbceD78CacfD8eD9eCbcfD37D44C57bD7dDadC359D48D69CabdD76"{
+
+	activid=getImageID();
+	if(isOpen("mask")){
+	selectWindow("mask");
+	close();
+	}
+
+	ncount=roiManager("count");
+	if (ncount>0){
+		roiManager("Select", 0);
+		 roiManager("reset") ;
+		roiManager("Add");
+	}
+	/*
+	for(i=ncount-1;i>=0;i--){
+		roiManager("Select", i);
+		nom_item=call("ij.plugin.frame.RoiManager.getName", i);
+		if (startsWith(nom_item, "Cell")) roiManager("Delete");
+		}*/
+		//origid=getImageID();
+		ncount=roiManager("count");
+		run("Select None");
+		run("Duplicate...", "title=cell");
+		run("8-bit");
+		balise=0;
+		for(i=0;i<ncount;i++){
+			roiManager("Select", i);
+			nom_item=call("ij.plugin.frame.RoiManager.getName", i);
+			if (nom_item=="Total"+activid) {
+				roiManager("Select", i);
+				balise=1;				
+				}
+			}
+		if (balise==1){
+			run("Enlarge...", "enlarge=-"+(sigma_zone/2)+erode_bord+" pixel");
+			setBackgroundColor(255, 255, 255);
+			run("Clear Outside");
+			setBackgroundColor(0, 0, 0);
+			} 
+		if (substract_background) run("Subtract Background...", "rolling=50 light");
+		if(seuil_manu) {
+			run("Threshold...");
+			setThreshold(seuils[0], seuils[1]);
+			run("Threshold...");
+			title = "Marquage";
+			msg = "Regler le seuil puis Valider en cliquant sur OK";
+			waitForUser(title, msg);
+		
+		
+		
+		}
+		else {
+			setAutoThreshold(seuilauto);
+			}
+		getThreshold(lower, upper);
+		seuils[0]=lower;
+		seuils[1]=upper;
+			
+		print ("valeur du seuil : "+seuils[1]);
+		setOption("BlackBackground", false);
+		run("Convert to Mask");
+		run("Fill Holes");;
+		n_avant=roiManager("count");
+		run("Analyze Particles...", "size="+area_mini_cell+"-"+area_max_cell+" pixel circularity="+circ_mini_cell+"-"+circ_max_cell+" show=Masks add");
+		rename("mask");
+		selectWindow("cell");
+		close();
+		n_apres=roiManager("count");
+		for (i=n_avant; i<n_apres; i++) {	
+		roiManager("Select", i);
+		roiManager("Rename", "Cell"+IJ.pad(i, 5));		
+		}							
+		selectImage(activid);
+		roiManager("Deselect");
+		roiManager("Show All");	
+	
+}
+/////////////////////
+macro 'Comptage Action Tool Options'  {
+	Dialog.create("Comptage"); //e.g., put a dialog here
+    Dialog.addNumber("Surface minilale :", area_mini_cell);
+	Dialog.addNumber("Surface maxilale :", area_max_cell);
+	Dialog.addNumber("Circularite minimale :", circ_mini_cell);
+	Dialog.addNumber("Circularite maximale :", circ_max_cell);
+	Dialog.addNumber("Erode en bordure (px)  :", erode_bord);
+	Dialog.addCheckbox("Enlever le background :", substract_background);
+	Dialog.addCheckbox("Seuillage manuel :", seuil_manu);
+	Dialog.addNumber("Valeur du seuil :", seuils[1]);
+	Dialog.addChoice("Methode de seuillage auto :", tab_seuilauto, seuilauto);
+    Dialog.show();
+    area_mini_cell = Dialog.getNumber();
+	area_max_cell = Dialog.getNumber();
+	circ_mini_cell = Dialog.getNumber();
+	circ_max_cell = Dialog.getNumber();
+	erode_bord = Dialog.getNumber();
+	substract_background=Dialog.getCheckbox();	
+	seuil_manu=Dialog.getCheckbox();
+	seuils[1] = Dialog.getNumber();
+	seuilauto = Dialog.getChoice();
+	
+	}
+	
+//////////////////////////////////Map///////////////////////////////////////////////////////////////////
+macro "Map Action Tool - C147D33D43D55D68D7aD7bD8aDb3Dc3Dc4Dc5Dc6Dc7Dc8Dc9DcaDcbCbbbDffC469Dd3CbcdD01D10De0Df1C258D69Da4CacfD1aD1bD3dD5aD8dDecC8acD42Db2CcdfD85C248D36D37D38D39D3aD3bD54D56D67D8bD97D98CbceDe7De8C68bD9bCbcfD17D18D19C369Dd5Dd6Dd7Dd8Dd9DdaDdbCacfD1cD1dD2dD2eD3eD4dD4eD5dD5eD6dD6eD7eD8eD9dD9eDadDaeDbdDbeDceDdeDedC9beD0cD0dD6cDfcDfdCeefD21D51D61D71D81D91Da1Dd1C148D34D35D44D79D89Da5Db4CaceD07Df6Df7C57aD65CbceD52C369D24D25D26D57CacfD1eDeeC8beD2fD3fD4fD5fD6fD7fD8fD9fDafDbfDcfDdfCdefD31D41D72D82D92Db1Dc1CbceD02D30D40D50D60D70D80D86D90Da0Db0Dc0De6Df2C79cD49D4aCcdeDe3C469Dd4CabeD08DebDf8C47aD3cD7cDccCcddD00Df0C259Db5C9adDa9DfeCdefD11D12D62D73D83De1De2CaceD03Df3C79cDbaDbbCbcfD5bD5cDabDacCaceD04D05D06DaaDe9DeaDf4Df5C68bD47Da8Db7CbceD20D63Da2Dd0De4De5CacfD7dDcdDddC9beD9cC89cDc2CcdfD14D75C469D53D78D88D9aDa7C9beD09D0aD0bDf9DfaDfbC47aD46Da3Db6C258Da6C9acD64CdefD74D84C79bD48C68bD95DdcC79cD32D77CbdfD15D16C369D6aC57aD8cC359D27D28D29D2aD2bD96C8adD59C68bD2cD6bC79cD87Db9CcdfD13D93CabdD22C258D45C8acD1fDefC79cD4bDb8C58bD58C9adD0eC258D99C8adD4cC369D23C9bdD94CbbcD0fCabeD76C358D66C9beDbcCaceDd2"{
+	if(isOpen("carto")){
+	selectWindow("carto");
+	close();
+	}
+	if (getTitle()=="mask") exit ("Selectionner l image originale)");
+	activid=getImageID();
+	//origid=getImageID();
+	if(isOpen("mask")){
+	selectWindow("mask");
+	} else exit ("Il faut l image mask ouverte !");
+	roiManager("Deselect");
+	run("Select None");
+	run("Ultimate Points");
+	run("Multiply...", "value=255.000");
+	run("Maximum...", "radius="+radius_maximum);
+	run("Mean...", "radius="+radius_mean);
+	//run("Gaussian Blur...", "sigma=30");
+	run("Fire");
+	setMinAndMax(0, 255);
+	run("RGB Color");
+	rename("carto");
+	//run("Enhance Contrast", "saturated=0.1");	
+	selectImage(activid);
+	nom =getTitle();
+	imageCalculator("Add create",nom,"carto");
+}
+
+macro 'Map Action Tool Options'  {
+	Dialog.create("Map"); //e.g., put a dialog here
+    Dialog.addNumber("Filtre maximum :", radius_maximum);
+	Dialog.addNumber("Filtre mean :", radius_mean);
+	Dialog.show();
+    radius_maximum = Dialog.getNumber();
+	radius_mean = Dialog.getNumber();
+	
+	}
+			
+
+
+
+
+
+/////////////////////////////////////////////////////Resultats/////////////////////////////////////////////////////////////////////////////////////
+macro "Resultats Action Tool - C052DbfDcfDdfDebDecDedDeeDefCbebD5dDc6C364D84D85D93D94D95Da3CffeDa9C282D5bCdecD7aC798D83CfffD05D06D07D08D09D0aD0bD0cD0dD0eD1eD2eD3eD41D4eD51D5eD61D6eD71D73D7eD81D8eD91D97D9eDa1Da7Da8DaeDb1Db9DbaDbeDc1DcbDccDceDd1Dd2Dd3Dd4Dd5Dd6Dd7Dd8Dd9DdaDdbDddDdeC063D59CbceDf3Df4Df5Df6C7b4D65D9aCfffDa6Db4Db5Dc3Dc4DdcC592D4cCefeD12D14D32D63CacbD01C052DafCdedD16D17D18D19D1aD1bD1cD1dD23D24D25D26D27D28D35D36D52D62D72D82D92Da2Db2Dc2C385D7cCfffD13D22Db6DcaC382D4bD5cCdeeD00C9daDbdC163D5fDe5De6CbceDf0Df1Df2C8c5D56C6a1D3cCffeD04D31D8cCbceDf7Df8Df9CdddD74C484D75C364D86CdedD15D42Dc5C8c8D57C163D6fC8c4D67D89C493D33CacdDfaDfbDfcDfdDfeDffC172D5aC7a4D87C483D90Da0CeeeDa5CadaD3aC164D58C9c5D99C5a4D53CcecD2aD2bD2dD38D39D46D47Db8C273D1fDe1C798Db3C163D7fDe7De8C8b4D76C493D70CbebDb7C053D69C6a5D30C383Dd0CadaD9dC273D3fD4fDe3De4C9d4D78C5a3D44CcedD29D37C576Da4C373D0fDe0Cac8DaaC173D6aC9c4D77D88C593D50C272D6cC8b7D02D11C483D80CaeaD8dDc9C9c7D2cC7b4D55D9bCcdcD03D21C273D2fDe2C8b8D20C063D8fDe9C592D3bCaebD7dDc8C062D9fDeaC496D7bCadaDadDcdC593D68C9c7D64C493D43C172D4aD6bC6b5DbcCbdaD34C8c6D9cC5a4DacC8a9D96C8c4D66D8aC493D60CbebD6dDc7C5a6D49C383Db0Dc0C9c4D79C6a3D54DabCad9D8bC593D40C9c7D45CcebD98CacbD10CcecD4dCcdbDbbCcecD3dD48"{
+		//selectImage(origid);
+		//dir=getInfo("image.directory");
+		nom=getTitle();
+		nom=replace(nom,".tif","");
+		area_total=-1;
+		area_cell=-1;
+		nb_cell=0;
+		ncount=roiManager("count");
+		for(i=0;i<ncount;i++){
+			roiManager("Select", i);
+			nom_item=call("ij.plugin.frame.RoiManager.getName", i);
+			
+						if (nom_item=="Total"+origid){
+							getStatistics(area);
+							area_total=area;
+							}
+						if (startsWith(nom_item, "Cell")){
+							nb_cell++;
+							getStatistics(area);
+							area_cell=area_cell+area;
+						}			
+			}
+		run("Select None");
+		if( !isOpen("Resultats")){
+		run("Table...", "name="+title2+" width=600 height=600");
+print(fe, "\\Headings:Image \ttotale  \tnb_cell \tsurf_cell ");
+
+	}
+print(fe, nom+"\t"+area_total+"\t"+nb_cell+"\t"+area_cell);	
+}
+
+
+
+
+///////////////////////////////////////////////////????????????????????????????????????????????????????
+
+macro "About These Macros Action Tool - C000C111C222C333C444C555D54D55D63D73D7cD7dD83D88D89D8aD8cD8dD93D97Da3Da4Da5Da6C555D7aDb5C555D72D82C555D45Da7C555D98C555D53C555D79C555C666Db4C666Db6C666C777D92C777D87C777D64C777D62C777C888D44C888D96C888D78C999D94C999CaaaCbbbD99Db3CbbbDa2CbbbDa8CbbbCcccDb7CcccD52CcccD43CcccD65CcccCdddD74CdddD77CdddD86CdddD84D95CdddD00D01D02D03D04D05D06D07D08D09D0aD0bD0cD0dD0eD0fD10D11D12D13D14D15D16D17D18D19D1aD1bD1cD1dD1eD1fD20D21D22D23D24D25D26D27D28D29D2aD2bD2cD2dD2eD2fD30D31D32D33D34D35D36D37D38D39D3aD3bD3cD3dD3eD3fD40D41D42D46D47D48D49D4aD4bD4cD4dD4eD4fD50D51D56D57D58D59D5aD5bD5cD5dD5eD5fD60D61D66D67D68D69D6aD6bD6cD6dD6eD6fD70D71D75D76D7bD7eD7fD80D81D85D8bD8eD8fD90D91D9aD9bD9cD9dD9eD9fDa0Da1Da9DaaDabDacDadDaeDafDb0Db1Db2Db8Db9DbaDbbDbcDbdDbeDbfDc0Dc1Dc2Dc3Dc4Dc5Dc6Dc7Dc8Dc9DcaDcbDccDcdDceDcfDd0Dd1Dd2Dd3Dd4Dd5Dd6Dd7Dd8Dd9DdaDdbDdcDddDdeDdfDe0De1De2De3De4De5De6De7De8De9DeaDebDecDedDeeDefDf0Df1Df2Df3Df4Df5Df6Df7Df8Df9DfaDfbDfcDfdDfeDff"{
+open(getDirectory("macros")+"toolsets\\PHIV_IHC_toolset.txt");
+}
+
+
+
+
+
+
+
+
+	
+	/////////////////////////////////////////////////////FUNCTIONS///////////////////////////////////////////////////
+
+
+function Hyper2RGB(){
+	setBatchMode(true);
+	titre=getTitle();
+	setSlice(1);
+	 setMetadata("Label", "r");
+	setSlice(2);
+	 setMetadata("Label", "g");
+	setSlice(3);
+	 setMetadata("Label", "b");
+	run("Stack to Images");
+	run("Merge Channels...", "c1=r c2=g c3=b");
+	selectWindow("RGB");
+	rename(titre);
+	setBatchMode(false);
+}
+
+
+
+function Bio_meta(path){
+	SX=Array.trim(SX, 1); 
+	SY=Array.trim(SY, 1); 
+	tabIndexScenes=Array.trim(tabIndexScenes, 1);
+	run("Bio-Formats Macro Extensions");
+	Ext.setId(path);
+	Ext.getCurrentFile(file);
+	Ext.getSeriesCount(seriesCount);
+	for (s=0; s<seriesCount; s++) {
+	  Ext.setSeries(s);
+	  Ext.getSizeX(sizeX);
+	  SX=Array.concat(SX,sizeX);
+	  Ext.getSizeY(sizeY);
+	  SY=Array.concat(SY,sizeY);
+	   }
+	
+	for (s=1;s<seriesCount;s++){
+		if ((SX[s]>SX[s-1]) || (abs((SX[s]/SX[s-1])-(SY[s]/SY[s-1]))>0.01))	tabIndexScenes=Array.concat(tabIndexScenes,s);	
+		}
+	   
+	 tabIndexScenes=Array.concat(tabIndexScenes,seriesCount); 
+	Ext.close();
+}
+
+function ndpi(path){
+
+		
+			Bio_meta(path);
+			for (s=2;s<4;s++){
+					if (s==numserie)  Max=SX[s-1]*SY[s-1];
+				}					   
+			 if (Max < 20000*20000){
+			   run("Bio-Formats Importer", "open=["+path+"] color_mode=Default crop view=Hyperstack stack_order=XYCZT series_"+numserie);
+			   Hyper2RGB();
+			}
+			else print (path+" taille trop grande");
+}
+
+		

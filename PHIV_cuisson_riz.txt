@@ -1,0 +1,473 @@
+// PHIV Alignement Tool Set
+// Marc LARTAUD MRI PHIV
+// Boite a outils pour faciliter l alignement des photos de coupes seriees
+
+
+
+
+//var globales zones
+
+
+var sigma_z1=5;
+var seuil_z1=newArray(0,107);
+var sigma_z2=5;
+var seuil_z2=newArray(48,255);
+
+var indice_total=1;
+var indice_amidon=1;
+var indice_angle=1;
+var indice_gel=1;
+var angle_rotation=10;
+var xg=0;
+var yg=0;
+
+
+////////////////////////////////////////////////////////////////label=AutoMerge ////////////////////////////////////////////
+
+macro "AutoMerge Action Tool - C000C111C222D09D0aD0bD0cD0dD0eD0fD19D1aD1bD1cD1dD1eD1fD29D2aD2bD2cD2dD2eD2fD39D3aD3bD3cD3dD3eD3fD49D4aD4bD4cD4dD4eD4fD59D5aD5bD5cD5dD5eD5fD69D6aD6bD6cD6dD6eD6fC222C333C444D99D9aD9bD9cD9dD9eD9fDa9DaaDabDacDadDaeDafDb9DbaDbbDbcDbdDbeDbfDc9DcaDcbDccDcdDceDcfDd9DdaDdbDdcDddDdeDdfDe9DeaDebDecDedDeeDefDf9DfaDfbDfcDfdDfeDffC444C555D00D01D02D03D04D05D06D10D11D12D13D14D15D16D20D21D22D23D24D25D26D30D31D32D33D34D35D36D40D41D42D43D44D45D46D50D51D52D53D54D55D56D60D61D62D63D64D65D66C555D90D91D92D93D94D95D96Da0Da1Da2Da3Da4Da5Da6Db0Db1Db2Db3Db4Db5Db6Dc0Dc1Dc2Dc3Dc4Dc5Dc6Dd0Dd1Dd2Dd3Dd4Dd5Dd6De0De1De2De3De4De5De6Df0Df1Df2Df3Df4Df5Df6C555C666C777C888C999CaaaCbbbCcccCdddCeeeCfffD07D08D17D18D27D28D37D38D47D48D57D58D67D68D70D71D72D73D74D75D76D77D78D79D7aD7bD7cD7dD7eD7fD80D81D82D83D84D85D86D87D88D89D8aD8bD8cD8dD8eD8fD97D98Da7Da8Db7Db8Dc7Dc8Dd7Dd8De7De8Df7Df8"{
+if (getInfo("fiji.dir")=="") showMessage("A utiliser dans Fiji!");
+else {
+	dir = getDirectory("Choix du Répertoire Source ");
+
+	run("Grid/Collection stitching", "type=[Unknown position] order=[All files in directory] directory=["+dir+"] output_textfile_name=txt.txt fusion_method=[Linear Blending] regression_threshold=0.30 max/avg_displacement_threshold=2.50 absolute_displacement_threshold=3.50 computation_parameters=[Save memory (but be slower)] image_output=[Fuse and display]");
+	rename("temp");
+	run("RGB Color");
+	rename("Merge");
+	selectWindow("temp");
+	close();
+	}
+}
+
+
+macro "Zonation Action Tool - C147D5bD69D6bD86D93D94CbcdD01Df1CaabDffCcddD00Df0C47aD76D7aCbcfD49CacfD2fD3fD4fD5fD6fD7fD8fD9fDafDbfDcfDdfCdefD13D23D33Dc3Dd3De1De3C258D87CbceD42CabeD07D08D58Df7Df8CdefD11D14D15D24D25D34D35D45Dc4Dc5Dd4Dd5De4De5C8adD8aCcdfD18D28D38D48D57Da8Db8Dc8Dd8De8CacfD1eD2eD3eD4dD4eD5eD6eD7eD8eD9eDaeDbdDbeDceDdeDeeCeefD21D31D41D51D61D71D81D91Da1Db1Dc1Dd1C248D5aD77D8bD95D9bCbceD30D40D50D60D70D80D90D98Da0Db0Dc0C9beD09D0aD0bDf9DfaDfbCcdfD16D17D26D27D36D37D46D47D55D56D65Db6Db7Dc6Dc7Dd6Dd7De6De7C79bD54CcdfD19D29D39D99Da7Da9Db9Dc9Dd9De9CacfD5dCdefD12D22D32Dc2Dd2De2C469D96CbcfD1cD1dD2cD2dD3cD3dDccDcdDdcDddDecDedCacfD6dD7dD8dD9dDadC8adD9aC148D53D63D6aD73D78D7bD83CbceD20Dd0CabdDb3CddfDb2C57bD59CbdfD1aD1bD2aD2bD3aD3bDcaDcbDdaDdbDeaDebC358Da4CbdfD66CaceD03D04D05Df3Df4Df5C9adD0eCaceD02D44Df2C79cD43D67C47aDacC9beDefCbcdD10De0C9bdD89Da2C57aD88C258D85Da3CbcfDbaCaceD06Df6C8adD4cC79cDbbC46aD6cD7cD8cD9cC9aeD1fDaaCabdDa6Db4C68aDa5C359D68D79D84CcdfDb5C8adD4aDbcC9beD0cD0dDfcDfdCabbD0fC248DabC8adD52D62D72D82D92C9adDfeC9bdD75C58bD4bC47aD5cC89cD97C68bD64D74"{
+	
+	raz();
+	origid=getImageID();
+	
+	run("Select None");
+	run("Duplicate...", "title=nb");
+	run("8-bit");
+	run("Gaussian Blur...", "sigma="+sigma_z1);
+	Validation_surface("Total",seuil_z1);
+	n=roiManager("count");
+	indice_total=n-1;
+	roiManager("Select", n-1);
+	//run("Enlarge...", "enlarge="+2*sigma_z1);
+	run("Enlarge...", "enlarge="+-sigma_z1);
+	roiManager("Update");
+	
+	
+	run("Select None");
+	run("Duplicate...", "title=nb");
+	run("8-bit");
+	run("Gaussian Blur...", "sigma="+sigma_z2);
+	Validation_surface("Zone",seuil_z2);
+	
+	Dialog.create("Zonation");
+	items = newArray("Amidon", "Gel");
+	Dialog.addRadioButtonGroup("Zone selectionnee", items, 1, 2, "Amidon");
+	Dialog.show;
+	zone=Dialog.getRadioButton;
+	
+	n=roiManager("count");
+	if(zone=="Amidon"){
+		roiManager("Select", n-1);
+		roiManager("Rename", "Amidon");		
+	}
+	if(zone=="Gel"){		
+		roiManager("Select", n-1);
+		run("Enlarge...", "enlarge="+sigma_z2);
+		run("Make Inverse");
+		roiManager("Update");
+		roiManager("Select", newArray(0,1));
+		roiManager("AND");
+		RoiAdd("Amidon");
+		roiManager("Select", n-1);
+		roiManager("Delete");		
+	}
+	indice_amidon=n-1;
+	roiManager("Select", n-1);
+	centre_gravite();
+	
+	/*run("Enlarge...", "enlarge="+-2*sigma_z2);
+	run("Enlarge...", "enlarge="+sigma_z2);
+	roiManager("Update");*/
+	
+	
+	run("Select None");
+	roiManager("Show None");
+	setTool("polygon");
+	title = "Portion";
+	msg = "Tracer un polygone avec le deuxieme point au centre de gravite ";
+	waitForUser(title, msg);
+	RoiAdd("temp");
+	indice_temp=roiManager("count")-1;
+	run("Remove Overlay");
+	
+	Roi.getCoordinates(xpoints, ypoints);
+	xpoints=Array.trim(xpoints,3);
+	ypoints=Array.trim(ypoints,3);
+	makeSelection("angle",xpoints,ypoints);
+	RoiAdd("Angle");
+	indice_angle=roiManager("count")-1;
+	
+	roiManager("Select", indice_temp);
+	run("Make Inverse");
+	roiManager("Update");
+	roiManager("Select", newArray(indice_total,indice_temp));
+	roiManager("AND");
+	RoiAdd("temp2");
+	indice_temp2=roiManager("count")-1;
+	
+	roiManager("Select", indice_amidon);
+	run("Make Inverse");
+	roiManager("Update");
+	roiManager("Select", newArray(indice_amidon,indice_temp2));
+	roiManager("AND");
+	RoiAdd("Gel");
+	indice_gel=roiManager("count")-1;
+	
+	roiManager("Select", indice_amidon);
+	run("Make Inverse");
+	roiManager("Update");
+	
+	ncount=roiManager("count");
+	for(i=ncount-1;i>=0;i--){
+		roiManager("Select", i);
+		nom_item=call("ij.plugin.frame.RoiManager.getName", i);
+		if (startsWith(nom_item, "temp")) {
+			roiManager("Delete");
+			indice_gel--;
+		}
+		
+		}
+
+		roiManager("Show All with labels");
+		roiManager("Select", indice_gel);
+
+}
+
+
+
+
+macro 'Zonation Action Tool Options'  {
+    //on right-click, the corresponding 'Options' macro is run
+    
+    Dialog.create("Zonation");
+    Dialog.addMessage("Tailles des filtres");
+    Dialog.addNumber("Total:", sigma_z1);
+	Dialog.addNumber("Amidon:", sigma_z2);
+    Dialog.show();
+    sigma_z1=Dialog.getNumber();
+	sigma_z2=Dialog.getNumber();;
+   
+          
+  	}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	
+
+
+
+///////////////////////////////////////////////////////////////////////////////////////
+
+	macro "Plot Action Tool - C000D00D01D07D08D09D0fD10D11D18D1fD20D21D22D28D2eD2fD30D31D32D3dD3eD3fD40D41D42D43D4dD50D51D52D53D54D9cD9dD9eD9fDadDaeDafDb0Db1Db2Db3DbdDbeDbfDc0Dc1Dc2DceDcfDd0Dd1Dd2Dd8DdeDdfDe0De1De7De8DefDf0Df7Df8Df9DffC440D03D04D05D0dD14D15D1aD24D25D26D2cD35D36D39D45D46D4bD5fD65D6cD6dD6eD6fD72D73D74D7bD7cD7dD7eD7fD80D81D82D83D84D8bD90D91D92D93D94Da5DaaDb7Db8Db9DbaDbbDc4DcaDcbDd6DdaDdbDdcDe3DebDecDfbDfcDfdC110D19D4fD62Da3Dc8Dd7Df6C550D0bD1cD2aD3bD47D49D56D5bD75Da9Db5Dc6Dd4De5Df3C000D12D17D1eD33D4eD60D61DacDcdDe9DeeDf1C330D0aD29D3cD8dDa0Db4Dc7De6C660D57D5aC220D06D27D38D64D8eD9bDa1Dd9DfeC660D0cD2bD48D4aD95Da7Db6Dc5Dd5De4C440D13D16D37D5eD70D71Dc9DccDeaDedDf2Df5C990D98C220D02D0eD23D8fDa4DbcDddDe2DfaC550D1bD3aD6bD85D9aDa6Df4C330D1dD34D55D5cD5dD8cDabDd3C880D58Caa0D68D87C110D2dD44D4cD63Da2Dc3C770D59D66D6aD8aD96Caa0D69D77D79D89C880D76D86Caa0D88C770D7aD99Da8C990D67D97C992D78"{
+	
+	ncount=roiManager("count");
+	for(i=ncount-1;i>=0;i--){
+		roiManager("Select", i);
+		nom_item=call("ij.plugin.frame.RoiManager.getName", i);
+		if (startsWith(nom_item, "Segment")) roiManager("Delete");
+		if (startsWith(nom_item, "Epaisseur")) roiManager("Delete");
+		}
+	
+	
+	getDimensions(width, height, channels, slices, frames);
+	if(xg==0) exit("Selectionner la Zone 1 pour avoir le centre de gravite");
+	makeLine(-1000, yg, width, yg);
+	RoiAdd("Ligne");
+	indice_ligne=roiManager("count")-1;
+	for(i=1;i<=(360/angle_rotation);i++){
+		roiManager("Select", indice_ligne);
+		run("Rotate...", "angle="+i*angle_rotation);
+		Roi.getCoordinates(xpoints, ypoints);
+		makeLine(xpoints[0], ypoints[0], xg, yg);
+		RoiAdd("Segment");
+		}
+	roiManager("Select", indice_ligne);
+	roiManager("Delete");
+	
+	ncount=roiManager("count");
+	for(i=ncount-1;i>=0;i--){
+			roiManager("Select", i);
+			nom_item=call("ij.plugin.frame.RoiManager.getName", i);
+			if (startsWith(nom_item, "Segment")) {
+			run("Line to Area");
+			roiManager("Update");
+			roiManager("Select", newArray(indice_gel,i));
+			roiManager("AND");
+			if (selectionType()!=-1) {	
+				RoiAdd("Epaisseur");
+				//RoiAdd("Epaisseur_"+nom_item);
+			}
+			
+					
+		
+		}
+	}
+	
+	
+	ncount=roiManager("count");
+	for(i=ncount-1;i>=0;i--){
+		roiManager("Select", i);
+		nom_item=call("ij.plugin.frame.RoiManager.getName", i);
+		if (startsWith(nom_item, "Segment")) roiManager("Delete");
+		
+		}
+	
+	
+	
+	
+	
+	roiManager("Show All with labels");
+}
+
+
+macro 'Plot Action Tool Options'  {
+    //on right-click, the corresponding 'Options' macro is run
+    
+    Dialog.create("Tracage des lignes");    
+    Dialog.addNumber("Angle de rotation:", angle_rotation);    
+    Dialog.show();
+    angle_rotation=Dialog.getNumber();
+   
+          
+  	}	
+	
+/////////////////////////////////////////////////////Resultats/////////////////////////////////////////////////////////////////////////////////////
+macro "Resultats Action Tool - C052DbfDcfDdfDebDecDedDeeDefCbebD5dDc6C364D84D85D93D94D95Da3CffeDa9C282D5bCdecD7aC798D83CfffD05D06D07D08D09D0aD0bD0cD0dD0eD1eD2eD3eD41D4eD51D5eD61D6eD71D73D7eD81D8eD91D97D9eDa1Da7Da8DaeDb1Db9DbaDbeDc1DcbDccDceDd1Dd2Dd3Dd4Dd5Dd6Dd7Dd8Dd9DdaDdbDddDdeC063D59CbceDf3Df4Df5Df6C7b4D65D9aCfffDa6Db4Db5Dc3Dc4DdcC592D4cCefeD12D14D32D63CacbD01C052DafCdedD16D17D18D19D1aD1bD1cD1dD23D24D25D26D27D28D35D36D52D62D72D82D92Da2Db2Dc2C385D7cCfffD13D22Db6DcaC382D4bD5cCdeeD00C9daDbdC163D5fDe5De6CbceDf0Df1Df2C8c5D56C6a1D3cCffeD04D31D8cCbceDf7Df8Df9CdddD74C484D75C364D86CdedD15D42Dc5C8c8D57C163D6fC8c4D67D89C493D33CacdDfaDfbDfcDfdDfeDffC172D5aC7a4D87C483D90Da0CeeeDa5CadaD3aC164D58C9c5D99C5a4D53CcecD2aD2bD2dD38D39D46D47Db8C273D1fDe1C798Db3C163D7fDe7De8C8b4D76C493D70CbebDb7C053D69C6a5D30C383Dd0CadaD9dC273D3fD4fDe3De4C9d4D78C5a3D44CcedD29D37C576Da4C373D0fDe0Cac8DaaC173D6aC9c4D77D88C593D50C272D6cC8b7D02D11C483D80CaeaD8dDc9C9c7D2cC7b4D55D9bCcdcD03D21C273D2fDe2C8b8D20C063D8fDe9C592D3bCaebD7dDc8C062D9fDeaC496D7bCadaDadDcdC593D68C9c7D64C493D43C172D4aD6bC6b5DbcCbdaD34C8c6D9cC5a4DacC8a9D96C8c4D66D8aC493D60CbebD6dDc7C5a6D49C383Db0Dc0C9c4D79C6a3D54DabCad9D8bC593D40C9c7D45CcebD98CacbD10CcecD4dCcdbDbbCcecD3dD48"{
+		dir=getInfo("image.directory");
+		nom=getTitle();
+		nom=replace(nom,".tif","");
+
+		
+		title1 = "Zonation"+nom;
+		title2 = "["+title1+"]";
+		fz = title2;
+		
+		title3 = "Epaisseurs de gelification";
+		title4 = "["+title3+"]";
+		fe = title4;
+		
+		area_total=-1;
+		diam_total=-1;
+		area_amidon=-1;
+		diam_amidon=-1;
+		angle=-1;
+		area_gel=-1;
+		somme_epaisseur=-1;
+		nb_epaisseur=0;
+		somme_epaisseur=-1;
+		
+		
+		
+		ncount=roiManager("count");
+	for(i=0;i<ncount;i++){
+			roiManager("Select", i);
+			nom_item=call("ij.plugin.frame.RoiManager.getName", i);
+			
+						if (nom_item=="Total"){
+							getStatistics(area);
+							area_total=area;////////////////////////////////////////////area_total
+							run("Set Measurements...", "area centroid feret's redirect=None decimal=3");
+							List.setMeasurements;
+							diam_total=List.getValue("Feret");////////////////diam
+							}
+						if (nom_item=="Amidon"){
+							getStatistics(area);
+							area_amidon=area;
+							run("Set Measurements...", "area centroid feret's redirect=None decimal=3");
+							List.setMeasurements;
+							diam_amidon=List.getValue("Feret");
+							}
+						if (nom_item=="Angle"){
+							List.setMeasurements;
+							angle=List.getValue("Angle");///////////////angle
+							}
+						if (nom_item=="Gel"){
+							getStatistics(area);
+							area_gel=area;////////////////////////////////////////////surfzone1
+							}							
+						
+						if (startsWith(nom_item, "Epaisseur")){
+						
+							run("Set Measurements...", "area centroid feret's redirect=None decimal=3");
+							List.setMeasurements;
+							somme_epaisseur=somme_epaisseur+List.getValue("Feret");
+							nb_epaisseur++;
+							if( !isOpen("Epaisseurs de gelification")){
+								run("Table...", "name="+title4+" width=600 height=600");
+								print(fe, "\\Headings:Image \tnom_item \tepaisseur");
+									}
+							print(fe, nom+"\t"+nom_item+"\t"+deux_decimal(List.getValue("Feret")));
+							}
+							
+			
+			}	
+		run("Select None");
+		
+		moy_epaisseur=deux_decimal(somme_epaisseur/nb_epaisseur);
+		
+		if( !isOpen("Zonation")){
+								run("Table...", "name="+title2+" width=1200 height=600");
+								print(fz, "\\Headings:Image \tsurf_total \tdiam_total \tsurf_amidon \tdiam_amidon \tangle \tsurf_gel \tepaisseur_moyenne \tnb_mesure");
+									}
+							print(fz, nom+"\t"+area_total+"\t"+diam_total+"\t"+area_amidon+"\t"+diam_amidon+"\t"+angle+"\t"+area_gel+"\t"+moy_epaisseur+"\t"+nb_epaisseur);
+							}
+	
+		
+		//roiManager("Save", dir+nom+"-RoiSet.zip");//sauvegarde de roi manager
+			
+}	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+macro "About These Macros Action Tool - C000C111C222C333C444C555D54D55D63D73D7cD7dD83D88D89D8aD8cD8dD93D97Da3Da4Da5Da6C555D7aDb5C555D72D82C555D45Da7C555D98C555D53C555D79C555C666Db4C666Db6C666C777D92C777D87C777D64C777D62C777C888D44C888D96C888D78C999D94C999CaaaCbbbD99Db3CbbbDa2CbbbDa8CbbbCcccDb7CcccD52CcccD43CcccD65CcccCdddD74CdddD77CdddD86CdddD84D95CdddD00D01D02D03D04D05D06D07D08D09D0aD0bD0cD0dD0eD0fD10D11D12D13D14D15D16D17D18D19D1aD1bD1cD1dD1eD1fD20D21D22D23D24D25D26D27D28D29D2aD2bD2cD2dD2eD2fD30D31D32D33D34D35D36D37D38D39D3aD3bD3cD3dD3eD3fD40D41D42D46D47D48D49D4aD4bD4cD4dD4eD4fD50D51D56D57D58D59D5aD5bD5cD5dD5eD5fD60D61D66D67D68D69D6aD6bD6cD6dD6eD6fD70D71D75D76D7bD7eD7fD80D81D85D8bD8eD8fD90D91D9aD9bD9cD9dD9eD9fDa0Da1Da9DaaDabDacDadDaeDafDb0Db1Db2Db8Db9DbaDbbDbcDbdDbeDbfDc0Dc1Dc2Dc3Dc4Dc5Dc6Dc7Dc8Dc9DcaDcbDccDcdDceDcfDd0Dd1Dd2Dd3Dd4Dd5Dd6Dd7Dd8Dd9DdaDdbDdcDddDdeDdfDe0De1De2De3De4De5De6De7De8De9DeaDebDecDedDeeDefDf0Df1Df2Df3Df4Df5Df6Df7Df8Df9DfaDfbDfcDfdDfeDff"{
+open(getDirectory("macros")+"toolsets/PHIV_cuisson_riz.txt");
+}
+
+//////////////////////////Shortcut Key/////////////////
+
+//supression de selection 
+macro "ROI Delete [n0]"{
+	if(selectionType()!=-1 && selectionType()!=10){
+	
+		roiManager("Delete");
+		run("Select None");
+	}
+		
+}
+
+
+/////////////////////Function//////////////////////
+
+function deux_decimal(valeur){
+	if (valeur!=-1){
+		valeur= round(valeur*100)/100;
+	}
+	else valeur="NA";
+	return valeur;
+}
+
+function RoiAdd(nom) {
+	roiManager("Add");
+	n = roiManager("count");
+	roiManager("Select", n-1);	
+	roiManager("Rename", nom);
+}
+
+
+function Blur(sigma){
+	run("Gaussian Blur...", "sigma="+sigma);
+}
+	
+function Seuil(seuils){
+	setThreshold(seuils[0], seuils[1]);
+	run("Convert to Mask");
+}
+
+function Validation_surface(zone,seuils){
+	run("Threshold...");
+	setThreshold(seuils[0], seuils[1]);
+	run("Threshold...");	
+	setTool("wand");
+	title = zone;
+	msg = "Regler le seuil puis selectionner avec la baguette";
+	waitForUser(title, msg);
+	getThreshold(lower, upper);
+	seuils[0]=lower;
+	seuils[1]=upper;
+	roiManager("Add");
+	n = roiManager("count");
+	roiManager("Select", n-1);
+	roiManager("Rename", zone);
+	close();
+  selectImage(origid);
+  roiManager("Select", n-1);
+	setTool("brush");
+	call("ij.gui.Toolbar.setBrushSize", 100);
+	waitForUser(zone,"Correction de la selection");
+	//run("Interpolate", "interval=1");//voir feret!
+	roiManager("Update");	
+	roiManager("Deselect");
+	run("Select None");	
+	setTool("rectangle");
+}
+
+function ChoixSeuils(titre,seuils){
+	run("Threshold...");
+	setThreshold(seuils[0], seuils[1]);
+	run("Threshold...");
+	waitForUser(titre,"Reglage du Seuil");
+	getThreshold(lower, upper);
+	seuils[0]=lower;
+	seuils[1]=upper;
+	}
+
+function centre_gravite(){
+	//run("Set Measurements...", "area centroid shape display redirect=None decimal=3");
+	run("Set Measurements...", "area centroid feret's display redirect=None decimal=3");
+	getPixelSize(unit, pixelWidth, pixelHeight);
+	run("Set Scale...", "distance=0 known=0 pixel=1 unit=pixel");
+	List.setMeasurements;
+	xg=List.getValue("X");
+	yg=List.getValue("Y");
+	run("Select None");
+	makePoint(xg, yg);
+	run("Set Scale...", "distance=1 known=&pixelWidth pixel=1 unit=&unit");
+	run("Add Selection...");
+}
+
+function raz(){
+	indice_total=1;
+	indice_amidon=1;
+	indice_angle=1;
+	indice_gel=1;
+	angle_rotation=10;
+	xg=0;
+	yg=0;
+	if (roiManager("count")>0){
+		roiManager("Deselect");
+		roiManager("Delete");
+		}	
+	run("Remove Overlay");
+	run("Clear Results");
+	print ("\\Clear");
+	
+}
+
+

@@ -1,0 +1,390 @@
+// PHIV Tomo Tool Set
+// Marc LARTAUD MRI PHIV
+// Boite a outils pour faciliter l exploitation des fichiers issus du microtomographe
+
+//enlever les fichiers log et autres que les images dans le dossier de reconstruction!
+
+// installer Polar transformer
+//http://rsbweb.nih.gov/ij/plugins/download/Polar_Transformer.class
+//Installation de stripeFilter
+//http://www.google.fr/url?sa=t&rct=j&q=&esrc=s&source=web&cd=1&ved=0CFgQFjAA&url=http%3A%2F%2Flibrary.eawag-empa.ch%2Fempa_publications_2009_open_access%2FEMPA20090111.pdf&ei=YSciUKC-NY2IhQe-uIGoDw&usg=AFQjCNGsaMN0upeiuw-HFi3p0dK5wKvqYg&sig2=2QDjnojgGkPHdMFTPKbpnQ
+// ftp://ftp.empa.ch/pub/empa/outgoing/BeatsRamsch/lib/xlib_.jar
+
+
+
+/*
+
+Outil Crop et Clear Outside et binning simultanes
+	Travaille sur des stack virtuels 
+	clic droit pour l option facteur de binning_crop a 1 par defaut
+
+Outil binning 
+retaille l image en x y et z
+clic droit pour l option facteur de binning a 2 par defaut
+
+
+
+Outil Ring Artefact permet de supprimer ces artefacts
+Selectionner au prealable le centre des artefacts
+Clic droit pour acceder aux options de reglages des parametres
+
+Trois paramètres permettent de contrôler le comportement du filtre: 
+(1)W Ondelette, Daubechies wavelet 
+Des résultats optimaux ont été obtenus pour les grandes ondelettes DB>3 
+(2)L  Niveaux de decomposition dépend de la largeur la plus grande bande, ainsi que de sa verticalité
+Choisir le plus petit pour une bonne elimination des artefacts en preservant les details de l image
+(3)G  Facteur d'amortissement damping.
+Le facteur optimal d'amortissement dépend de la linearite et regularite des bandes a l origine d el artefact
+elle peut être abaissée pour les artefacts idéaux.
+
+
+Outils de test des parametres du filtre sur une image
+
+RingArtefact_test_DB pour des valeurs d ondelettes  (W) de de DB1 a DB43
+RingArtefact_test_decomp pour des valeurs de niveaux  (L) de 1 a 20
+RingArtefact_test_Damp pour des valeurs de damping  (G) de 1 a 40
+
+
+
+
+
+
+
+
+
+
+
+
+
+*/
+
+//variables glogales
+var wavelet=24;
+var decomposition=3;
+var damping=10;
+var binning=2;
+var binningz=2;
+var binning_crop=1;
+var binning_cropz=1;
+
+
+
+//enlever les fichiers log et autres que les images dans le dossier de reconstruction!
+function IsAnImage (NomFichier)
+{
+	if (endsWith(NomFichier, '.bmp')) return true;
+	if (endsWith(NomFichier, '.tif')) return true;
+	if (endsWith(NomFichier, '.tiff')) return true;
+	if (endsWith(NomFichier, '.jpg')) return true;
+	if (endsWith(NomFichier, '.png')) return true;
+	if (endsWith(NomFichier, '.gif')) return true;
+	return false;
+}
+
+
+macro "Unused Tool-1 - " {}  // laisse une place libre!
+
+
+////////////////////////////////////////////////////////////////label=Crop and Clear Outside////////////////////////////////////////////
+macro "Crop Action Tool - C000C111C222DbfDcfC222D5cD6cD7cD8cC222D4cD9cDacDdcDecDfcC222C333D6aC333D15D25D35D65D75D85D95Da5C333Da6C333D6bD7bDbeDceC333D8bC333D5bD79DbdDcdC333D97DbcDccC333D9bC333D5aC333D4bD88DabDbbDcbDdbDebDfbC333C444D4aD59Db9DbaDcaC444D49Dc9C444Db8C444Dc8C444Db7C444D48D58C444Dc7C444D47D57Db6Dc5C444Dc6C444Db5Dc4C444D46D56C444D45D55C444Db4Dd3C444D14D24D34D44D54D64D74D84D94Da4C444De2C555D41D42D43D51D52D53Df1C555C666C777C888C999Da7C999D96C999D36D66C999DadDddC999Da8C999CaaaD7aCaaaD76CaaaD69D86Da9CaaaD98D9dCaaaD6dCaaaD67CaaaD37D7dD87CaaaD26D5dD8dDaeDdeCaaaD99DaaDedCaaaD89D8aCaaaD68D77CaaaD33D63D9aDd4DdaCaaaDe3CaaaD4dD78CbbbD38D39Dd5Dd9CbbbD3aD9eDe4Df2CbbbD16D27D32D62Dd2Dd6CbbbD00D10D20D30D31D3bD40D50D60D61D70D80D90Da0DafDb0Dc0Dd0DdfDe0DeeDf0Df3DfdCbbbDc3Dd7Dd8De1CbbbD3cD6eD7eD8eCbbbDd1CbbbD21D23D5eD71D73CbbbDc1Dc2De5CbbbD01D11D81D91Da1Db1Df4CbbbD22D72Db3DeaCbbbD05D17D83D93Da3CbbbD28D3dD4eDb2DfeCbbbD02D06D12D13D29D82D92D9fDa2De9CcccD04D2aDefCcccDe6CcccD03D2bDfaCcccDf5CcccD07D2cDe7De8CcccD3eD6fD7fD8fCcccD09D18D19D5fDf9CcccD0aD1aD2dD4fDffCcccD08D0bD1bDf6CcccD0cD1cD2eD3fCcccD2fDf7Df8CcccD0dD0eD0fD1dD1eD1f"{
+   
+   setBackgroundColor(0, 0, 0);
+   dir1 = getDirectory("Dossier Source ");
+   list = getFileList(dir1);
+   dir2 = getDirectory("Dossier Cible ");
+   //start = getTime();
+   run("Image Sequence...", "open=["+dir1+"] sort use");
+   getSelectionBounds(x, y, width, height);
+		if (x==0) waitForUser("Faire une selection de l image a garder\nFait un Clear Outside et un Crop et un binning");
+		getSelectionBounds(x, y, width, height);
+    new_width=round(width/binning_crop);
+    new_height=round(height/binning_crop); 
+   roiManager("reset")
+   roiManager("Add");
+   setBatchMode(true); // runs up to 6 times faster
+   for (i=0; i<list.length; i=i+binning_cropz) {
+   		showProgress(i+1, list.length);
+   		if(  IsAnImage(list[i])){
+   		open(dir1+list[i]);
+			roiManager("Select", 0);
+			run("Clear Outside");
+			run("Crop");
+			getPixelSize(unit, pixelWidth, pixelHeight);
+			run("Size...", "width="+new_width+" height="+new_height+" constrain average interpolation=Bilinear");
+			if(pixelWidth!=1) run("Set Scale...", "distance=1 known="+(pixelWidth*binning_crop)+" pixel=1 unit="+unit+"");		
+		  saveAs("Tiff", dir2+list[i]);		
+		  close();
+		  		}
+        }
+  setBatchMode(false); // runs up to 6 times faster
+  run("Image Sequence...", "open=["+dir2+"] sort use");
+  //print((getTime()-start)/1000);
+
+}
+
+macro 'Crop Action Tool Options'  {
+    //on right-click, the corresponding 'Options' macro is run
+    Dialog.create("Binning_Crop"); //e.g., put a dialog here
+    Dialog.addNumber("Binning_Crop :", binning_crop);
+    Dialog.addCheckbox("Binning en z", true);
+    Dialog.show();
+    binning_crop = Dialog.getNumber();
+    bz=Dialog.getCheckbox();
+    if (bz!=true) binning_cropz=1;
+    else binning_cropz=binning_crop;
+
+    
+
+  	}
+
+
+////////////////////////////////////////////////////////////////label=Binning////////////////////////////////////////////
+macro "Binning Action Tool - C000C111C222D09D0aD0bD0cD0dD0eD0fD19D1aD1bD1cD1dD1eD1fD29D2aD2bD2cD2dD2eD2fD39D3aD3bD3cD3dD3eD3fD49D4aD4bD4cD4dD4eD4fD59D5aD5bD5cD5dD5eD5fD69D6aD6bD6cD6dD6eD6fC222C333C444D99D9aD9bD9cD9dD9eD9fDa9DaaDabDacDadDaeDafDb9DbaDbbDbcDbdDbeDbfDc9DcaDcbDccDcdDceDcfDd9DdaDdbDdcDddDdeDdfDe9DeaDebDecDedDeeDefDf9DfaDfbDfcDfdDfeDffC444C555D00D01D02D03D04D05D06D10D11D12D13D14D15D16D20D21D22D23D24D25D26D30D31D32D33D34D35D36D40D41D42D43D44D45D46D50D51D52D53D54D55D56D60D61D62D63D64D65D66C555D90D91D92D93D94D95D96Da0Da1Da2Da3Da4Da5Da6Db0Db1Db2Db3Db4Db5Db6Dc0Dc1Dc2Dc3Dc4Dc5Dc6Dd0Dd1Dd2Dd3Dd4Dd5Dd6De0De1De2De3De4De5De6Df0Df1Df2Df3Df4Df5Df6C555C666C777C888C999CaaaCbbbCcccCdddCeeeCfffD07D08D17D18D27D28D37D38D47D48D57D58D67D68D70D71D72D73D74D75D76D77D78D79D7aD7bD7cD7dD7eD7fD80D81D82D83D84D85D86D87D88D89D8aD8bD8cD8dD8eD8fD97D98Da7Da8Db7Db8Dc7Dc8Dd7Dd8De7De8Df7Df8"{
+
+   dir1 = getDirectory("Dossier Source ");
+   list = getFileList(dir1);
+   dir2 = getDirectory("Dossier Cible ");
+   //start = getTime();
+   run("Image Sequence...", "open=["+dir1+"] sort use");
+   getDimensions(width, height, channels, slices, frames);
+   new_width=round(width/binning);
+   new_height=round(height/binning);
+   setBatchMode(true); // runs up to 6 times faster
+   for (i=0; i<list.length; i=i+binningz) {
+   		showProgress(i+1, list.length);
+   		if(  IsAnImage(list[i])){
+   		open(dir1+list[i]);
+   		getPixelSize(unit, pixelWidth, pixelHeight);
+			run("Size...", "width="+new_width+" height="+new_height+" constrain average interpolation=Bilinear");
+			if(pixelWidth!=1) run("Set Scale...", "distance=1 known="+(pixelWidth*binning)+" pixel=1 unit="+unit+"");
+		  saveAs("Tiff", dir2+list[i]);		
+		  close();
+		   		}
+        }
+  setBatchMode(false); // runs up to 6 times faster
+  run("Image Sequence...", "open=["+dir2+"] sort use");
+  //print((getTime()-start)/1000);
+
+
+
+}
+macro 'Binning Action Tool Options'  {
+    //on right-click, the corresponding 'Options' macro is run
+    Dialog.create("Binning"); //e.g., put a dialog here
+    Dialog.addNumber("Binning :", binning);
+    Dialog.addCheckbox("Binning en z", true);
+    Dialog.show();
+    binning = Dialog.getNumber();
+    bz=Dialog.getCheckbox();
+    if (bz!=true) binningz=1;
+    else binningz=binning;
+    
+
+  	}
+
+
+
+
+
+////////////////////////////////////////////////////////////////label=RingArtefact////////////////////////////////////////////
+
+macro "RingArtefact Action Tool - C333D49D8aCfffD00D01D02D05D09D0cD0dD0eD0fD10D11D1dD1eD1fD20D2eD2fD30D3fD4fD5fD8fD9fDa0DafDb0DbeDbfDc0Dc1DcdDceDcfDd0Dd1Dd2DdcDddDdeDdfDe1De2De3De4DebDecDedDeeDefDf1Df2Df3Df4Df5Df6Df7Df8Df9DfaDfbDfcDfdDfeDffCfffD03D04D06D08D0aD0bD12D13D14D15D16D19D1aD1bD1cD21D22D23D24D25D26D29D2aD2bD2cD2dD31D32D33D34D3bD3cD3dD3eD40D41D42D43D4bD4cD4dD4eD50D51D52D53D5cD5dD5eD6fD7fD80D81D82D8cD8dD8eD90D91D92D93D9cD9dD9eDa1Da2Da3Da4DabDacDadDaeDb1Db2Db3Db4Db5Db9DbaDbbDbcDbdDc2Dc3Dc4Dc5Dc6Dc9DcaDcbDccDd3Dd4Dd5Dd6Dd9DdaDdbDe5De6De8De9DeaCcccD69D88D8bC888D47D9aCeeeD18D28D3aD60D61D6cD6eD70D83D9bDaaDb6Dc8Dd8De0De7C666D48D78D7aD84Da8CeeeD62D6dD71D72D7cD7dD7eDb8Dd7Df0CaaaD65D66D6bD75C555D45D67D6aD77CdddD07D17D27D35D58D5bD63D86Dc7C999D36Da9C777D54D68D85Da7CbbbD57C444D46CdddD44D56D73Db7C999D59D76C666D74D96Da6CbbbD89C555D55D64CaaaD4aD7bD87D97CcccD39D79D94Da5C444D5aD95D99C888D37D38D98"{
+run("8-bit");
+getSelectionBounds(x, y, width, height);
+if (x==0) waitForUser("Selection", "Faire une selection du centre des Artefacts ");
+getSelectionBounds(x, y, width, height);
+xcentre=x+(width/2);
+ycentre=y+(height/2);
+getDimensions(width, height, channels, slices, frames);
+BitDepth=bitDepth();
+orig_ID=getImageID();
+orig_width=width;
+orig_height=height;
+run("Hyperstack...", "title=RingFiltre type="+BitDepth+"-bit display=Grayscale width="+width+" height="+height+" channels="+channels+" slices="+slices+" frames="+frames+"");
+filtre_ID=getImageID();
+selectImage(orig_ID);
+setBatchMode(true);
+for (slice=1; slice<=nSlices; slice++) {
+          if (nSlices>1) run("Set Slice...", "slice=" + slice); 
+        	run("Polar Transformer", "method=Polar degrees=360 default for");
+					rename("Polar");
+					run("Stripes Filter", "filter=Wavelet-FFT direction=Vertical types=Daubechies wavelet=DB"+wavelet+" border=[Symmetrical mirroring] image=don't negative decomposition=0:"+decomposition+" damping="+damping+" large=100000000 small=5 tolerance=1 half=100 offset=10");
+					run("Polar Transformer", "method=Cartesian degrees=360 default for");
+					getDimensions(width, height, channels, slices, frames);
+					orig_x=(width/2)-xcentre;
+					orig_y=(height/2)-ycentre;
+					makeRectangle(orig_x, orig_y, orig_width, orig_height);//pour retrouver les memes dimentions que l image d origine
+					run("Crop");
+					run("Select All");
+					run("Copy");
+					close();
+					selectImage(filtre_ID);
+					if (nSlices>1) run("Set Slice...", "slice=" + slice);
+					run("Paste");
+					run("Select None");
+					selectWindow("Stripe filtered");
+					close();
+					selectWindow("Polar");
+					close();
+					selectImage(orig_ID);
+
+}
+setBatchMode(false);
+selectImage(filtre_ID);
+}
+
+macro 'RingArtefact Action Tool Options'  {
+    //on right-click, the corresponding 'Options' macro is run
+    Dialog.create("Parametres"); //e.g., put a dialog here
+    Dialog.addNumber(" W Wavelet de 1 a 43 :", wavelet);
+    Dialog.addNumber("L Niveaux Decomposition :", decomposition);
+    Dialog.addNumber("G Damping :", damping);
+    Dialog.show();
+    wavelet = Dialog.getNumber();
+    decomposition = Dialog.getNumber();;
+    damping = Dialog.getNumber();;;
+    
+
+  	}
+
+
+////////////////////////////////////////////////////////////////label=RingArtefact_test_DB////////////////////////////////////////////
+macro "RingArtefact_test_DB Action Tool - C000T4b12W"{
+
+run("8-bit");
+getSelectionBounds(x, y, width, height);
+if (x==0) waitForUser("Selection", "Faire une selection du centre des Artefacts ");
+xcentre=x+(width/2);
+ycentre=y+(height/2);
+getDimensions(width, height, channels, slices, frames);
+BitDepth=bitDepth();
+orig_ID=getImageID();
+orig_width=width;
+orig_height=height;
+//setBatchMode(true);
+run("Hyperstack...", "title=RingFiltreDB type="+BitDepth+"-bit display=Grayscale width="+width+" height="+height+" channels="+channels+" slices=43 frames="+frames+"");
+selectImage(orig_ID);
+for (i=1; i<=43; i++) {
+          run("Polar Transformer", "method=Polar degrees=360 default for");
+					rename("Polar");
+					run("Stripes Filter", "filter=Wavelet-FFT direction=Vertical types=Daubechies wavelet=DB"+i+" border=[Symmetrical mirroring] image=don't negative decomposition=0:"+decomposition+" damping="+damping+" large=100000000 small=5 tolerance=1 half=100 offset=10");
+					run("Polar Transformer", "method=Cartesian degrees=360 default for");
+					getDimensions(width, height, channels, slices, frames);
+					orig_x=(width/2)-xcentre;
+					orig_y=(height/2)-ycentre;
+					makeRectangle(orig_x, orig_y, orig_width, orig_height);
+					run("Crop");
+					run("Select All");
+					run("Copy");
+					close();
+					selectWindow("RingFiltreDB");
+					if (nSlices>1) run("Set Slice...", "slice=" + i);
+					run("Paste");
+					run("Select None");
+					selectWindow("Stripe filtered");
+					close();
+					selectWindow("Polar");
+					close();
+					selectImage(orig_ID);
+				}
+
+
+//setBatchMode(false);
+}
+
+////////////////////////////////////////////////////////////////label=RingArtefact_test_decomp////////////////////////////////////////////
+macro "RingArtefact_test_decomp Action Tool - C000T4b12L"{
+
+run("8-bit");
+getSelectionBounds(x, y, width, height);
+if (x==0) waitForUser("Selection", "Faire une selection du centre des Artefacts ");
+xcentre=x+(width/2);
+ycentre=y+(height/2);
+getDimensions(width, height, channels, slices, frames);
+BitDepth=bitDepth();
+orig_ID=getImageID();
+orig_width=width;
+orig_height=height;
+//setBatchMode(true);
+run("Hyperstack...", "title=RingFiltreDecomp type="+BitDepth+"-bit display=Grayscale width="+width+" height="+height+" channels="+channels+" slices=20 frames="+frames+"");
+selectImage(orig_ID);
+for (i=1; i<=20; i++) {
+          run("Polar Transformer", "method=Polar degrees=360 default for");
+					rename("Polar");
+					run("Stripes Filter", "filter=Wavelet-FFT direction=Vertical types=Daubechies wavelet=DB"+wavelet+" border=[Symmetrical mirroring] image=don't negative decomposition=0:"+i+" damping="+damping+" large=100000000 small=5 tolerance=1 half=100 offset=10");
+					run("Polar Transformer", "method=Cartesian degrees=360 default for");
+					getDimensions(width, height, channels, slices, frames);
+					orig_x=(width/2)-xcentre;
+					orig_y=(height/2)-ycentre;
+					makeRectangle(orig_x, orig_y, orig_width, orig_height);
+					run("Crop");
+					run("Select All");
+					run("Copy");
+					close();
+					selectWindow("RingFiltreDecomp");
+					if (nSlices>1) run("Set Slice...", "slice=" + i);
+					run("Paste");
+					run("Select None");
+					selectWindow("Stripe filtered");
+					close();
+					selectWindow("Polar");
+					close();
+					selectImage(orig_ID);
+				}
+
+
+//setBatchMode(false);
+}
+
+////////////////////////////////////////////////////////////////label=RingArtefact_test_damp////////////////////////////////////////////
+
+macro "RingArtefact_test_damp Action Tool - C000T4b12G"{
+
+run("8-bit");
+getSelectionBounds(x, y, width, height);
+if (x==0) waitForUser("Selection", "Faire une selection du centre des Artefacts ");
+xcentre=x+(width/2);
+ycentre=y+(height/2);
+getDimensions(width, height, channels, slices, frames);
+BitDepth=bitDepth();
+orig_ID=getImageID();
+orig_width=width;
+orig_height=height;
+//setBatchMode(true);
+run("Hyperstack...", "title=RingFiltreDamp type="+BitDepth+"-bit display=Grayscale width="+width+" height="+height+" channels="+channels+" slices=40 frames="+frames+"");
+selectImage(orig_ID);
+for (i=1; i<=40; i++) {
+          run("Polar Transformer", "method=Polar degrees=360 default for");
+					rename("Polar");
+					run("Stripes Filter", "filter=Wavelet-FFT direction=Vertical types=Daubechies wavelet=DB"+wavelet+" border=[Symmetrical mirroring] image=don't negative decomposition=0:"+decomposition+" damping="+i+" large=100000000 small=5 tolerance=1 half=100 offset=10");
+					run("Polar Transformer", "method=Cartesian degrees=360 default for");
+					getDimensions(width, height, channels, slices, frames);
+					orig_x=(width/2)-xcentre;
+					orig_y=(height/2)-ycentre;
+					makeRectangle(orig_x, orig_y, orig_width, orig_height);
+					run("Crop");
+					run("Select All");
+					run("Copy");
+					close();
+					selectWindow("RingFiltreDamp");
+					if (nSlices>1) run("Set Slice...", "slice=" + i);
+					run("Paste");
+					run("Select None");
+					selectWindow("Stripe filtered");
+					close();
+					selectWindow("Polar");
+					close();
+					selectImage(orig_ID);
+				}
+
+
+//setBatchMode(false);
+}
+
+
+macro "About These Macros Action Tool - C000C111C222C333C444C555D54D55D63D73D7cD7dD83D88D89D8aD8cD8dD93D97Da3Da4Da5Da6C555D7aDb5C555D72D82C555D45Da7C555D98C555D53C555D79C555C666Db4C666Db6C666C777D92C777D87C777D64C777D62C777C888D44C888D96C888D78C999D94C999CaaaCbbbD99Db3CbbbDa2CbbbDa8CbbbCcccDb7CcccD52CcccD43CcccD65CcccCdddD74CdddD77CdddD86CdddD84D95CdddD00D01D02D03D04D05D06D07D08D09D0aD0bD0cD0dD0eD0fD10D11D12D13D14D15D16D17D18D19D1aD1bD1cD1dD1eD1fD20D21D22D23D24D25D26D27D28D29D2aD2bD2cD2dD2eD2fD30D31D32D33D34D35D36D37D38D39D3aD3bD3cD3dD3eD3fD40D41D42D46D47D48D49D4aD4bD4cD4dD4eD4fD50D51D56D57D58D59D5aD5bD5cD5dD5eD5fD60D61D66D67D68D69D6aD6bD6cD6dD6eD6fD70D71D75D76D7bD7eD7fD80D81D85D8bD8eD8fD90D91D9aD9bD9cD9dD9eD9fDa0Da1Da9DaaDabDacDadDaeDafDb0Db1Db2Db8Db9DbaDbbDbcDbdDbeDbfDc0Dc1Dc2Dc3Dc4Dc5Dc6Dc7Dc8Dc9DcaDcbDccDcdDceDcfDd0Dd1Dd2Dd3Dd4Dd5Dd6Dd7Dd8Dd9DdaDdbDdcDddDdeDdfDe0De1De2De3De4De5De6De7De8De9DeaDebDecDedDeeDefDf0Df1Df2Df3Df4Df5Df6Df7Df8Df9DfaDfbDfcDfdDfeDff"{
+open(getDirectory("macros")+"toolsets/PHIV_Tomo_toolset");
+}
+
+
+

@@ -1,0 +1,890 @@
+// PHIV Automate 880 Tool Set v2
+// Marc LARTAUD MRI PHIV
+// Toolset du concatene blocks from automate 880
+
+/*
+Install plugins
+Bioformat, StackReg, TurboReg, HyperStackReg v05
+https://sites.google.com/site/vedsharma/imagej-plugins-macros/hyperstackreg
+
+czi_import : to convert czi files in a folder in tiff files in another folder with metadata
+
+Auto_aboute : from tif files in same folder
+	create un MIP folder with max intensity projectionen 
+	create a sequences files in a new folder depending thickness of vibratome
+		in option : bleach corrector or gamma
+		http://wiki.cmci.info/downloads/bleach_corrector
+		Simple Ratio, Fit, Histogram Matching Method
+	x y Zen positions saved in Roi Manager
+	
+Virtual stack un open virtual stack from a sequence folder with metadata
+
+Crop to obtain stack small enough to be open with free RAM
+	Choose first and last slide
+	Choose ROI
+	Choose Image Type
+	Choose resampling in xy or z
+
+Aligne to realign by translation in option
+	Automatic StackReg
+	Manual : Add points selection on corresponding detail in the Roi Manager before and after each shift
+	
+Ablation to keep only good slices
+	Make selection and add in Roi Manager on first and latest slides to keep
+
+
+*/
+
+var methode="None";
+var gamma=1;
+var	thickness=60;
+var	delta_z=2;
+var saturation=0.1;
+
+
+	 
+macro "czi_import Action Tool - C223D39D49D59C58fD9eDaeDbeDceDdeDebDecDedC556D36D46D56D69CeeeD87C444D4fD5fD6fD7fD8fDd4Dd5Dd6Dd7Dd8Dd9CcccDeaDeeDfbDfcDfdC677D66CfffD00D01D02D03D04D05D06D07D08D09D0aD0bD0cD0dD0eD0fD10D11D12D13D14D15D16D17D18D19D1aD1bD1cD1dD1eD1fDb0Dc0Dc1Dd0Dd1Dd2De0De1De2De3De4De5De6De7De8De9DefDf0Df1Df2Df3Df4Df5Df6Df7Df8Df9DfaDfeDffC334D7dDb7Dc7CaaaDa0Db1Dc2Dd3C777D20D21D22D23D24D25D26D27D28D29D2aD2bD2cD2dD2eD2fD30D3fD40D50D60D70D80D90C445D7cCdddD76D97Da6C778D55C333D9fDafDbfDcfDdaDdfC69fD9cDacDbcDccDdcC667Dc6C445D37D47D57D67CcddD34D44D54D64D65D74D84D94Da4Db4Dc4C778Db6C345D7eD9bDabDbbDcbCbbcD68D78D88D98Da8Db8Dc8C556D58CddeD86D96C58dD8dC233D3bD4bD5bD6bD7bC58fD9dDadDbdDcdDddC667D77CbccD35C678D31D41D45D51D61D71D81D91Da1Db2C344D33D43D53D63D73D83D93Da3Db3Dc3C9aaD79D89D99Da9Db9Dc9C456D3cD3dD4cD4dD5cD5dD6cD6dCdddD75D85D95Da5Db5Dc5C889D3aD4aD5aD6aD7aD8aD9aDaaDbaDcaC334D38D48C668D32D42D52D62D72D82D92Da2C556Da7C223D8bC00cDdbC446D3eD4eD5eD6eC468D8eC568D8c"{
+	run("Close All");
+	dir = getDirectory("Input folder");
+	list = getFileList(dir);
+	dir2 = getDirectory("Output folder");
+	tab_lut = newArray(32);
+	
+	
+	for (i=0; i<list.length; i++) {	
+			showProgress(i/list.length);
+			print ( list[i]+" "+i+1+"/"+list.length);			
+			 if (endsWith(list[i], "czi")){											
+			 nom=substring(list[i],0,indexOf(list[i],"."));		
+			 run("Bio-Formats Importer", "open=["+dir+list[i]+"] autoscale color_mode=Default view=Hyperstack stack_order=XYCZT");
+			infos=getImageInfo(); // metadata Bioformats
+			tab_lut=get_lut(infos);
+			Stack.getDimensions(width, height, channels, slices, frames);
+				
+			for (j=1; j<channels+1; j++) {
+				run("Duplicate...", "duplicate channels="+j);
+				if (slices>1)	run("Reverse"); //reverse stack
+				rename("temp"+j);
+				selectWindow(list[i]);				
+			}
+			selectWindow(list[i]);
+			close();
+			if (channels>1){
+				run("Concatenate...", "all_open title=[Concatenated Stacks]");
+				run("Stack to Hyperstack...", "order=xyzct channels="+channels+" slices="+slices+" frames=1 display=Composite");
+			}
+			if(channels==1) run(apply_lut(tab_lut[0]));
+			else {
+				for (j=1; j<channels+1; j++) {
+					Stack.setChannel(j);
+					run(apply_lut(tab_lut[j-1]));			
+					}
+			}
+			setMetadata("Info", infos); // Inscrit metadata Bioformats
+			saveAs("Tiff", dir2+nom+".tif");
+			close();
+			
+		}
+	}
+	print ("End !");
+}
+
+
+
+macro "Auto_aboute Action Tool - Cb00D7cDacCacfD3eD4eD5eD6eD7eD8eD9eDaeDbeDceDdeDeeDfdC9adD69D6aCdefD30C47bD74D75D76D77D78D79D7aCcdfD29D39D49D59Dc9Dd9De9Df9CccdD1eCdefD22D32D41Dd1Dd2De2C668DabCbcfD4bCaceD1bD1cCdefD23D31D33Dc1Dd3De3Df3C98bD6bCcdfD26D27D36D37D46D47D56D57Dc6Dc7Dd6Dd7De6De7Df2Df6Df7CddeDffCfffDf0C924D73CacfD2dD3dDddDedCbadD5bCdefD24D25D34D35D44D45D54D55Dc4Dc5Dd4Dd5De1De4De5Df4Df5C58dD84D85D86D87D88D89D8aD94D95D96D97D98D99D9aCcdfD28D38D48D58Dc8Dd8De8Df8CcdfD21D40D50D60D70D80D90Da0Db0Dc0CfffD03D04D05D06D07D08D09D0aD0bD0cD0dCc45Db3CbdfD2aD2bD3aD3bD4aD5aDcaDdaDdbDeaDebDfaDfbCbceD15D16D17Ca9cDbbCddfD51D61D71D81D91Da1Db1CfffD00D01D02D0eD0fD10Cb23D5cCabdD64D65CdefDe0CbcfDb6Db7CeefD11C57bDa5Da6Da7Da8Da9DaaCbceDcbC9acD4fD5fD6fD7fD8fD9fDafDbfDcfDdfCddeD42Cb44D63CbcfD2cD3cDdcDecDfcCabdDfeCb8aD6dD7dD8dD9dDadDbdCbdeD14Cb8bD5dCb11DbcC9bdD68CcdeDf1C57aDa4CacfD4dDbaCddeD43C934D83D93CbadDcdCc67D53C9bcD3fCc33D62D72D82D92Da2Db2C9beD2eCcdfDb4Db5CeefD20CbceD18D19D1aCddfDd0Cc45D52CbcdD2fCbcfDb8Db9CdabDc2Cb01D6cD8cD9cCcdeD12D13C669D7bC924Da3C9bdD66D67C67aD8bD9bCbbeD4cCb8aDccCabcDefCeffD1fCaceD1dCdabDc3"{
+	first_slice=newArray(0);
+	last_slice=newArray(0);
+	position_x=newArray(0);
+	position_y=newArray(0);
+	position_z=newArray(0);
+	
+	run("Close All");
+	dir = getDirectory("Input folder");
+	list = getFileList(dir);
+	
+	  html = "<html>"
+     +"<a href=\"http://imagej.net/Bleach_Correction\">Bleach Correction</a>";
+     
+	
+	Dialog.create("Parameters");
+	Dialog.addNumber("Thickness from vibratome(µm):", thickness);
+	Dialog.addChoice("Normalization", newArray("None","Simple ratio", "Exponential Fitting", "Histogram Matching"),methode) ;
+	Dialog.addHelp(html);
+	Dialog.addNumber("Gamma ", gamma);
+	
+	Dialog.show();
+	thickness = Dialog.getNumber();
+	methode = Dialog.getChoice();
+	gamma=Dialog.getNumber();
+		
+	getDateAndTime(year, month, dayOfWeek, dayOfMonth, hour, minute, second, msec);
+	suffix="_"+hour+"_"+minute+"_"+second;
+	
+	dira=substring(dir,0,lastIndexOf(dir,File.separator));
+	  dir2 = dira+"_MIP"+suffix+File.separator;
+	  File.makeDirectory(dir2);
+	 
+	 dir3 = dira+"_sequence"+suffix+File.separator;
+	 File.makeDirectory(dir3);
+	  
+	  
+	
+	
+	tab_lut = newArray(32);
+	slice_max=1;
+	
+	
+	
+	//////////Boucle sur les fichiers czi du dossier dir/////////////////
+	for (i=0; i<list.length; i++) {	
+			showProgress(i/list.length);	
+			if (endsWith(list[i], "tif"))
+			
+			 {											
+			 nom=substring(list[i],0,indexOf(list[i],"."));	
+			open(dir+list[i]); //tif deja converti
+			infos=getImageInfo();
+			positions=get_positions(infos);
+			print ("image = "+list[i]);
+			delta_z=positions[3]; // interval en z
+			print ("delta_z = "+delta_z);
+			tab_lut=get_lut(infos);// luts
+			Stack.getDimensions(width, height, channels, slices, frames);
+			position_x=Array.concat(position_x,positions[0]);// 
+			position_y=Array.concat(position_y,positions[1]);
+			position_z=Array.concat(position_z,positions[2]);			
+			slice_max=Slice_Int_Max();
+			print ("slice_max = "+slice_max);	
+			nb_slice=thickness/delta_z;	//nombre de coupes a recuperrer			
+						
+			if (slice_max+nb_slice>=slices) {
+				slice_debut=(slices-nb_slice);
+				slice_fin=slices;			
+			}
+			else {
+				slice_debut=slice_max;
+				slice_fin=slice_max+nb_slice;		
+			}
+			
+			
+			
+			print ("first slice = "+slice_debut);	
+			print ("last slice = "+slice_fin);	
+			
+			first_slice=Array.concat(first_slice,slice_debut);
+			last_slice=Array.concat(last_slice,slice_fin);
+			
+			run("Z Project...", "projection=[Max Intensity]");
+			if(channels==1) run(apply_lut(tab_lut[0]));
+			else {
+				for (j=1; j<channels+1; j++) {
+					Stack.setChannel(j);
+					run(apply_lut(tab_lut[j-1]));			
+					}
+			}
+			if (channels>1){
+				Stack.setDisplayMode("composite");
+				setMetadata("Info", infos);
+				run("Image Sequence... ", "format=TIFF use save=["+dir2+nom+".tif]");
+				/*temp=getImageID();				
+				run("Stack to RGB");
+				saveAs("Tiff", dir2+nom+"_MIP.tif");
+				close();
+				selectImage(temp);*/
+				close();			
+			} else {
+				saveAs("Tiff", dir2+nom+"_MIP.tif");
+				close();			
+			}
+						
+			selectWindow(list[i]);	
+			
+			
+			for (j=1; j<channels+1; j++) {
+				run("Duplicate...", "duplicate channels="+j+" slices="+slice_debut+"-"+slice_fin);				
+				//run("Reverse");//retourne le stack
+				if (methode!="None") {
+					stackorigid=getImageID();
+					if (methode=="Simple ratio") run("Bleach Correction", "correction=[Simple Ratio] background=0");
+					if (methode=="Exponential Fitting"){
+						run("Bleach Correction", "correction=[Exponential Fit (Frame-Wise Double Fit)]");
+						selectWindow("y = a*exp(-bx) + c");
+						close();
+						selectWindow("y = a*exp(-bx) + c");
+						close();
+						} 
+					if (methode=="Histogram Matching") run("Bleach Correction", "correction=[Histogram Matching]");
+					if (gamma!=1) run("Gamma...", "value="+gamma+" stack");
+					rename("temp"+j);
+					selectImage(stackorigid);
+					close();
+				}
+				else {
+					if (gamma!=1) run("Gamma...", "value="+gamma+" stack");
+					rename("temp"+j);			
+				}
+				selectWindow(list[i]);				
+			}
+			selectWindow(list[i]);
+			
+			close();
+			if (channels>1){
+				run("Concatenate...", "all_open title=[Concatenated Stacks]");
+				print ("c="+channels);
+				print ("s="+nb_slice);
+				run("Stack to Hyperstack...", "order=xyzct channels="+channels+" slices="+(nb_slice+1)+" frames=1 display=Composite");
+			}
+			if(channels==1) run(apply_lut(tab_lut[0]));
+			else {
+				for (j=1; j<channels+1; j++) {
+					Stack.setChannel(j);
+					run(apply_lut(tab_lut[j-1]));			
+					}
+			}
+			
+			run("Image Sequence... ", "format=TIFF name=b"+IJ.pad(i+1,3)+" save=["+dir3+"]");
+				close();				
+					
+			
+			
+		}
+		}
+	
+
+	
+list2 = getFileList(dir2);
+open(dir2+list2[0]);
+	setMetadata("Info", infos);
+	run("Save");
+	close();
+run("Image Sequence...", "open=["+dir2+list2[0]+"] sort use");
+run("Stack to Hyperstack...", "order=xyczt(default) channels="+channels+" slices="+(list2.length/channels)+" frames=1 display=Composite");
+	if(channels==1) run(apply_lut(tab_lut[0]));
+				else {
+					for (j=1; j<channels+1; j++) {
+						Stack.setChannel(j);
+						run(apply_lut(tab_lut[j-1]));			
+						}
+				}
+				setMetadata("Info", infos);
+		
+	setTool("rectangle");
+	
+	
+	
+	
+list3 = getFileList(dir3);	
+	open(dir3+list3[0]);
+	setMetadata("Info", infos);
+	run("Save");
+	close();
+	run("Image Sequence...", "open=["+dir3+list3[0]+"] sort use");
+	run("Stack to Hyperstack...", "order=xyczt(default) channels="+channels+" slices="+(list3.length/channels)+" frames=1 display=Composite");
+	if(channels==1) run(apply_lut(tab_lut[0]));
+				else {
+					for (j=1; j<channels+1; j++) {
+						Stack.setChannel(j);
+						run(apply_lut(tab_lut[j-1]));			
+						}
+				}
+				setMetadata("Info", infos);
+		
+	setTool("rectangle");
+	/*Array.show(first_slice);
+	Array.show(last_slice);
+	Array.show(position_x);
+	Array.show(position_y);
+	Array.show(position_z);*/
+	slice_position=0;
+	for (i=0;i<position_x.length-1;i++){
+		zen_shift_x=Array.concat(zen_shift_x,position_x[i+1]-position_x[i]);
+		zen_shift_y=Array.concat(zen_shift_y,position_y[i+1]-position_y[i]);
+		slice_position=slice_position+last_slice[i]-first_slice[i]+1;
+		Stack.setSlice(slice_position);//select slice n-1
+		makePoint(position_x[i]-position_x[0]+(width/2), position_y[i]-position_y[0]+(height/2));// make point
+		roiManager("Add");// add roi manager
+		Stack.setSlice(slice_position+1);//select slice n
+		makePoint(position_x[i+1]-position_x[0]+(width/2), position_y[i+1]-position_y[0]+(height/2));// make point
+		roiManager("Add");// add roi manager
+
+		
+	}
+	
+	Stack.setSlice(1);
+	roiManager("Deselect");
+	roiManager("Save",dira+"ROI"+suffix+".zip");
+	/*
+	Array.show(zen_shift_x);
+	Array.show(zen_shift_y);*/
+	showMessage("End");
+
+
+	
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+macro "Virtual_stack Action Tool - Cc02D7cC038D1bC8b0D83Ccd8D60C6a1D56D66C392D68C9b1D27D91Da8Dd2CfffD00D01D02D03D0dD0eD0fD10D11D12D1dD1eD1fD20D21D2eD2fD30D3fD40D4fDafDbeDbfDc0DceDcfDd0DddDdeDdfDe0DecDedDeeDefDf0DfbDfcDfdDfeDffC492D58C814D1aC9b1D42D61D73D93Da3Dc2Dc3CcdeD6fC8b1D24D34D44D54D64D95Da5Db5Dc5C18cDbcDcbCfb0Dd7Cc21D5bC159D5dC9b0D52D62D71D72D81D82D92Da2Db2Db3Dd3De3Df3CcdeDaeC6a2D36D46Cac4D23Cbc0De5C6a2D26D37C913D5cCffeD31Cea0D18Dc8C69bD3dCed0D49Db8Cc12D19C436D0aC7b1D65D75CdeaD90C7b1D85Cab2D06Cac0Df4C6a2D79D97Da7C647DbbCeffDdcC7a2D05C29dDeaCec0Df5Cd61D6bC06bD7eC8b1D48Dc6CefdDa0De1C7a1D16D25D35D45D55D89Ccd7D80Ccc0Dd6Ce61D8bCc02D4bCfffD3eDcdCeb0D39CaceDbdCfd0Da9Cc02D8cC337D2bC8b1D33D43D53D63Db4Dc4Dd4De4Cce9D41C7a1D15D69D76D86D96Da6Db6C492D88C9b1Db7C5a2D57D67D77D87C814D3bCceeD8fC28cDadCfc0D9aCe31Dd8C16aD4dCcdeD2dCbd6D32D70Ccc0D59D99Cd72D08Cb02D2aCfffDb0Df1C7bdDccCfc0D07Cd11Dc9C447D6dCdeaDd1Cac2D51C458DacCfffD5fD9fC59bD5eCfc0D28De6Ce61DaaC16aD9dCefdD22Ccd7Dc1Cdc0D17Ce80Db9Cc12DabCcdeD4eCfd0D6aD7aD8aCc02D6cC049D3cC8b1D74D84D94Da4Dd5C492D78C592D47D98C537D7dCd21D9bC259D2cCbc4Db1Df2Ca13D9cC79bD1cCc12D3aC437D4cCac2Da1De2C757Df8C4adDdbCd51D29C17bD8eCdc0D38Ce80Df6Cb12D09CbdeD7fCd11Df7C149D0bC8b2D14C935DcaCcefDebC19dDf9Cfb0D5aCe51De7C16aD6eCefcD50Cb13Dd9C9deDfaCd12DbaC448D8dCdebD13C469De9C59cD9eCd61D4aC27bDdaCbd8D04Cdd0Dc7Ce81D7bCc12De8CcdeD0c"{
+
+
+	dir1 = getDirectory("Input folder");
+	list = getFileList(dir1);
+	
+	open(dir1+list[0]);
+	
+	infos=getImageInfo();
+	tab_lut=get_lut(infos);
+	positions=get_positions(infos);
+	delta_z=positions[3];
+	Stack.getDimensions(width, height, channels, slices, frames);
+	if (channels!=1) {
+		diapos=list.length;
+		}
+	else {
+		channels=get_canaux(infos);
+		diapos=list.length/channels;	
+	}
+	//if (bitDepth() ==24) channels=1;
+	close();
+	
+	run("Image Sequence...", "open=["+dir1+list[0]+"] sort use");
+	
+	
+	if (bitDepth() !=24)	{
+	if(channels==1) run(apply_lut(tab_lut[0]));
+				else {
+					run("Stack to Hyperstack...", "order=xyczt(default) channels="+channels+" slices="+diapos+" frames=1 display=Composite");
+					for (j=1; j<channels+1; j++) {
+						Stack.setChannel(j);
+						run(apply_lut(tab_lut[j-1]));			
+						}
+				}
+		}
+	setMetadata("Info", infos);
+	run("Properties...", "voxel_depth="+delta_z);
+	
+	setTool("rectangle");
+	
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+macro "Crop Action Tool - C16fD0fD1fD2fD3fD4fD5fD6fD7fD8fD9fDafDefDffC48fDbfC09fD07D17D67CcefD3cDdbC08fD09D19D99Da9De9Df9C9bfDbeC1afD27D77CfffD33D42D47D4aDa4Db5C17fD0dD1dD2dC7afDadC0cfD00D01D10D11D20D60D61D70D71D80D90Da0Da1Db0Db1Dc0Dc1Dd0CdffD23D35Dc3C18fDeaC9efDd2De1Df0C2afDa7CfffD34D43D44D4bD4cD5cD6cD7cD8cD9cDacDb4DbcDc4Dc5Dc6Dc7Dc8Dc9DcaDcbDccDcdDceDdcDecC16fD0eD1eD2eD3eD4eD5eD6eD7eD8eD9eDaeDeeDfeC4bfD56D57C0bfD02D81D91CcffD41C09fD18De8Df8CadfD6aD79D88D97C1bfD12C08fD0aD0bD1aD1bC7cfDd6Dd7CfffD45D46D48D49D5bC28fD2cCbefDd3C2cfDf2C5afD59C0afD05D06D16D66D76De5De6Df5CcefD36C08fDfaCacfD7bD8bD9bDabDebC0afDe4Df4C07fD0cD1cC7cfDd9CeffD24D74D84D94C19fD29CadfDa6C2bfDe3C7afD5dD6dD7dCdffD32D63D73D83D93Da3Db3C09fD08Da8CbdfDddC1cfD62D92Da2Db2Dd1C9cfD69C29fD89D98CbefD13C2cfD22Dc2C4afD58CdefD3aD3bC9cfDb9DbaC1afD86C8afDcfCeffD53C18fD8aD9aC3bfD65D75D85C4bfD25D95C09fDe7Df6Df7C9dfDb7Db8C1bfD72D82C7dfDd4Dd5C38fDdfCcefD5aDa5C1cfD30De0C7afD4dD8dD9dDedCdefD37D38D39DbbC0bfDf3C8bfDfcC19fD28D68CadfDb6C5cfD52C9dfD78D87D96C29fD7aCbefD31C3cfD51C59fD3dC18fDaaC3bfD15C0cfD50C28fD2aD2bCbdfD6bC7cfDd8CaefDe2Df1C2cfD40C5afDfbC1afD26C7bfDdeCeffD54D64C1cfD21CcdfDbdC1bfD03C8bfDdaC6cfD55C38fDfdCcefD14C1bfD04"{
+
+
+	getDateAndTime(year, month, dayOfWeek, dayOfMonth, hour, minute, second, msec);
+	suffix="_"+hour+"_"+minute+"_"+second;
+
+
+	origid=getImageID();
+	infos=getImageInfo();
+	positions=get_positions(infos);
+	delta_z=positions[3];
+	dir=getDirectory("image");
+	dira=substring(dir,0,lastIndexOf(dir,File.separator));
+	dir2 = dira+File.separator+"crop"+suffix+File.separator;
+	File.makeDirectory(dir2);
+	list = getFileList(dir2);
+	for (i=0; i<list.length; i++) {
+		File.delete(dir2 + list[i]);
+	}
+	 if (isOpen("Log")) {
+         selectWindow("Log");
+         run("Close");
+     } 
+	
+	
+	Stack.getDimensions(width, height, channels, slices, frames);
+	waitForUser("Choose first slice");
+	Stack.getPosition(channel, slice, frame) ;
+	slice_debut=slice;
+	waitForUser("Choose last slice");
+	Stack.getPosition(channel, slice, frame) ;
+	slice_fin=slice;
+	waitForUser("Rectangular selection to keep");
+	getSelectionBounds(x, y, width, height);
+	
+	Dialog.create("New Image");
+	Dialog.addChoice("Type:", newArray("RGB","8-bit","16-bit"));
+	Dialog.addSlider("Resampling factor xy", 1, 10, 1);
+	Dialog.addSlider("Resampling factor z", 1, 10, 1);
+	Dialog.show();
+	type = Dialog.getChoice();
+	resample_xy=Dialog.getNumber();
+	resample_z=Dialog.getNumber();
+	
+	width=width/resample_xy;
+	
+	height=height/resample_xy;
+	
+	depth=(slice_fin-slice_debut+1)/resample_z;
+	
+	delta_z2=delta_z*resample_z;
+	//run("Properties...", "voxel_depth="+delta_z);
+	
+	//gestion de la memoire
+	mem=IJ.freeMemory();
+	mem1=substring(mem, 0, indexOf(mem, "MB"));
+	mem1=parseInt(mem1);
+	mem2=substring(mem, indexOf(mem, "of")+3, lastIndexOf(mem, "MB"));
+	mem2=parseInt(mem2);
+	mem_dispo=mem2-mem1;
+	print("Free Ram (Mo): "+mem_dispo);
+	
+	
+	if (type=="RGB") cod_px=4;
+	if (type=="8-bit") cod_px=channels+((channels%2)*2);
+	if (type=="16-bit") cod_px=channels*2;
+	
+	taille_image=width*height*depth*cod_px/1024000;
+	/*print (width);
+	print (height);
+	print (depth);
+	print (cod_px);*/
+	print ("Image size (Mo) : "+taille_image);
+	
+	//if(mem_dispo<taille_image)  exit("Out of memory !");
+	
+	
+	for (i=slice_debut;i<=slice_fin;i=i+resample_z)
+		{
+			showProgress(-i/depth);
+			Stack.setSlice(i);
+			nomimage=getMetadata("Label");
+			if (i==slice_debut) premier_nom=nomimage+".tif";
+			run("Duplicate...", "title=temp");
+			if (type=="RGB") {
+				run("Stack to RGB");
+				selectWindow("temp");
+				close();
+				selectWindow("temp (RGB)");
+				rename("temp");				
+				}
+			if (type=="8-bit") run("8-bit");
+			run("Size...", "width="+width+" height="+height+" constrain average interpolation=Bilinear");
+			ind=lastIndexOf(nomimage, "_");
+			nomimage=substring(nomimage, 0, ind);
+			rename(nomimage+".tif");
+			setMetadata("Info", infos);
+			run("Image Sequence... ", "format=TIFF use save=["+dir2+"]");
+			close();
+			list3 = getFileList(dir2);	
+			open(dir2+list3[0]);
+			setMetadata("Info", infos);
+			run("Save");
+			close();			
+			selectImage(origid);			
+		}
+		
+	
+	if (type=="RGB") {
+			run("Image Sequence...", "open=["+dir2+premier_nom+"] sort");
+			cropid=getImageID();
+			}
+	else {
+			
+			list = getFileList(dir2);
+			open(dir2+list[0]);
+			//Stack.getDimensions(width, height, channels, slices, frames);
+			infos=getImageInfo();
+			tab_lut=get_lut(infos);
+			//Array.show(tab_lut);
+			channels=get_canaux(infos);
+			//print (channels);
+			close();
+			run("Image Sequence...", "open=["+dir2+list[0]+"] sort");
+			
+			
+			run("Stack to Hyperstack...", "order=xyczt(default) channels="+channels+" slices="+(list.length/channels)+" frames=1 display=Composite");
+			cropid=getImageID();
+			
+			if(channels==1) run(apply_lut(tab_lut[0]));
+				else {
+					for (j=1; j<channels+1; j++) {
+						Stack.setChannel(j);
+						run(apply_lut(tab_lut[j-1]));			
+						}
+				}
+	
+	}
+	setMetadata("Info", infos);	
+	selectImage(cropid);
+	run("Properties...", "voxel_depth="+delta_z2);
+	selectImage(origid);
+	run("Properties...", "voxel_depth="+delta_z);
+	selectImage(cropid);
+	
+	setTool("rectangle");
+	
+}
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+macro "Aligne Action Tool - C211D7eD7fC9cdD19D32D52Db2Dc3C38bD2cD35D3cD4cD5cDccCfffD00D01D02D03D04D05D06D07D0fD10D12D17D1fD20D21D2fD30D3fD40D4fD50D5fD90Da0DafDb0DbfDc0Dc1DcfDd0Dd1Dd2Dd3Dd4Dd5Dd6Dd7DdfDe0De1De2De3De4De5De6De7De8DefDf0Df1Df2Df3Df4Df5Df6Df7Df8Df9DfaDfbDfcDfdDfeDffC38aD96Db6CdefDeaC59cDdbC357D66CcddD1eC49cD1bD54D5bC48aD1dCfffD11CbbbD80C222D75D76D77CbddD2eD3eD4eD5eDbeC49cD2bD3bD44D4bD94D9bDa4DabDb4DbbC38aD9dCfffDa8Dd8C8bdDc4C478D84CdeeD27C5acD2aD33D3aD43D4aD53D5aD93D9aDa3DaaDb3DbaDcaC999D68D6fCfffD08D13D14D15D16D31D41D51D91D9fDa1Db1CacdD37D47D57D97Da7Db7C222D79D7aD7bC9cdDd9C49bD1cC38aD2dD3dD4dD5dDadDbdDcdCeffD0eD48D98Db8De9C7bcD24C367D6bD85CcdeD0cD0dDc2DdeC689D82C323D73D74C38bD45D55D95D9cDa5DacDb5DbcCfffD28D38DeeC8cdD39D42D59D92D99Da2Da9Db9Dc9C478D83CdeeDc7DecCaaaD88D8fC212D7cD7dC38aD36D46D56Da6CdffD09C6acDdaC367D65D8cCbdeD22C689D62D89C332D71CeffD58Dc8C8bdD29C478D8aCceeD0aD0bC999D61C322D78CbddD9eDaeDceC49cD34DcbC8bcDc5C468D64D6aD8bC789D87C333D72CeffD18C788D67D6eCdeeDebDedCaaaD60C5acD1aC367D6cD86D8dC59aDddC49bDdcC8bcDc6C678D69C7abD26C478D63C8bdD23C889D8eC434D70CaaaD81C7acD25C8cdD49C356D6d"{
+	
+	Dialog.create("Alignement");
+	Dialog.addChoice("Type:", newArray("Point par point dans le RoiManager","StackReg","HyperStackReg"));
+	Dialog.show();
+	method = Dialog.getChoice();
+	infos=getImageInfo();
+	if (method=="StackReg") {
+	if(is("Virtual Stack")) run("Duplicate...", "title=[] duplicate");
+	run("StackReg ", "transformation=[Translation]");
+		for (i=1; i<=2; i++) {
+		 showProgress(-i/2);		 
+		}	
+	}
+	else if (method=="HyperStackReg") {
+		Dialog.create("Alignement Channel");
+		Dialog.addNumber("Reference Channel?", 1)
+		Dialog.show();
+		channel_ref = Dialog.getNumber();
+		if(is("Virtual Stack")) run("Duplicate...", "title=[] duplicate");
+		run("HyperStackReg v05", "transformation=Translation channel"+channel_ref+" ");
+	}
+	else {
+	
+	setTool("point");
+	waitForUser("Add in Roi Manager\nPoint selection on correspondant detail before shift\nPoint selection on correspondant detail after shift\nsame thing for all shifts");
+	
+	origid=getImageID();
+	
+	tab_lut=get_lut(infos);
+	Stack.getDimensions(width, height, channels, slices, frames);
+	count=roiManager("count");
+	if((count%2)!=0) exit("Not enough selection in RoiManager!");
+	position_slice=newArray(count);
+	position_x=newArray(count);
+	position_y=newArray(count);
+	nb_shift=(count/2)+2;
+	delta_x=newArray(nb_shift);
+	delta_y=newArray(nb_shift);
+	shift_x=newArray(nb_shift);
+	shift_y=newArray(nb_shift);
+	shift_x[0]=0;
+	shift_y[0]=0;
+	slice_duplic=newArray(nb_shift);
+	slice_duplic[0]=0;
+	slice_duplic[nb_shift-1]=slices;
+	
+	somme_delta_x=0;
+	somme_delta_y=0;
+	max_shift_x=0; 
+	max_shift_y=0;
+	min_shift_x=0; 
+	min_shift_y=0;
+		
+	for(i=0;i<count;i++){
+		roiManager("Select", i);
+		if (selectionType() !=10)exit("Is not point selection!");
+		Stack.getPosition(channel, slice, frame);
+		position_slice[i]=slice;
+		getSelectionCoordinates(x, y);
+		position_x[i]=x[0];
+		position_y[i]=y[0];	
+		}
+
+	for(i=0;i<count;i=i+2){
+		j=(i/2)+1;
+		delta_x[j]=position_x[i]-position_x[i+1];
+		delta_y[j]=position_y[i]-position_y[i+1];
+		somme_delta_x=somme_delta_x+delta_x[j];
+		somme_delta_y=somme_delta_y+delta_y[j];
+		shift_x[j]=somme_delta_x;
+		shift_y[j]=somme_delta_y;
+		slice_duplic[j]=position_slice[i];
+			if (shift_x[j]>max_shift_x) max_shift_x=shift_x[j];
+			if (shift_y[j]>max_shift_y) max_shift_y=shift_y[j];
+			if (shift_x[j]<min_shift_x) min_shift_x=shift_x[j];
+			if (shift_y[j]<min_shift_y) min_shift_y=shift_y[j];
+	}
+	
+	
+	x_canvas=width+max_shift_x-min_shift_x;
+	y_canvas=height+max_shift_y-min_shift_y;
+	trans_x=(max_shift_x-min_shift_x)/2;
+	trans_y=(max_shift_y-min_shift_y)/2;
+//////////////////////////////////////////////////////////////////////////////////////////////////
+	trans_x=(-trans_x);
+	trans_y=(-trans_y);
+////////////////////////////////////////////////////////////////////////////////////////////////////
+	
+	
+	run("Canvas Size...", "width="+x_canvas+" height="+y_canvas+" position=Center zero");
+	
+	for(i=0;i<nb_shift-1;i++){
+	selectImage(origid);
+	if (is("composite")) run("Duplicate...", "duplicate slices="+(slice_duplic[i])+1+"-"+slice_duplic[i+1]);
+	else run("Duplicate...", "duplicate range="+(slice_duplic[i])+1+"-"+slice_duplic[i+1]);
+	rename(i+1);
+	run("Translate...", "x="+trans_x+shift_x[i]+" y="+trans_y+shift_y[i]+" interpolation=Bilinear stack");
+	tag=0;
+	if (is("composite")) {
+			run("Hyperstack to Stack");
+			tag=1;
+			}
+	}
+	selectImage(origid);
+	close();
+	run("Concatenate...", "all_open title=[Aligned]");
+	
+		if (tag==1) {
+			run("Stack to Hyperstack...", "order=xyczt(default) channels="+channels+" slices="+slices+" frames=1 display=Composite");
+			for (j=1; j<channels+1; j++) {
+						Stack.setChannel(j);
+						run(apply_lut(tab_lut[j-1]));			
+						}	
+		
+		}
+	
+	}
+	setMetadata("Info", infos);
+	setTool("rectangle");
+	
+}
+
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+macro "Ablation Action Tool - Cc11D2fCeeeD22D34Dc3CcccD76D87Db0CfffD00D01D02D03D04D05D06D07D08D09D0aD0bD10D11D12D13D14D15D16D17D18D19D1aD20D24D25D26D27D28D29D35D36D37D38D47D48D50D60D61D62D70D71D72D73D7cD80D81D82D83D90D91Da8Db6Db7Db8Dc4Dc5Dc6Dc7Dc8Dd0Dd1Dd2Dd3Dd4Dd5Dd6Dd7Dd8Dd9De0De1De2De3De4De5De6De7De8De9DeaDf0Df1Df2Df3Df4Df5Df6Df7Df8Df9DfaDfbDfcDffCb55D79CfeeD0cD39CebbD1bD2aCd33DadDbaDdcCfeeD4cD8cDfdDfeCdddD30D31D32D44D45D52D53D56D65D67D75D77D78D7fD86D8fD94Da1Da2Da5Db1Db3Db4Dc1Cd77D3eCfffD0fD7bDbcDc9CdddD40D42D43D54D55D57D66D6fD84D95D9fDa3Da4Db2Cc32D9bCeeeD63CddcD33D41D64D93Cd56DbfCfffD23D3dD51D74Da0Da7DcdCdddD96Da6Cc44D69Cd99D6dCc22D1dD4aCfddD3cDb9DebCdccD98Cd55DabDdbCeccDbdCd44DbeDcbCd99D7aCd22DcfCeeeD21D46D7dD8dD92Db5Dc0Cc77D4fCeddD0dD0eD49DdaCd44D9cDdeCcaaD88Cc22D9aCdbbDafCc65D2eCebbDccCc44D2cD5cD8aDaeCd88DceCc33D4eD5bD6aCd66DddCc44D3bCd99D4dCc22D1eD5dCeeeD58CcccD7eD85D8eD97Dc2Cd55DedDeeCdccD5fCd99D59DbbCd33DaaDdfCd77D1fD9dCc55D1cD3aCcbbD9eCc22D3fD5aCc55D6bD99Cd88DecCc33D2bD89Cd66D6cCcbbD68CcccD6eCd88D2dD4bCd66DacDcaCc55D5eCe99DefCedcDa9CebbD8b"{
+
+	waitForUser("Add selection in Roi Manager\nOne selection on first slice to keep\nOne selection on last slice to keep\nSame thing for all block to keep");
+	
+	origid=getImageID();
+	Stack.getDimensions(width, height, channels, slices, frames);
+	count=roiManager("count");
+	if((count%2)!=0) exit("Not enough selection in RoiManager!");
+	position_slice=newArray(count);
+
+	
+	for(i=0;i<count;i++){
+		roiManager("Select", i);
+		Stack.getPosition(channel, slice, frame);
+		position_slice[i]=slice;
+		}
+	roiManager("Deselect");
+	run("Select None");
+	Array.show(position_slice);
+	
+	
+	for(i=0;i<count;i=i+2){
+	selectImage(origid);
+	if (is("composite")) run("Duplicate...", "duplicate slices="+(position_slice[i])+"-"+position_slice[i+1]);
+	else run("Duplicate...", "duplicate range="+(position_slice[i])+"-"+position_slice[i+1]);
+	rename(i+1);
+	}
+	
+	selectImage(origid);
+	close();
+	run("Concatenate...", "all_open title=[Reduced Stacks]");
+	
+	
+	
+	setTool("rectangle");
+	
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+macro "About These Macros Action Tool - C000C111C222C333C444C555D54D55D63D73D7cD7dD83D88D89D8aD8cD8dD93D97Da3Da4Da5Da6C555D7aDb5C555D72D82C555D45Da7C555D98C555D53C555D79C555C666Db4C666Db6C666C777D92C777D87C777D64C777D62C777C888D44C888D96C888D78C999D94C999CaaaCbbbD99Db3CbbbDa2CbbbDa8CbbbCcccDb7CcccD52CcccD43CcccD65CcccCdddD74CdddD77CdddD86CdddD84D95CdddD00D01D02D03D04D05D06D07D08D09D0aD0bD0cD0dD0eD0fD10D11D12D13D14D15D16D17D18D19D1aD1bD1cD1dD1eD1fD20D21D22D23D24D25D26D27D28D29D2aD2bD2cD2dD2eD2fD30D31D32D33D34D35D36D37D38D39D3aD3bD3cD3dD3eD3fD40D41D42D46D47D48D49D4aD4bD4cD4dD4eD4fD50D51D56D57D58D59D5aD5bD5cD5dD5eD5fD60D61D66D67D68D69D6aD6bD6cD6dD6eD6fD70D71D75D76D7bD7eD7fD80D81D85D8bD8eD8fD90D91D9aD9bD9cD9dD9eD9fDa0Da1Da9DaaDabDacDadDaeDafDb0Db1Db2Db8Db9DbaDbbDbcDbdDbeDbfDc0Dc1Dc2Dc3Dc4Dc5Dc6Dc7Dc8Dc9DcaDcbDccDcdDceDcfDd0Dd1Dd2Dd3Dd4Dd5Dd6Dd7Dd8Dd9DdaDdbDdcDddDdeDdfDe0De1De2De3De4De5De6De7De8De9DeaDebDecDedDeeDefDf0Df1Df2Df3Df4Df5Df6Df7Df8Df9DfaDfbDfcDfdDfeDff"{
+open(getDirectory("macros")+"toolsets/PHIV_automate_880_toolset_en.txt");
+}
+
+
+
+///////////////////////////////////////////////FUNCTIONS//////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+
+function get_positions(infos){
+getPixelSize(unit, pixelWidth, pixelHeight);
+ lines=split(infos,"\n");
+ position = newArray(4);
+for (k=0; k<lengthOf(lines); k++){
+					if (startsWith(lines[k], "Information|Image|S|Scene|Position|X #1")){
+							index=indexOf(lines[k], "=");
+							position[0]=parseFloat(substring(lines[k], index+2, lengthOf(lines[k])))/pixelWidth;							
+						}
+					if (startsWith(lines[k], "Information|Image|S|Scene|Position|Y #1")){
+							index=indexOf(lines[k], "=");
+							position[1]=-parseFloat(substring(lines[k], index+2, lengthOf(lines[k])))/pixelHeight;								
+						}
+					if (startsWith(lines[k], "Information|Image|S|Scene|Position|Z #1")){
+							index=indexOf(lines[k], "=");
+							position[2]=parseFloat(substring(lines[k], index+2, lengthOf(lines[k])));								
+						}
+					if (startsWith(lines[k], "Information|Image|Z|Interval|Increment #1")){
+							index=indexOf(lines[k], "=");
+							position[3]=parseFloat(substring(lines[k], index+2, lengthOf(lines[k])));								
+						}
+				}
+	return position	;	
+	}
+	
+	
+	
+function get_lut(infos){
+ lines=split(infos,"\n");
+ tab_lut = newArray(32);
+ count=0;
+ countunmix=0;
+ countfinger=0;
+for (k=0; k<lengthOf(lines); k++){
+					if (startsWith(lines[k], "Experiment|AcquisitionBlock|MultiTrackSetup|TrackSetup|Detector|Color #")){
+							index=indexOf(lines[k], "=");
+							tab_lut[count]=substring(lines[k], index+2, lengthOf(lines[k]));
+							count++;							
+						}	
+					if (startsWith(lines[k], "Information|Processing|Spectra|Spectrum|Color #")){ //unmixing
+							index=indexOf(lines[k], "=");
+							tab_lut[countunmix]=substring(lines[k], index+2, lengthOf(lines[k]));
+							countunmix++;							
+						}
+					if (startsWith(lines[k], "Experiment|AcquisitionBlock|MultiTrackSetup|TrackSetup|RatioSetup|Ratio|Color #")){ //finger
+							index=indexOf(lines[k], "=");
+							tab_lut[countfinger]=substring(lines[k], index+2, lengthOf(lines[k]));
+							countfinger++;							
+						}
+
+						
+						
+				}
+	//Array.print(tab_lut);
+	return tab_lut	;	
+	}
+	
+function get_canaux(infos){
+ lines=split(infos,"\n");
+ nb_cannaux = 0;
+ count=0;
+for (k=0; k<lengthOf(lines); k++){
+ 
+					if (startsWith(lines[k], " SizeC = ")){
+							nb_cannaux=parseInt(substring(lines[k], lengthOf(lines[k])-1,lengthOf(lines[k])));
+													}					
+				}
+	return nb_cannaux	;	
+}	
+
+
+
+	
+	
+function get_wave_debut(infos){
+ lines=split(infos,"\n");
+ wave_debut = newArray(32);
+ count=0;
+for (k=0; k<lengthOf(lines); k++){
+					if (startsWith(lines[k], "Information|Image|Channel|DetectionWavelength|Ranges #")){
+							index=indexOf(lines[k], "=");
+							wave_debut[count]=parseInt(substring(lines[k], index+2, lengthOf(lines[k])-20));
+							//wave_debut[count]=parseInt(substring(lines[k], index+2, lengthOf(lines[k])-20));
+							count++;							
+						}					
+				}
+	return wave_debut	;	
+}
+
+function get_wave_fin(infos){
+ lines=split(infos,"\n");
+ wave_fin = newArray(32);
+ count=0;
+for (k=0; k<lengthOf(lines); k++){
+					if (startsWith(lines[k], "Information|Image|Channel|DetectionWavelength|Ranges #")){
+							index=indexOf(lines[k], "-");
+							wave_fin[count]=parseInt(substring(lines[k], index+1, lengthOf(lines[k])));
+							//wave_fin[count]=parseInt(substring(lines[k], index+2, lengthOf(lines[k])));
+							count++;							
+						}					
+				}
+	return wave_fin	;	
+}
+
+function get_wave_excitation(infos){
+ lines=split(infos,"\n");
+ for (k=0; k<lengthOf(lines); k++){
+					if (startsWith(lines[k], "Information|Image|Channel|ExcitationWavelength #")){
+							index=indexOf(lines[k], "=");
+							wave_excitation=parseInt(substring(lines[k], index+1, lengthOf(lines[k])));
+										
+						}					
+				}
+	return wave_excitation	;	
+}
+
+	
+	
+function apply_lut(tab_lut)	{
+	lut="Grays";
+	if (tab_lut=="#FF0000") lut="Red";
+	if (tab_lut=="#00FF00") lut="Green";
+	if (tab_lut=="#0000FF") lut="Blue";
+	if (tab_lut=="#FF00FF") lut="Magenta";
+	if (tab_lut=="#FFFF00") lut="Yellow";
+	if (tab_lut=="#00FFFF") lut="Cyan";
+return lut;
+
+}
+
+  
+function normalisation(methode){
+run("Set Measurements...", "area mean integrated display redirect=None decimal=3");
+maxraw=0;
+slice_max=0;
+n = nSlices;
+run("Plot Z-axis Profile");
+for (i=0; i<nResults; i++){
+	raw=getResult("RawIntDen", i);
+//print (raw)	;
+	if (raw>maxraw) {
+		maxraw=raw;
+		slice_max=i+1;
+	 }		
+}
+ if (isOpen("Results")) {
+       selectWindow("Results");
+       run("Close");
+   } 
+close();
+print ("max_slice :"+slice_max);
+
+setSlice(1);
+return slice_max;
+}
+
+
+
+function Slice_Int_Max (){
+	origid=getImageID();
+	Stack.getDimensions(width, height, channels, slices, frames);
+	mean_tot=newArray(slices);
+	mean_max=0;
+	slice_max=1;
+	for (j=1; j<=channels; j++) {
+			Stack.setChannel(j);
+			run("Plot Z-axis Profile");
+			Plot.getValues(xpoints, ypoints);
+			close();
+			selectImage(origid);
+			for (k=0;k<mean_tot.length;k++){
+				mean_tot[k]=mean_tot[k]+ypoints[k];
+				}
+			}
+	for (k=0;k<mean_tot.length;k++){ 
+		if(mean_tot[k]>mean_max){
+			mean_max=mean_tot[k];
+			slice_max=k+1;
+			}
+		}
+	
+	return slice_max;	
+}
+
+
+

@@ -1,0 +1,250 @@
+// PHIV cotton root V2
+// Marc LARTAUD MRI PHIV
+// Toolset for semi-automatic measurement 
+/*
+
+ Install Cell Counter Plugin
+ https://imagej.nih.gov/ij/plugins/cell-counter.html
+ https://imagej.nih.gov/ij/plugins/download/jars/cell_counter.jar
+
+
+
+
+// 	Calibration tool = You have to draw a line selection on the known object (right click, default = 5 cm)
+	Selection_zone tool = to select root zone with polygon tool
+	Root_angle tool = to select the angle 
+	Root_length tool = to select the principal root with the segmented line
+	Counter Tool = to count several type of object (right click to choise labels)
+	Results tool = This tool will display and save the image with selections and the Roi Manager in the original image directory. All the measurements are also display in the "Analyses" window
+	New tool = to reset variables and open next image
+*/
+
+
+//variables glogales
+
+var longueur_cm=5;
+	
+var nom_zone="Root_zone";
+
+var type1="Pointes Racinaires";
+var type2="Embranchements";
+var type3="Galles";
+var type4="Nodules";
+var type5="type 5";
+var type6="type 6";
+var type7="type 7";
+var type8="type 8";
+
+	
+// Results
+var area_total=0;
+var Width=0;
+var Height=0;
+var Root_angle=0;
+var Root_length=0;
+var CountType=newArray(0,0,0,0,0,0,0,0,0);
+var title1 = "Analyses";
+var title2 = "["+title1+"]";
+var fe = title2;
+
+
+
+
+//////////////////////////////////////////////////////////////////////Calibration//////////////////////////////////////
+
+macro "Calibration Action Tool - C222D4aD4bD8aD8bDaaDabCfffD00D08D09D0aD0bD0cD0dD0eD0fD10D18D19D1aD1bD1cD1dD1eD1fD20D21D22D23D25D26D27D28D29D2aD2bD2cD2dD2eD2fD30D31D32D33D35D36D37D38D39D3aD3bD3cD3dD3eD3fD40D41D42D43D45D46D47D48D4dD4eD4fD50D51D52D53D55D56D57D58D5aD5bD5dD5eD5fD60D61D62D63D65D66D67D68D69D6aD6bD6cD6dD6eD6fD70D71D72D73D75D76D77D78D79D7aD7bD7cD7dD7eD7fD80D81D82D83D85D86D87D88D8dD8eD8fD90D91D92D93D95D96D97D98D9aD9bD9cD9dD9eD9fDa0Da1Da2Da3Da5Da6Da7Da8DadDaeDafDb0Db1Db2Db3Db5Db6Db7Db8DbaDbbDbcDbdDbeDbfDc0Dc1Dc2Dc3Dc5Dc6Dc7Dc8DcdDceDcfDd0Dd1Dd2Dd3Dd5Dd6Dd7Dd8Dd9DdaDdbDdcDddDdeDdfDe0De8De9DeaDebDecDedDeeDefDf0Df8Df9DfaDfbDfcDfdDfeDffC89fD01D07D11D17De2De3De5De6Df1Df7C03fD02D03D04D05D06D12D13D14D15D16D24D34D44D54D64D74D84D94Da4Db4Dc4Dd4De4Df2Df3Df4Df5Df6CbcfDe1De7C444Da9C333D49D89DcaDcbC666Dc9C555D59D5cD99Db9C999D4cD8cDacDcc"{
+	//tirer trait + dimension
+	run("Set Scale...", "distance=0 known=0 pixel=1 unit=pixel");
+	setTool("line");
+	waitForUser("Calibration", "Select Known distance ("+longueur_cm+" cm) with the line tool");
+	List.setMeasurements;
+	longueur_px=List.getValue("Length");
+	run("Set Scale...", "distance="+longueur_px+" known="+longueur_cm+" unit=cm");
+	print (longueur_px+" px = "+longueur_cm+" cm");
+	run("Select None");
+	
+}
+
+
+macro 'Calibration Action Tool Options'  {
+	Dialog.create("Calibration");
+	Dialog.addNumber("Size for calibration (cm):", longueur_cm);
+	
+  	Dialog.show();  
+	longueur_cm=Dialog.getNumber();	
+		
+    
+	}
+
+
+macro "Selection_zone Action Tool - C020D46D68CbbbD05D5eD9dDeaC575D14D96CefeD8eDb2Dc2Dd2Df9DfcC354D31De1CcecDa7C898D98CfffDafDcfDdfC242D67CcccDfbC687Dc4CfffD0cD1aD1dD29D4cD8dD8fDacDddDedDf5C464D71D91CeeeDadDbfC9a9D03Db8CfffD0dD0eD0fD19D1bD1cD1eD1fD28D2aD2fD3eD3fD4dD4eD4fD7bD7cD7dD7eD7fDdeDf8DfdDfeDffC030D84CbcbDe3De4C676D77D79CffeDbbC454De0Df1CeedDdcC8a8D34C454D10CcdcD58C797Db5C474D81CefeD4aCaaaDf6C030D63D75D93CacbD38C575D43CefeD57D88Da8DabDbaDbcC364D90CdddDceC8a8Db3C353D01D11D21D41D70Da1Db1Dc0Dc1CcdcD86C787D8bC565D5aCeeeD02D12D22D2eD32D3dD42D9fDe2Df2C9b9D56C131D76CcdcD04D37DaaDd5Dd7C686D23D78Dc9CfffD5fDaeDe7DeeDefC454D30D69CeeeD0bD2bD4bDbdDecDf7C9a9D3bD5dCcddDf3C797D72D82Dc6C565Df0CefeD87CabaD18D7aC030D64D94C565D17C454D00D36D40D50CdedD89D9aC898D06DcbC353D24CcdcD3cD6bDfaC787D62C464D20Dd0Dd8C9a9D09DccC040D74CbdbD52C586Db4CeedD8cC9a9D27D9cDd6CcddD2dC797D92C474D61CabaD35Dc5C131Da5Db6CbcbD07D16D6aDd9C676D5bC464D51D60D80Da0Db0Dd1CdedDa9C8a8D13D48D66CddcD9eDebC787D15D39DcaC9b9D99C141D55C696D65CdddD0aD6eDdbC898D59De6C475Da3CbbaD9bCcecD49Db9C898D5cC242Da6CcdcDf4C787D08C030D73D83CdedDe5C8a9Dd4C797D8aD97CabaDcdCdedD6cD6dDdaCcdcDa2C9c9D44C232Dc8C575D26D47C353D45D53C787De9CcccD2cDe8C686D33CeeeD6fCdddDbeC474D54C676D3aC9baDc3C242D95C475D85CacaDd3C242Da4C343Db7Dc7CdeeD25"{
+			setTool("polygon");
+			waitForUser(nom_zone, "Select the root zone with the Polygon selections tool");
+			
+			if(selectionType()!=2) {
+				setTool("polygon");
+				exit("Select the root zone with the Polygon selections tool")
+				}
+			RoiAdd(nom_zone);
+			run("To Bounding Box");
+			RoiAdd("Bounding Box");
+			roiManager("Show All");
+			roiManager("Deselect");
+			run("Select None");
+
+}
+macro "Root_angle Action Tool - C000D2dD3bD3dD4aD58D66D67D75D83D92DadDaeCfffD00D01D02D03D04D05D06D07D08D09D0aD0bD0cD10D11D12D13D14D15D16D17D18D19D1aD1bD20D21D22D23D24D25D26D27D28D29D30D31D32D33D34D35D36D37D40D41D42D43D44D50D51D52D53D54D60D61D62D63D6aD6bD70D71D7aD7bD80D96D97Da4Da5Da6Da7Da8Db3Db4Db5Db6Db7Db8Db9DbaDbbDc1Dc2Dc3Dc4Dc5Dc6Dc7Dc8Dc9DcaDcbDd0Dd1Dd2Dd3Dd4Dd5Dd6Dd7Dd8Dd9DdaDdbDe0De1De2De3De4De5De6De7De8De9DeaDebDf0Df1Df2Df3Df4Df5Df6Df7Df8Df9DfaDfbDfcDfdDfeDffC666D48D9cDabC222D57D88Da0DacCdddD2aD79Da3C111D2cD4dD5dD6dD77D7dD8dD91Da1DbdDcdDddCbbbD1cDb1C333D1eD3aD89D93D9bCfffD0fD38D45D95Da9Db2Dc0DefC000D3cD49D84D9dC999D55DedC222D2eD3eD4eD5eD6eD7eD8eD9eDafDceDdeCeeeD1fD2fD3fD46D4fD5fD6fD72D7fD8bD8fDcfDdfDecC111D59D74D76D9aDbeCdddD47D5cD6cD7cD9fDccDdcC444D1dD68D82C777D90CeeeD0dD5bCcccD64D69C333D4bD56D65CaaaD0eD39D87D8aD94C555D78C777D2bDa2CbbbD81DaaDbcC999DeeC888D4cDbfCcccD86D8cD98C555D85D99Db0C888D5aD73"{
+
+			setTool("root angle");
+			waitForUser("Angle", "Select the angle root with Angle tool");
+			if(selectionType()!=8) 	exit("Select the angle root with Angle tool");
+			RoiAdd("Root_angle");
+			roiManager("Show All");
+			roiManager("Deselect");
+			run("Select None");
+
+}
+//longueur racine	
+macro "Root_length Action Tool - C222D01DdaCfffD06D07D08D09D0aD0bD0cD0dD0eD0fD18D19D1aD1bD1cD1dD1eD1fD22D29D2aD2bD2cD2dD2eD2fD39D3aD3bD3cD3dD3eD3fD46D49D4aD4bD4cD4dD4eD4fD50D55D56D59D5aD5bD5cD5dD5eD5fD60D61D62D63D64D65D66D69D6aD6bD6cD6dD6eD6fD70D71D72D73D74D75D76D79D7aD7bD7cD7dD7eD7fD80D81D82D83D84D85D86D89D8aD8bD8cD8dD8eD8fD90D91D92D93D94D95D96D99D9aD9bD9cD9dD9eD9fDa0Da1Da2Da3Da4Da5Da6Da9DaaDafDb0Db1Db2Db3Db4Db5Db6Db9Dc0Dc1Dc2Dc3Dc4Dc5Dc6Dd0Dd1Dd2Dd3Dd4Dd5Dd6DdcDddDe0De1De2De3De4De5De6De7Df0Df1Df2Df3Df4Df5Df6Df7Df8Df9C888DcaC555D27CcccDcdC444D24D37DbeC999DdeC666Dc7CeeeD12D45D51C444D10D14D20D30D34D42DbcDbdDd9DfcDfdC999D15D40D48D58D68D78D88D98Da8Db8DeeDffC666D47D57D67D77D87D97Da7Db7DcfDeaCdddD05D13D28D32D36D52D53De8CbbbDd7C777D00Dc8DdbCfffD23DabDaeDecDedC333D04D26D41D43Dd8C555D44DbbDcbDdfDefCdddD16D33DbaCbbbD11DfaC777DceDebCeeeD17D54DacDadDc9CcccD21DbfDccDe9C222D02D03D25DfbDfeCaaaD31D35D38"{
+			setTool("polyline");
+			waitForUser("root length", "Select the root with the Segmented line tool");
+			if(selectionType()!=6) 	exit("Select the root with the Segmented line tool");
+			run("Fit Spline");
+			RoiAdd("Root_length");
+			roiManager("Show All");
+			roiManager("Deselect");
+			run("Select None");
+
+}
+//longueur racine
+macro "Counter Action Tool - Cf00o2134 of033 odd33 o0a33" {
+	nom=getTitle();
+	run("Cell Counter");
+	waitForUser("Counter", "Keep Original\nInitialize\nChoose Type\nType 1="+type1+"\nType 2="+type2+"\nType 3="+type3+"\nType 4="+type4+"\nType 5="+type5+"\nType 6="+type6+"\nType 7="+type7+"\nType 8="+type8+"\nClick on image to count\nWhen you have finish click on Result\nClose the plugin\nClick Ok on this Dialog Windows");
+	selectWindow("Counter Window - "+nom);
+	close();
+	if (isOpen("Results")){
+			String.copyResults();
+			CountType=split(String.paste,"\t");
+		}
+}
+macro 'Counter Action Tool Options'  {
+	Dialog.create("Counter Types");
+	Dialog.addString("Type 1", type1,20);
+	Dialog.addString("Type 2", type2,20); 
+	Dialog.addString("Type 3", type3,20); 
+	Dialog.addString("Type 4", type4,20); 
+	Dialog.addString("Type 5", type5,20); 
+	Dialog.addString("Type 6", type6,20); 
+	Dialog.addString("Type 7", type7,20); 
+	Dialog.addString("Type 8", type8,20); 		
+  	Dialog.show();  
+	type1=Dialog.getString();
+	type2=Dialog.getString();
+	type3=Dialog.getString();
+	type4=Dialog.getString();
+	type5=Dialog.getString();
+	type6=Dialog.getString();
+	type7=Dialog.getString();
+	type8=Dialog.getString();	
+    
+	}
+
+/////////////////////////////////////////////////////Results /////////////////////////////////////////////////////////////////////////////////////
+
+macro "Results Action Tool - C052DbfDcfDdfDebDecDedDeeDefCbebD5dDc6C364D84D85D93D94D95Da3CffeDa9C282D5bCdecD7aC798D83CfffD05D06D07D08D09D0aD0bD0cD0dD0eD1eD2eD3eD41D4eD51D5eD61D6eD71D73D7eD81D8eD91D97D9eDa1Da7Da8DaeDb1Db9DbaDbeDc1DcbDccDceDd1Dd2Dd3Dd4Dd5Dd6Dd7Dd8Dd9DdaDdbDddDdeC063D59CbceDf3Df4Df5Df6C7b4D65D9aCfffDa6Db4Db5Dc3Dc4DdcC592D4cCefeD12D14D32D63CacbD01C052DafCdedD16D17D18D19D1aD1bD1cD1dD23D24D25D26D27D28D35D36D52D62D72D82D92Da2Db2Dc2C385D7cCfffD13D22Db6DcaC382D4bD5cCdeeD00C9daDbdC163D5fDe5De6CbceDf0Df1Df2C8c5D56C6a1D3cCffeD04D31D8cCbceDf7Df8Df9CdddD74C484D75C364D86CdedD15D42Dc5C8c8D57C163D6fC8c4D67D89C493D33CacdDfaDfbDfcDfdDfeDffC172D5aC7a4D87C483D90Da0CeeeDa5CadaD3aC164D58C9c5D99C5a4D53CcecD2aD2bD2dD38D39D46D47Db8C273D1fDe1C798Db3C163D7fDe7De8C8b4D76C493D70CbebDb7C053D69C6a5D30C383Dd0CadaD9dC273D3fD4fDe3De4C9d4D78C5a3D44CcedD29D37C576Da4C373D0fDe0Cac8DaaC173D6aC9c4D77D88C593D50C272D6cC8b7D02D11C483D80CaeaD8dDc9C9c7D2cC7b4D55D9bCcdcD03D21C273D2fDe2C8b8D20C063D8fDe9C592D3bCaebD7dDc8C062D9fDeaC496D7bCadaDadDcdC593D68C9c7D64C493D43C172D4aD6bC6b5DbcCbdaD34C8c6D9cC5a4DacC8a9D96C8c4D66D8aC493D60CbebD6dDc7C5a6D49C383Db0Dc0C9c4D79C6a3D54DabCad9D8bC593D40C9c7D45CcebD98CacbD10CcecD4dCcdbDbbCcecD3dD48"{
+		getPixelSize(unit, pixelWidth, pixelHeight);
+		if (pixelWidth==1) exit ("No calibration");
+		run("Set Measurements...", "area bounding redirect=None decimal=9");
+		dir=getInfo("image.directory");
+		nom=getTitle();
+		
+		nom=replace(nom,".JPG","");
+		count=roiManager("count");
+		for(i=0;i<count;i++){
+			roiManager("Select", i);
+			nom_item=Roi.getName;
+			if (startsWith(nom_item, nom_zone)){
+				getStatistics(area);
+				area_total=area;
+				List.setMeasurements;
+				Width=List.getValue("Width");
+				Height=List.getValue("Height");			
+				}
+			if (startsWith(nom_item, "Root_angle")){
+				List.setMeasurements;
+				Root_angle=List.getValue("Angle");				
+				}
+			if (startsWith(nom_item, "Root_length")){
+				List.setMeasurements;
+				Root_length=List.getValue("Length");				
+				}
+			}
+		roiManager("Deselect");
+		run("Select None");
+	if( !isOpen("Analyses")){
+		run("Table...", "name="+title2+" width=800 height=600");
+		print(fe, "\\Headings:Picture \tArea \tDepth \tWidth \tRoot_angle \tRoot_length \t"+type1+"\t"+type2+"\t"+type3+"\t"+type4+"\t"+type5+"\t"+type6+"\t"+type7+"\t"+type8);
+		}		
+		print(fe, nom+"\t"+area_total+"\t"+Width+"\t"+Height+"\t"+Root_angle+"\t"+Root_length+"\t"+CountType[1]+"\t"+CountType[2]+"\t"+CountType[3]+"\t"+CountType[4]+"\t"+CountType[5]+"\t"+CountType[6]+"\t"+CountType[7]+"\t"+CountType[8]);
+		
+		roiManager("Save", dir+nom+"-RoiSet.zip");//sauvegarde de roi manager
+		//run("Remove Overlay");
+		saveAs("Tiff", dir+nom+"_analysed.tif");		
+}
+
+
+
+//////////////////////////////////////////////New////////////////////////////////////////////////////////////+
+macro "New Action Tool - C16aD9dDaeCec7D18D40D50Cca4D6bD6cD6dD6eCffbD71Da2C09eDbdCfeaD27D28D36D37D46D55Da4Ccb7D76D86CfffD00D01D02D03D04D05D06D07D08D09D0aD0bD0cD0dD0eD0fD9fDd0Dd1Dd2Dd3Dd4Dd5DdfDe0De1De2De3De4De5De6De7De8De9DeaDeeDefDf0Df1Df2Df3Df4Df5Df6Df7Df8Df9DfaDfdDfeDffC368D8cCed9D10D20Ccb6D78CfedD2fC4beDadCffaD25D44D53Cdc8D74D84C28bDa6Db6Dc6Dd7Dd8Dd9DdaDdbDebDfbCed8D31Cdb5D66Dc4CffcD81D91Da1C1afDaaDb9DbaCfeaD42D45D94Db3Cec7D4dD5cCb93D7eD8eCfe9Da5Db5Cdb6D1eDa0CffeD8fC8ceDbeDcdDdcCffbD22D23D24D32D33D34D43D93Da3Db1Db2Cdc8D73C27bDceDddDecCed8D11D12D13D41Cca4D6aCffbD92C0afDacDbbCedbD3fDc0Cec7D1bD1cD70D80C368D7bCee9D2aD39D48D58Cdb6D2eD3eD4eD5eD62D63C5cfDc7Dc8Dc9DcaCed8D2dD3cD4bD5aCed8D2bD3aD3bD4aD59Cdb5D64Dc2C2afDa8CffaD26D35D54Cec7D19Cca5D79D89Cfe9D47D56D95Db4Cec6D1dD90CffeD1fC9bdDafDcfDedDfcCdc9D72C17bD97D98D99D9aD9bCec8D14D15D16D17D30Cca4D6fC09eDccCcc7D75C886D7cD8dCed9D49D52Ccb6D77D87C4bfD9cCed7D3dD4cD5bCdb5D65Dc3Cec7D1aD60Db0Cba4D7dCfe9D21D29D38Cdc8D83Cda5D67D68Dc5C0afDb8Cdc7D5dC69aD96Cfd9D51C3beDa7CfebD82C8aaDdeCdd9D61C17bDbfC787D9eCcb6D88Cee9D57Cda4D69C478D8bC2bfDa9Cec9D4fC09fDbcCdc7Dc1Cdb6D5fC5bfDcbCca5D7aD8aCed8D2cC1afDabC59bDd6C3bfDb7CddcD7fCdc7D85"{
+
+	//run("Close All");
+	if (isOpen("ROI Manager")){
+		roiManager("Deselect");
+		n = roiManager("count");
+		if (n>0) roiManager("Delete");
+	}
+	area_total=0;
+	Width=0;
+	Height=0;
+	Root_angle=0;
+	Root_length=0;
+	CountType=newArray(0,0,0,0,0,0,0,0,0);
+	run("Open Next");
+	run("Open Next");
+
+}
+
+macro "About These Macros Action Tool - C000C111C222C333C444C555D54D55D63D73D7cD7dD83D88D89D8aD8cD8dD93D97Da3Da4Da5Da6C555D7aDb5C555D72D82C555D45Da7C555D98C555D53C555D79C555C666Db4C666Db6C666C777D92C777D87C777D64C777D62C777C888D44C888D96C888D78C999D94C999CaaaCbbbD99Db3CbbbDa2CbbbDa8CbbbCcccDb7CcccD52CcccD43CcccD65CcccCdddD74CdddD77CdddD86CdddD84D95CdddD00D01D02D03D04D05D06D07D08D09D0aD0bD0cD0dD0eD0fD10D11D12D13D14D15D16D17D18D19D1aD1bD1cD1dD1eD1fD20D21D22D23D24D25D26D27D28D29D2aD2bD2cD2dD2eD2fD30D31D32D33D34D35D36D37D38D39D3aD3bD3cD3dD3eD3fD40D41D42D46D47D48D49D4aD4bD4cD4dD4eD4fD50D51D56D57D58D59D5aD5bD5cD5dD5eD5fD60D61D66D67D68D69D6aD6bD6cD6dD6eD6fD70D71D75D76D7bD7eD7fD80D81D85D8bD8eD8fD90D91D9aD9bD9cD9dD9eD9fDa0Da1Da9DaaDabDacDadDaeDafDb0Db1Db2Db8Db9DbaDbbDbcDbdDbeDbfDc0Dc1Dc2Dc3Dc4Dc5Dc6Dc7Dc8Dc9DcaDcbDccDcdDceDcfDd0Dd1Dd2Dd3Dd4Dd5Dd6Dd7Dd8Dd9DdaDdbDdcDddDdeDdfDe0De1De2De3De4De5De6De7De8De9DeaDebDecDedDeeDefDf0Df1Df2Df3Df4Df5Df6Df7Df8Df9DfaDfbDfcDfdDfeDff"{
+open(getDirectory("macros")+"toolsets/PHIV_cotton_root.txt");
+}
+
+
+
+
+
+
+
+
+
+///////////////////////////////////////////////Fonctions /////////////////////////////////////////////////////////////
+function RoiAdd(nom) {
+	roiManager("Add");
+	n = roiManager("count");
+	roiManager("Select", n-1);	
+	roiManager("Rename", nom);
+}
+
+function RoiDelete (nom){
+	ncount=roiManager("count");
+	for(i=ncount-1;i>=0;i--){
+		roiManager("Select", i);
+		nom_item=call("ij.plugin.frame.RoiManager.getName", i);
+		if (startsWith(nom_item, nom)) roiManager("Delete");
+		}
+
+
+}
+
+
+

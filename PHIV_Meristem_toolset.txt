@@ -1,0 +1,304 @@
+// PHIV_Meristem_toolset Version 1 du 20/05/2014
+// Marc LARTAUD MRI PHIV
+// Boite a outils pour faciliter la segmentation des cellules de meristeme
+
+/*
+Installer Graylevel watershed
+http://bigwww.epfl.ch/sage/soft/watershed/Watershed-cls.zip
+Outils :
+ - Dome: Met dans le Roi Manager la selection du Dome (Surface)
+ - Base: Met dans le Roi Manager la selection de la Base(Ligne droite)
+ - Hauteur: Trace et met dans le Roi Manager la hauteur = ligne la plus longue entre le milieu de la Base et le perimetre du Dome
+ - Menu AutoSegment segmente automatiquement les cellules 
+		parametres (clic droit): choix des limites de taille des cellules
+		et choix de la taille du filtre de pretraitement
+
+
+Raccoucis clavier sur le pave numerique
+0 supprimme une selection
+1 permet de combiner 2 selections
+2 permet de separer une selection en 2 en tracant une ligne
+
+
+*/
+
+
+var countCombine=0;
+var taille_mini=30;
+var taille_maxi=10000;
+var taille_filtre=4;
+
+
+
+macro "Dome Action Tool - C147D53D54D55D56D57D58D59D5aCbbcDffC9acDefCcdfD18D28D36D88Dd7Dd8De8C57aD43CbcfD1cD2cD3aD3bD3cDbcDccDdcDecCacfDacCdefD12D13D23D32Dd3De1De3C258D8bCbcfD89D97DcaC9beDfdCdefD14D15D24D25D33Dc3Dd4Dd5De4De5C89cD74Dc7CcdfD19D29D37D77D78Dd9De9CacfD1dD2dD3dD3eD4dD4eD5dD5eD6dD6eD7dD7eD8dD8eD9dD9eDadDaeDbdDbeDcdDceDddDedCeefD21D31D91Da1Db1Dc1Dd1C248D5bD6bD7bD9aDa4Da5Da9DaaDb6Db7Db8CbceD30D40D50D60D70D80D90Da0Db0Dc0Df2Df3CabdD06D07D92CcdfD16D17D26D27D34D35D75D76D85D86D87Dd6De6De7C68bDabCbdfD1aD1bD2aD2bD38D39D79DcbDdaDdbDeaDebCacfD2eDdeCdefD22D41D51D61D71D81Db2Dc2Dd2De2C369D6aCbceD20Db3Dd0CabeDf9C8adD3fD4fD5fD6fD7fD8fD9fDafDbfDcfDdfCddfDa2C148D63D73D83CbcdD01D10Df1CabdDc9C68bD68CacfDeeC359D9bDa7Db9CabeD98C8acD2fDc6Dc8CacdD04D05C79cD72C47aD44D45D46D47D64CcdfDc4CaceD96DbbDf4Df5Df6CdefD11CbcdD02D03C9acDfeC58aDa3C258D93D94Da6Da8Db5C9beD1eD4cDfaDfbC89cD95C79bD62C47aD48D49CaceDf7Df8CbceDe0CabdD08D09D0aD0bD42Dc5C68bD99C8adD8cC79dD5cD6cD7cCcccD0fC9abD1fC47bD4bC9beD9cC46aD4aD8aC68bD65D66D67DbaCcddDf0C9bdD0cD0dC68aDb4C8acD82C79cD52CdddD00C68bD84CabcD0eC57bD7aC9beDfcC68bD69"{
+	roiManager("Add");
+	n = roiManager("count");
+	roiManager("Select", n-1);
+	roiManager("Rename", "Dome");
+}
+
+macro "Base Action Tool - C147D54D55D56D57D58D59D5aD67D87Da9DaaCbbbDffC9acD1fCcdfD18D28D38Dd8De8C469Db9CbcfDcaCacfD1eDeeCdefD13D23D33Da2Dc3Dd3De3C258D53D83Da5CbceDb7C9beD0aD0bD4cDfaDfbCdefD14D15D24D25D34D35Db3Dc4Dc5Dd4Dd5De4De5C89cD46CcdfD19D29D39Dc8Dd9De9CacfD1dD2dD2eD3dD3eD4dD4eD5dD5eD6dD6eD7dD7eD8dD8eD9dD9eDadDaeDbdDbeDcdDceDddDdeDedCeefD31D41D51D61D71D81D91Da1Db1Dc1C148D5bD6bD77D7bD8bD97CbceD20D30D40D50D60D70D75D80D90Da0Db0Dc0Dd0C9beD0dDfdCcdfD16D17D26D27D36D37Dc6Dc7Dd6Dd7De6De7C68bD5cCbdfD1aD1bD2aD2bD3aD3bD89DdaDdbDeaDebCdefD12D21D22D32Db2Dc2Dd1Dd2De2C358Da4CbdeD92CaceD04D05D06D79Df4Df5Df6C8beD2fD3fD4fD5fD6fD7fD8fD9fDafDbfDcfDdfCcdfD42CbceD02C9bdD62D72C57bD99CbcfDcbC258D66D98CbceD03Dc9Df2Df3CabeD09Df9C8acD44D45C248D63D73D94D96D9bDa8C9beDacC79cD47D48D49D7aD8aC369D65D69CdefD11De1CbcdD01Df1C9adD0eD43DbbDfeC47aD84CbcfD1cD2cD3cDbcDccDdcDecC258D64D68D95C79dD4bC9beD0cDfcC79cD76D9cC359D93D9aCdddD00Df0CabdD52C68bDb8CaceD07D08Df7Df8C8acDefCabeD85C8acDa3C469Da6CbbcD0fC9acDb5C46aDa7C68bD78D88C259D6aCccdD10De0C58bD6cD7cD86CabdD82Db4C57aDbaC79cD4aC68bD8cCaceDb6C369DabC68aD74"{
+if (selectionType() ==5){
+		roiManager("Add");
+		n = roiManager("count");
+		roiManager("Select", n-1);
+		roiManager("Rename", "Base");
+			}
+else{
+		showMessage("Il faut selectionner une ligne droite!");
+			}
+}
+
+macro "Hauteur Action Tool - C147D56D57Da3Da4Da5Da6Da7Da8Da9DaaCbbcDffC9abD1fCcdfD19D29D89Dd9De9C469Db5Db6CbcfD37D38CabfD9cCdefD11D13D23D83Dd3De1De3C359D47D48D49D4aD66D96CbceD20D62Dc5Dc6Dd0CabeD08Df8CdefD14D15D24D25D32D73D74D84Dc2Dd4Dd5De4De5C79cD52D93CbdfD1aD1bD2aD2bD79D7aD8aD8bDdaDdbDeaDebCacfD1dD2dD3dD3eD4dD4eD5dD5eD6dD6eD7dD7eD8dD8eD9dD9eDadDaeDbdDbeDccDcdDceDddDedCeefD21D31D71D81Dc1Dd1C248D53D54D55D58D59D5aD5bD67D77D87D97DabCbceD02D30D40D50D60D70D80D90Da0Db0Dc0Dc7Df2C9beD0cDfcCcdfD16D17D26D27Dd6Dd7De6De7C68cD9aCbcfD1cD2cD3cD7bD7cD8cDdcDecCacfD39CdefD12D22D41D51D61D72D82D91Da1Db1Dd2De2C369D43CaceD03Df3C8adD3fD4fD5fD6fD7fD8fD9fDafDbcDbfDcfCbceD92C9adD78D88Db2CcdfD18D28D85Dd8De8C46aD76D86CcceDc4CacfD3aD3bC369D44D45D46CaceD04D05D06Dc9DcaDcbDf4Df5Df6C79cD5cC9beD09D0aD0bD6cDf9DfaDfbC69cD9bCacfD2eDdeC369Db7Db8Db9DbaCbcdD01D10Df1C8adD42C469Db3Db4DbbCbdfD35D36CacfD1eDeeCaceD07Df7C89cD64C79bD65C369D4bCbceDe0C8adD4cC57bD98CcdfD33D34D75C8acD2fDdfC79cD69D6aD6bCcddD00Df0C9acDefC79cD94D95Da2CcdeDc3C79dDacC9acD0eDfeC8acD63CbceDc8C9beD0dDfdC68aD68CbccD0fC69cD99"{
+						ncount=roiManager("count");
+						for(i=0;i<ncount;i++){
+						roiManager("Select", i);
+						nom_item=call("ij.plugin.frame.RoiManager.getName", i);
+						if (nom_item=="Dome") getSelectionCoordinates(xm, ym);
+						if (nom_item=="Base"){ 
+							getSelectionCoordinates(xb, yb);
+							List.setMeasurements;
+							anglebase = List.getValue("Angle");
+									}
+							}
+						if (xb[0]<xb[1]) xbmax=xb[1];
+						else xbmax=xb[0];
+						if (yb[0]<yb[1]) ybmax=yb[1];
+						else ybmax=yb[0];
+						xc=xbmax-abs(0.5*(xb[0]-xb[1]));
+						yc=ybmax-abs(0.5*(yb[0]-yb[1]));
+						run("Line Width...", "line=1");
+     				diameter = 0.0;
+						nm = xm.length;
+						nb = xb.length;
+     for (i=0; i<nm; i++) {        
+            dx = xm[i] - xc;
+            dy = ym[i] - yc;
+            d = sqrt(dx*dx + dy*dy);
+            if (d>diameter) {
+                diameter = d;
+                imax = i;                
+            }        
+    }
+    
+    	makeLine(xc, yc,xm[imax],ym[imax]);
+    	List.setMeasurements;
+			anglehauteur = List.getValue("Angle");
+			    	
+    	
+    	
+    	
+    	
+    	roiManager("Add");
+			n = roiManager("count");
+			roiManager("Select", n-1);
+			roiManager("Rename", "Hauteur");
+  }
+
+
+macro "AutoSegment Action Tool - C000D45D46D47D6bD6cD6dD70D7bD7cD84D85D86D87D93D94D95D96D97Da3Da4Da5Da6Da7Da8DadDaeDb3Db4Db5Db6Db7Db8DbcDbdDc3Dc4Dc5Dc6Dc7DcbDccDcdDd0DdbDdcDddDeaDebDecDedDf0Df1Df2Df4Df5Df6Df8Df9DfaDfbDfcDfdDfeDffC000D44D61DafDbfDceDcfDdeDeeC000D83D8fD98Da2De1Df3Df7C002D51C680Dd8C140D6fC014D1dC001D38C020D5cC361D15D17C8c0D67D75D76C460D7aC037D0cD0dC001D4fD80D9fDacDbeDdfDe0DefC010D48D52D7dD9eC012D3dC7a0Da1C350D54C034D31C250D4eC130D62D90D9cD9dC581D43C8c0D68C480Da0C16dD11C000Dc0C013D25D2eD3cC6a0D4bC340D55D56C015D1bC010D3bC120D7fD88C472D7eC9c0D72C570D81De4De5De6De8C03aD0fC010DbbDdaC013D2fC8b0D4aD59D74C460Dd4C6a4D13C470D5eC130D5dC6a2D32D4dC9d0D79C580De3C28fD20C003D35C690D9aDc1C240Dd1C005D34C001D3fD60C110DabDb2C461D39C460Dc2C048D21C013D2dD37C8b0D91C460D42D58Dd5Dd6Dd7C366D03C251D33C593D07C9c0D64D65D66D89C580D8bD99De7C38bD09C003D50C790Dd9C340D6aC025D1fC011D3eC120D71De9C482D14C8b1DaaC14aD0eC010D5fDc8C022D24C8b0D8aDd2C6a5D05C580D3aC240D9bDb0C693D04Cad1D78C580D49D63D82C29fD10C002D41C580D8dC240D57Da9C014D2cC020D5bC470D8cC012D27C7a0D69Dc9C450Db9C045D1aC350De2C592D29C26dD02C591D4cC015D1eC001D36C591D23C8b0D73C169D12C023D26C5a5D08C481D18C230D92C28fD01C003D2bC014D1cC471D6eC570Dd3C039D0bC495D22C360D8eC5a3D19C26dD0aC6a0D53C340DcaC026D40C021D28C373D16C8b1D77C16bD30C252D2aC7a6D06C680D5aC8a1Db1C2afD00C7a0Dba"{
+	n = roiManager("count");
+	for (i=n-1; i>-1; i--) {
+		roiManager("Select", i);
+		nom_item=call("ij.plugin.frame.RoiManager.getName", i);
+		if (nom_item!="Dome"&&nom_item!="Base"&&nom_item!="Hauteur"){
+		roiManager("Delete");
+		}
+	}
+			photo=getTitle();
+		run("Select None");
+	run("Duplicate...", "title=hsb");
+	run("HSB Stack");
+	run("Next Slice [>]");
+	run("Duplicate...", "title=nb");
+	selectWindow("hsb");
+	close();
+	selectWindow("nb");
+	ncount=roiManager("count");
+	for(i=0;i<ncount;i++){
+				roiManager("Select", i);
+				nom_item=call("ij.plugin.frame.RoiManager.getName", i);
+				if (nom_item=="Dome") {
+					roiManager("Select", i);
+					setBackgroundColor(0, 0, 0);
+					run("Clear Outside");
+				}
+			}
+	run("Watershed ", "blurring='"+taille_filtre+".0'   watershed='0 1 0 170 0 0'   display=' 0' ");
+	title = "Watershed";
+	while (!isOpen("Binary watershed lines")){
+								wait(500);
+						}
+	selectWindow("Binary watershed lines");
+	run("Select All");
+	run("Enlarge...", "enlarge=-2");
+	setBackgroundColor(0, 0, 0);
+	run("Clear Outside");
+	run("Select None");
+	run("Analyze Particles...", "size="+taille_mini+"-"+taille_maxi+" circularity=0.00-1.00 show=Nothing exclude add");
+	selectWindow("Binary watershed lines");
+	close();
+	selectWindow("nb");
+	close();
+	selectWindow(photo);
+	run("Select None");
+	roiManager("Show None");
+	roiManager("Show All");
+	//roiManager("Measure");
+	setTool("rectangle");
+	}
+	
+	
+macro 'AutoSegment Action Tool Options'	
+	{
+		Dialog.create("Limites de taille de cellule");
+    Dialog.addMessage("Tailles limite des cellules");
+    Dialog.addNumber("Mini:", taille_mini);
+    Dialog.addNumber("Maxi:", taille_maxi);
+    Dialog.addNumber("Filtre:", taille_filtre);
+    Dialog.show();
+    taille_mini=Dialog.getNumber();
+    taille_maxi=Dialog.getNumber();;
+    taille_filtre=Dialog.getNumber();;;
+	}	
+	
+
+
+
+
+
+
+macro "About These Macros Action Tool - C000C111C222C333C444C555D54D55D63D73D7cD7dD83D88D89D8aD8cD8dD93D97Da3Da4Da5Da6C555D7aDb5C555D72D82C555D45Da7C555D98C555D53C555D79C555C666Db4C666Db6C666C777D92C777D87C777D64C777D62C777C888D44C888D96C888D78C999D94C999CaaaCbbbD99Db3CbbbDa2CbbbDa8CbbbCcccDb7CcccD52CcccD43CcccD65CcccCdddD74CdddD77CdddD86CdddD84D95CdddD00D01D02D03D04D05D06D07D08D09D0aD0bD0cD0dD0eD0fD10D11D12D13D14D15D16D17D18D19D1aD1bD1cD1dD1eD1fD20D21D22D23D24D25D26D27D28D29D2aD2bD2cD2dD2eD2fD30D31D32D33D34D35D36D37D38D39D3aD3bD3cD3dD3eD3fD40D41D42D46D47D48D49D4aD4bD4cD4dD4eD4fD50D51D56D57D58D59D5aD5bD5cD5dD5eD5fD60D61D66D67D68D69D6aD6bD6cD6dD6eD6fD70D71D75D76D7bD7eD7fD80D81D85D8bD8eD8fD90D91D9aD9bD9cD9dD9eD9fDa0Da1Da9DaaDabDacDadDaeDafDb0Db1Db2Db8Db9DbaDbbDbcDbdDbeDbfDc0Dc1Dc2Dc3Dc4Dc5Dc6Dc7Dc8Dc9DcaDcbDccDcdDceDcfDd0Dd1Dd2Dd3Dd4Dd5Dd6Dd7Dd8Dd9DdaDdbDdcDddDdeDdfDe0De1De2De3De4De5De6De7De8De9DeaDebDecDedDeeDefDf0Df1Df2Df3Df4Df5Df6Df7Df8Df9DfaDfbDfcDfdDfeDff"{
+open(getDirectory("macros")+"toolsets/PHIV_Meristem_toolset.txt");
+}
+
+
+
+
+
+//////////////////////////Shortcut Key//////////////////////////////////////////
+
+
+macro "ROI Delete [n0]"{
+	run("Make Inverse");//protege si pas de selection!
+	run("Make Inverse");
+roiManager("Delete");
+}
+
+
+//Rassemble 2 ROI en une seule
+
+macro "ROI Combine [n1]"{
+		run("Make Inverse");
+		run("Make Inverse");
+		tabCombine=newArray(-1,-1); //tableau des index des roi a combiner
+		tabCombine[0]=roiManager("index");
+		run("Add Selection...");
+		run("Overlay Options...", "stroke=magenta width=1 fill=none apply");
+		waitForUser("Combiner", "Selection a ajouter");
+		run("Make Inverse");
+		run("Make Inverse");
+		tabCombine[1]=roiManager("index");
+		roiManager("Select", tabCombine);
+		roiManager("Combine");
+		run("Enlarge...", "enlarge=1"); //recolle les morceaux
+		run("Enlarge...", "enlarge=-1");
+		roiManager("Add");
+		roiManager("Deselect");
+		if (tabCombine[0]>tabCombine[1]){
+			roiManager("Select", tabCombine[0]);
+			roiManager("Delete");
+			roiManager("Select", tabCombine[1]);
+			roiManager("Delete");
+			}
+			else{
+			roiManager("Select", tabCombine[1]);
+			roiManager("Delete");
+			roiManager("Select", tabCombine[0]);
+			roiManager("Delete");
+				
+			}
+			
+			run("Remove Overlay");
+			roiManager("Show All");
+		}
+}
+
+
+//Coupe une ROI en 2
+
+macro "ROI Split [n2]"{
+	run("Line Width...", "line=2");
+wROI=roiManager("index");
+run("Add Selection...");
+run("Overlay Options...", "stroke=magenta width=1 fill=none apply");
+run("Select None");
+setTool("line");
+waitForUser("Couper", "tracer la ligne de séparation");
+roiManager("Add");
+cutROI=roiManager("count")-1;
+run("Select All");
+//origID=getImageID();
+setBatchMode(true) ;
+rename("orig");
+run("Duplicate...", "title=Cut");
+run("8-bit");
+roiManager("Select", wROI);
+setBackgroundColor(0, 0, 0);
+setForegroundColor(255, 255, 255);
+run("Fill", "slice");
+run("Clear Outside");
+roiManager("Select", cutROI);
+run("Clear", "slice");
+setAutoThreshold("Default");
+run("Convert to Mask");
+//run("Draw");
+//run("Watershed");
+run("Invert");
+run("Select None");
+run("Analyze Particles...", "size=0-Infinity circularity=0.00-1.00 show=Nothing add");
+roiManager("Select", cutROI);
+roiManager("Delete");
+roiManager("Select", wROI);
+roiManager("Delete");
+selectWindow("Cut");
+close();	
+selectWindow("orig");
+setBatchMode(false);
+run("Remove Overlay");
+roiManager("Show None");
+roiManager("Show All");
+run("Line Width...", "line=1");
+	
+	
+
+}
+
+
+//////////////////////////////////Fonctions////////////////////////////////////
+
+function TypeSelect(label,nbcell,color) {
+	if (selectionType()==-1){
+	exit("Vous devez sélectionner une cellule");
+	}
+roiManager("Rename", label+nbcell);
+run("Overlay Options...", "stroke=magenta width=1 fill="+color);
+run("Add Selection...");
+//run("Select None");
+nbcell=nbcell+1;  
+return nbcell;  
+}
+
+
+function Roi_Select(nom){
+n = roiManager("count");
+indice=-1;
+for (i=0; i<n; i++) {
+nameRoi=call("ij.plugin.frame.RoiManager.getName", i);
+if (nameRoi==nom) indice=i;
+}
+if (indice!=-1) roiManager("Select", indice);
+}
+
+
+

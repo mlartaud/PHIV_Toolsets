@@ -1,0 +1,884 @@
+// PHIV-RootCell Toolset Version 1.0
+// Marc LARTAUD MRI PHIV (http://phiv.cirad.fr/en/instit.html)
+// Toolset for semi-automatic measurement of several parameters on images of (rice) root transverse sections
+
+/*
+Documentation:
+
+//////////////////////////////////Requirement
+
+Download the Polar_Transformer.class file from:
+http://rsbweb.nih.gov/ij/plugins/download/Polar_Transformer.class
+and save it in the ImageJ/plugins folder
+
+Save the "PHIV_Rootcell_toolset.txt" file in the ImageJ/macros/toolsets folder.
+
+This toolset will run on the 1.48h (or higher) version of ImageJ (not on Fiji).
+
+
+//////////////////////////////////User Manual
+
+>Start ImageJ (if you have read and apply the "Requirement" section (see above)
+
+>In the tool bar menu, click on the "More Tools" menu (">>") and select "PHIV_Rootcell_toolset"
+	<In the tool bar menu, by passing the mouse over the 9 buttons of the toolset, you will see that they correspond to:
+	1- Parameters
+	2- Root Selection (R)
+	3- Stele Selection (S)
+	4- Xylem Selection and Count (X)
+	5- Cortex Selection (C)
+	6- Layer and Cell File Counts (L)
+	7- Data Display (D)
+	8- New Image (N)
+	9- About These Macros (?)
+	<For a detailed description of all the tools included in this toolset, go to the "Tools" section below
+
+>If you click on the "?" button, you will open a text file containing the user manual - Warning: do not modify this file, it contains also the program!
+
+>The first button "Parameters" will allow you to select:
+	1- Verbose mode: Yes or No, depending if you want to be guided to run the toolset or not (default = Yes)
+	2- Microscopy: Fluorescence or Bright-field, the type of image you want to analyse (default = Fluorescence)
+	3- Unit Measure: Pixel, spatial calibration, or setting scale for each image with the pixel value in micrometer (default = Pixel)
+
+>From the File/Open menu, select an image of a root transverse section to analyse
+
+>In the tool bar menu, press the R button (Root Selection)
+	
+>Adjust threshold in the "Threshold" window to cover the whole root if necessary
+
+>Select the area by clicking on it with the "Wand (tracing) tool" automatically selected
+
+>Press OK in the "Root Selection: step 1/5" window
+	<You have the possibility to correct the selection by using the "brush tool" automatically selected (size = 200). Click in the center of the root, and correct the selection by moving the circle around. 
+
+>Press OK in the "Option" window
+
+	<In the "ROI Manager" window, select "Show All" and "Labels". You will see on your image, the selected area for the root, and in the center, the number "1", corresponding to the first selection.
+	<In the "ROI Manager" window, "Root" selection is also now displayed. From this window, you can highlight this selection and delete it or update it at any time if you want.
+
+>In the tool bar menu, press the S button (Stele Selection)
+
+>Adjust the oval selection to the stele perimeter
+
+>Press OK in the "Stele Selection: step 2/5" window
+
+>In the tool bar menu, press the X button (Xylem Selection and Count)
+
+>Adjust Threshold in the Threshold window to reveal Central Metaxylem vessel(s)
+
+	<If several vessels have to be selected (complex selection), press the shift key. In this case, the number of central metaxylem vessels (clicks) will be recorded. The default value for this number is 1
+
+>Validate the number of central metaxylem vessels and press OK
+
+	<The default value is 1
+
+>Validate the number of metaxylem vessels and press OK
+
+	<The default value is 6
+
+>In the tool bar menu, press the C button (Cortex Selection)
+
+>Adjust Threshold in the Threshold window to specifically select inner tissues (delimited by sclerenchyma)
+
+>Select the area by clicking on it with the "Wand (tracing) tool" automatically selected
+
+>Press OK in the "Cortex Selection: step 4/5" window
+
+>You have the possibility to correct the selection by using the "brush tool" automatically selected (size = 100). 
+Click in the center of the root, and correct the selection by moving the circle around. 
+If you do so, click on Update in the ROI manager
+
+>Press OK in the "Option" window
+
+>In the tool bar menu, press the L button (Layer and Cell File Counts)
+
+>Depending on the number of measures (n) defined by user for the number of layers (in options, default = 3), draw a vertical line starting in the center of a cell in the first layer up to the center of a cell in the last layer to be counted and press OK in the "Number of cell layers" window.
+
+>Validate the number of cell layers counted
+
+>Repeat this step n times
+
+>Depending on the number of measures (n) defined by user for the number of cell files (in options, default = 3), draw an horizontal line starting in the center of a cell in a cell file up to the center of a cell in the same cell file and press OK in the "Number of cells in cell file" window.
+
+	<If the quality of your image is not good enough to draw the line on the entire window, you can do the measurement on a smaller portion, and the total number of cells will be extrapolated
+
+>Validate the number of cells in cell file counted
+
+>Validate the extrapolation if only a portion of the image has been analysed
+
+>Repeat this step n times
+
+>Press OK in the message window
+
+>In the tool bar menu, press the D button (Data Display)
+
+>A window pop-up asking you the name of the dataset. If you want to analyse your data with the R script provided (PHIV_RootCell.R), you will have to fill it. For example, if you want to compare two varieties (A and B), you will create 2 datasets (containing several picture analysis) named A and B
+
+>Press OK in this window 
+
+>In the tool bar menu, press the N button (New image) to analyse a new picture
+
+>At the end of your analysis, from the Analyses window, save the file: File/Save as... in a text format (.txt).
+
+
+/////////////////////////////////Tools
+
+The PHIV_RootCell toolset contains 8 tools which have to be run sequentially:
+
+-Parameters
+	This first optional tool will ask you to choose if you want the verbose mode or not (default = Yes), and which type of images you are analysing. Microscopy Fluorescence or Bright-field (default: Fluorescence). We have developed the PHIV-RootCell toolset specifically for fluorescence images. However, depending on your image, you can change the default parameter ("Fluorescence") or "Bright-field".
+
+-R = Root Selection
+	This first tool will automatically select the entire root area. 
+
+-S = Stele Selection
+	This tool will draw an oval selection in the middle of the Root Selection. The size of the oval selection is a parameter of this tool defined as the proportion RootArea/SteleArea (right click, default = 4)
+
+-X = Xylem Selection and Count
+	This tool will automatically select the central metaxylem area and count the number of central metaxylem vessels.
+		in option (right clic):
+		Gaussian Blur (default = 2)
+		Selection smooth (default = 2)
+		Metaxylem : to count the number of metaxylem vessels
+
+-C = Cortex Selection
+	This tool will automatically select tissue area internal to sclerenchyma (brighter fluorescence)
+		in option (right clic):
+		Gaussian Blur (default = 2)
+		Selection smooth (default = 30)
+		EDM factor : Multiplicate Euclidean Distance Map before substracting from Image (default = 1)
+
+-L = Layer and Cell File Counts
+	This tool will first do a polar transformation of the original image. The number of cell layers and the number of cells in a particular cell file will be respectively defined by the number of maxima detected on vertical and horizontal lines in the polar transformed image.
+This modification of the image will allow to count the number of cell layers (average of n measures, n defined by user in option) and the number of cells in 1 or several cell files (number of cell files to be analysed defined by user in option)
+	in option (right clic):
+	Noise tolerance of find maxima (default = 20)
+	Number of measures to be recorded to count the number of cell layers (default = 3, average of these n measures will be reported in the Analyses table)
+	Number of measures to be recorded to count the number of cells in cell files (default = 3, each of these counts will be recorded in the Analyses table)
+
+-D = Display data
+	This tool will display and save the image with selections and the Roi Manager in the original image directory. All the measurements are also display in the "Analyses" window (Table headings: Picture / RootArea / ExternalLayerArea / CortexArea / SteleArea / CentralMetaxylemArea / NbCentralMetaxylem / NbMetaxylem / MeanNbCortexLayers; with "NA" values if none). 
+
+-N = New image
+	This tool will close all images and reset the ROI Manager. The file manager will go to the directory previously opened to select a new picture for analysis.
+
+
+
+*/
+
+
+
+/////////////////////////////////////SCRIPT
+//variables glogales default value
+var verbose="Yes";
+var ligthpath="Fluorescence";
+var calibration="Pixel";
+var px_value=1;
+
+var bruit=20; // more maxima with small value
+var NbMesureCellV=3; //(1,2,3)
+var NbMesureCellH=6; //(1...10)
+var plants="";
+//image
+var image_name="";
+var origid=0;
+//root
+var sigma_gauss_root=10;
+var px_enlarge_root=30;
+var seuil_root=newArray(45,255);
+//stele
+var prop_stele=4;
+//cortex
+var sigma_gauss_cortex=2;
+var px_enlarge_cortex=30;
+var edm_cortex=1;
+var seuil_cortex=newArray(0,20);
+//xylem
+var sigma_gauss_xylem=2;
+var px_enlarge_xylem=2;
+var nb_central_xylem=-1;
+var seuil_xylem=newArray(140,250);
+
+var nb_peripheral_xylem=-1;
+
+//cells count
+var NbCellV=newArray(-1,-1,-1);
+var NbCellH=newArray(-1,-1,-1,-1,-1,-1,-1,-1,-1,-1);
+
+//results
+var title1 = "Analyses";
+var title2 = "["+title1+"]";
+var fe = title2;
+
+// polar transformation
+var tx=0;
+var ty=0;
+var largeur_orig=0;
+var hauteur_orig=0;
+
+macro "AutoRun" {
+			requires("1.48h");
+      setForegroundColor(0, 0, 0);
+			setBackgroundColor(255, 255, 255);
+			run("Options...", "iterations=1 count=1 edm=16-bit");		
+	
+   }
+
+
+
+macro "Parameters Action Tool - C333D18D28D34D37D38D39D3cD44D45D46D47D48D49D4aD4bD4cD54D55D56D5aD5bD64D65D6bD6cD72D73D74D75D7bD7cD7dD7eD82D83D84D85D8bD8cD8dD8eD94D95D9bD9cDa4Da5Da6DaaDabDb4Db5Db6Db7Db8Db9DbaDbbDbcDc3Dc4Dc7Dc8DccDd8De8CaaaD07D2dD32D76D86DdbDf7C333D27D33D43D59D5cD6aD9aDa9DacDc9DcbDd7CdddD00D01D02D03D04D05D0aD0bD0cD0dD0eD0fD10D11D12D1eD1fD20D21D2fD30D31D3fD40D41D4fD88Da0Da1DafDb0Db1DbfDc0Dc1DcfDd0Dd1DdfDe0De1DeeDefDf0Df1Df2Df3Df4Df5DfbDfcDfdDfeDffCdddD06D13D14D15D1aD1bD1cD1dD22D2eD50D51D52D5eD5fD60D77D78D79D87D89D90Da2DaeDdeDe2De3De4De5DeaDebDecDedDf6DfaC555D3aD66D96DcaCbbbD16D25D3eD67D6fD70D80D97D9fDe6C444D35D3dD58Da8Dc6C777D6dCbbbD09D5dDadDb2DddDf9C444D17D3bD57D71D81Da7Db3De7C666D19D2cD4dD7aD8aD9dDdcDe9CcccD2aDceDd5DdaC555D29D36D63D93Dc5DcdDd9C999D08D6eD9eDc2Df8CaaaD26D2bD42D61D91Dd6C666D7fD8fDbdC888Da3CcccD4eD68D98DbeDd2C999D69D99C777D24D53Dd3Dd4C888D23D62D92"{
+		Dialog.create("Parameters");
+    items1 = newArray("Yes", "No");
+    Dialog.addRadioButtonGroup("Verbose Mode", items1, 1, 2, verbose);
+    items2 = newArray("Fluorescence", "Bright-field");
+    Dialog.addRadioButtonGroup("Microscopy", items2, 1, 2, ligthpath);
+    items3 = newArray("Pixel", "Use the image spatial calibration","Set Scale for each image");
+    Dialog.addRadioButtonGroup("Unit Measure", items3, 3, 1, calibration);
+		Dialog.show();
+    verbose=Dialog.getRadioButton;
+    ligthpath=Dialog.getRadioButton;;
+    calibration=Dialog.getRadioButton;;; 
+
+}
+
+	
+////////////////////////////////////////////////Root Selection////////////////////////////////////////////////////////////////////////////////////////
+
+macro "Root Selection Action Tool - C147D54D55D56D57D58D59D5aD99DabCbbbDffC9acDb6CcdfD16D17D26D27D36D37Dc5Dc6Dc7Dd6Dd7De6De7C68bD84CbcfD1cD2cD3cD8bD8cDdcDecCacfD7cDccCdefD12D22D32D51D61D71D81Db2Dc2Dd2De2C258D93D96CbceD20D75Dd0CabeD09D7bDf9CdefD11D13D23D33Dc3Dd3De1De3C8acD43D44D52D76D82CcdfD19D29D39Db8Dc9Dd9De9CacfD1dD2dD2eD3dD3eD4dD4eD5dD5eD6dD6eD7dD7eD8dD8eD9dD9eDadDaeDbdDbeDcdDceDddDdeDedCeefD21D31D41D91Da1Db1Dc1Dd1C248D77D94D97D98Da4DaaCbceD02D03D30D40D50D60D70D80D90Da0Db0Dc0Df2Df3C9beD4cCdefD14D15D24D25D34D35Dc4Dd4Dd5De4De5C79cD62D72CbdfD1aD1bD2aD2bD3aD3bDcaDdaDdbDeaDebCacfD1eDeeC369D95CcdfD42Db3CaceD04D05D06D7aDcbDf4Df5Df6C8beD2fD3fD4fD5fD6fD7fD8fD9fDafDbfDcfDdfCcdfD18D28D38Dc8Dd8De8C148D53D5bD63D67D73D83D87Da5CbcdD01D10De0Df1C9beD0cD0dD9cDfcDfdC79bDa8C258D64CbcfD85Db7CaceD07D08Df7Df8C8acDb4C9beD0aD0bD8aDfaDfbC79cD49C47aD78CcdfDa2CcddD00Df0CabdD92C68bD5cC258D68D88D9aDa6C79cD4aD4bC369D65C79cD6cDbaDbcC359D69D6aD6bDa9C8acD1fDefC79cD45D46D47D48C47bD9bCbbcD0fC9adDfeC68bDa7C79bD74Db5C358D66CabeD79Db9C68bD86D89C469DbbC58aDa3C9adD0eC68bDac"{
+	if (getTitle()!="duplica") image_name=getTitle();
+	//getPixelSize(unit, pixelWidth, pixelHeight);
+	if (calibration=="Pixel") run("Set Scale...", "distance=0 known=0 pixel=1 unit=pixel");//reset scale
+	if (calibration=="Set Scale for each image") {
+		Dialog.create("Set Scale");
+	  Dialog.addNumber("Pixel value in micrometer:", px_value);
+	  Dialog.show();
+	  px_value = Dialog.getNumber();
+		run("Set Scale...", "distance=1 known="+px_value+" pixel=1 unit=micrometer");//reset scale
+	}
+	origid=Duplica(image_name); //duplicate and enhance contrast
+	run("Duplicate...", "title=nb");
+	run("8-bit");
+	run("Gaussian Blur...", "sigma="+sigma_gauss_root);
+	run("Threshold...");
+	setThreshold(seuil_root[0], seuil_root[1]);//setAutoThreshold("Default dark");
+	setTool("wand");
+	title = "Root Selection: step 1/5";
+	if (verbose == "Yes") msg = "1- Adjust Threshold if necessary    \n2- Select by clicking \n3- Press OK";
+	else msg="Select Root";
+	waitForUser(title, msg);
+	if (selectionType() ==-1){
+		showMessage("WARNING","You have to select the root area");
+		waitForUser(title, msg);
+		}
+	getThreshold(lower, upper);
+	seuil_root[0]=lower;
+	seuil_root[1]=upper;
+	run("Enlarge...", "enlarge=-"+(px_enlarge_root+sigma_gauss_root)+" pixel");
+	run("Enlarge...", "enlarge="+px_enlarge_root+" pixel");
+	AddToRoi("Root");
+	close();
+	selectImage(origid);
+	roiManager("Show None");
+	n = roiManager("count");
+	roiManager("Select", n-1);
+	setTool("brush");//to adjust the selection
+	call("ij.gui.Toolbar.setBrushSize", 200);
+	title = "Option";
+	if (verbose == "Yes") msg = "1- Adjust selection with brush tool if necessary \n2- Press OK \n3- Go to next step: Stele selection";
+	else msg="Adjust Root Selection";
+	waitForUser(title, msg);
+	roiManager("Update");
+	roiManager("Show All");
+	
+}
+macro 'Root Selection Action Tool Options'  {
+    Dialog.create("Root Parameters");
+    items = newArray("Fluorescence", "Bright-field");
+    Dialog.addNumber("Gaussian Blur:", sigma_gauss_root);
+    Dialog.addNumber("Selection smooth  (px):", px_enlarge_root);
+    Dialog.show();
+    sigma_gauss_root=Dialog.getNumber();
+    px_enlarge_root=Dialog.getNumber();;
+    }
+
+
+////////////////////////////////////////////////Stele Selection////////////////////////////////////////////////////////////////////////////////////////
+
+
+macro "Stele Selection Action Tool - C147D66D87D98CbbbDffC9acD1fCcdfD16D17D26D27D36D37D85D95Da6Db6Dc6Dc7Dd6Dd7De6De7C58bD8aCbdfD1aD1bD2aD2bD3aD3bD49D59D79DcaDcbDdaDdbDeaDebCaceD03Df3CdefD11D13D23D33Dc3Dd3De1De3C258D63D9bDa9CbceD20Dd0CabeD08Df8CdefD14D15D24D25D34D35D43D52Db3Db5Dc4Dc5Dd4Dd5De4De5C79dD5cCcdfD18D28D38D47D48Db7Dc8Dd8De8CacfD1dD2dD2eD3dD3eD4dD4eD5dD5eD6eD7eD8eD9dD9eDadDaeDbdDbeDcdDceDddDdeDedCeefD21D31D41D51D61Da1Db1Dc1Dd1C248D55D5bD64D65D77D7bD93D99D9aCbceD02D30D40D46D50D60D70D80D90Da0Db0Dc0Df2C9beD0cD0dDfcDfdC79cD72CcdfD19D29D39D58D69Dc9Dd9De9CacfD1eDeeCdefD12D22D32D42D71D81D91Db2Dc2Dd2De2C369D56CcdfDa5CaceD04D05D06D44Df4Df5Df6C8beD2fD3fD4fD5fD6fD7fD8fD9fDafDbfDcfDdfC148D6bD73D83D8bCbcdD01D10De0Df1C9bdDbaC68bD78CacfD7dDacC258D76D88CbcfD1cD2cD3cDbcDccDdcDecCaceD07Df7C8adD57CabeDb8C8acDa7CacfD4cD6dD8dC57aD8cCcdfDa2Db4CcddD00Df0C9adD0eD92Db9DfeC68bDa3C258D54DaaCbcfDbbC8adD4bC9beD09D0aD0bDf9DfaDfbC79cD6aD89D9cC46aD7cC9beD45C79bD82C359D67D97Da8C8adD4aC8acDefC58aD94CbbcD0fC68bD86DabC89cD75D84CabdD62C78bDa4C57bD6cC47aD5aCabeD68D96C79cD53C8adD7aC68aD74"{
+	if (Roi_Exist("Root")){
+		origid=Duplica(image_name);
+		//Oval selection 1/4 diameter at the center of the root selection
+		run("Set Measurements...", "area centroid feret's redirect=None decimal=3");
+		Roi_Select("Root");
+		List.setMeasurements;
+		x = List.getValue("X");
+		y = List.getValue("Y");
+		diam=List.getValue("Feret");
+		diam=diam/prop_stele;
+		run("Specify...", "width="+diam+" height="+diam+" x="+x+" y="+y+" oval centered");
+		setTool("oval");
+		title = "Stele Selection: step 2/5";
+		if (verbose == "Yes") msg = "1- Adjust the oval selection         \n2- Press OK \n3- Go to next step: Xylem selection";
+		else msg="Adjust Stele Selection";
+		waitForUser(title, msg);
+		if (selectionType() ==-1){
+			showMessage("WARNING","You have to select the stele area \nDraw a circle on the stele area");
+			waitForUser(title, msg);
+			}
+		AddToRoi("Stele");
+		selectImage(origid);
+		roiManager("Show All with labels");
+		setTool("rectangle");
+	}
+else showMessage ("You have to select the root area (R) first");
+
+
+}
+
+macro 'Stele Selection Action Tool Options'  {
+    Dialog.create("Stele Parameter");
+    Dialog.addNumber("Proportion:      ", prop_stele);
+    Dialog.show();
+    prop_stele=Dialog.getNumber();
+     }
+
+////////////////////////////////////////////////Xylem Selection////////////////////////////////////////////////////////////////////////////////////////
+
+macro "Xylem Selection and Count Action Tool - C147D64D76D77D86D87D95CbbcD1fC9abDefCcdfD28D38D48D56Dc8Dd8De8C47aD54CbdfD17D18C9bfDeeCdefD21D23D33Dd3De3C258D75D96CbceDf2Df3C9beD6cCddfDc4C9abD2fCcdfD15D16CacfD1bCeefD31D41D51D61D71D81D91Da1Db1Dc1C258D53D65Da4CbceD30D40D50D60D70D80D90Da0Db0Dc0Dd0C9bdD43D55CcdfD26D27D36D37D46D47D57Db6Db7Dc6Dc7Dd6Dd7De6De7C79cD7aCbdfD3bCacfD1cDccCdefD22D32D82Dd1Dd2De2C369D68CbcfD19D1aCabeD7bDf9CdefD24D25D34D35D45D72D83Dc2Dc5Dd4Dd5De1De4De5C8adDa2CcdfD29D39Db8Dc9Dd9De9CacfD2dD3dD4dD5dD6dD7dD8dD9dDadDbdDcdDddDedC248D69D6aD78D88D98D99Da3DaaCccdD02CbcdD06D07D08D09D0aD0bC68bD59CbcfD2cD3cD7cD8bD8cDcaDdcDecCacfD3eD4eD5eD6eD7eD8eD9eDaeDbeDceDdeC258D5aD63CcceD11CabeD84Db9C8acD52Da6CcdfD12D13D14D92CacfD9cCdddDf0CabdD62D73Da7C8abD3fD4fD5fD6fD7fD8fD9fDafDbfDcfDdfCbdfD2aD2bD3aD49DdaDdbDeaDebC469D85CcdeDc3CaceD58Df4Df5Df6C8adDbcCbcdD03D04D05C9bdD1eDb2C57aD74CabfD1dC258D5bC9beD4aD4cDfaDfbC89cDb4CcdfD44C469D79CaceD8aDf7Df8C8adD5cCccdDe0C68cD4bC358D97CbceD42Db5CdddD00C46aD6bC8aeDacCcccDffC9acDfeC57aD66C9beDcbC369D9aDbbCbcdD20Df1C68bDa8C479Da5Db3CbbdD0cC68bD89DbaCacfD2eC258DabCdddD01D0fC69cD67C359D94Da9C9beDfdCcddD10CcccD0eCbccD0dC9beDfcC79bD93C79cD9b"{
+
+
+	if (Roi_Exist("Root")){
+		origid=Duplica(image_name);
+		nb_central_xylem=0;
+		run("Select None");
+		run("Duplicate...", "title=nb");
+		run("8-bit");
+		run("Gaussian Blur...", "sigma="+sigma_gauss_xylem);
+		run("Threshold...");
+		setThreshold(seuil_xylem[0], seuil_xylem[1]);//setAutoThreshold("Shanbhag");
+		setTool("wand");
+		run("Select None");
+		title = "Central Metaxylem Selection: step 3/5  ";
+				
+		if (verbose == "Yes") msg = "1- Adjust Threshold if necessary                    \n2- Select by clicking \n3- Press OK";
+		else msg="Select Central Metaxylem";
+		
+		waitForUser(title, msg);
+		if (selectionType() ==-1){
+			showMessage("WARNING","You have to select one or several central metaxylem vessels");
+			waitForUser(title, msg);
+			}
+		getThreshold(lower, upper);
+		seuil_xylem[0]=lower;
+		seuil_xylem[1]=upper;
+		run("Enlarge...", "enlarge="+px_enlarge_xylem+" pixel");
+		run("Enlarge...", "enlarge=-"+(px_enlarge_xylem)+" pixel");
+		AddToRoi("CentralMetaxylem");
+		norig = roiManager("count");
+		roiManager("Select", norig-1);
+		if (selectionType()!=9){
+			nb_central_xylem=1;
+		}
+		else{
+			roiManager("Split");
+			nfinal = roiManager("count");
+			nb_central_xylem=nfinal-norig;
+			for (i=nfinal-1; i>=norig; i--) {
+				roiManager("Select", i);
+				roiManager("Delete");
+				
+			}
+			
+		}
+		close();	 
+		nb_central_xylem=validation_nombre("Number of Central Metaxylem vessels",nb_central_xylem,0,10);
+		
+		nb_peripheral_xylem=validation_nombre("Number of Metaxylem vessels",6,0,10);
+		
+		selectImage(origid);
+		roiManager("Show None");
+		n = roiManager("count");
+		roiManager("Select", n-1);
+		setTool("brush");
+	call("ij.gui.Toolbar.setBrushSize", 50);
+	roiManager("Show All"); 
+	if (verbose == "Yes") showMessage ("Go to next step: Cortex Selection");
+	}
+		else showMessage ("You have to select the root area (R) first");
+		
+			
+}
+
+macro 'Xylem Selection and Count Action Tool Options'  {
+    Dialog.create("Central Metaxylem Parameters");
+    Dialog.addNumber("Gaussian Blur:", sigma_gauss_xylem);
+    Dialog.addNumber("Selection smooth  (px):", px_enlarge_xylem);
+    Dialog.show();
+    sigma_gauss_xylem=Dialog.getNumber();
+    px_enlarge_xylem=Dialog.getNumber();;
+    }
+
+
+////////////////////////////////////////////////Cortex Selection////////////////////////////////////////////////////////////////////////////////////////
+
+macro "Cortex Selection Action Tool - C147D56D57D58D59D64D6aD8bCbcdD01D10De0Df1CbbbDffCdefD14D15D24D25D34D35D43Dc3Dd4Dd5De4De5C57bD46D9cCcdfD18D28D37D88D98Da8Db8Dc8Dd8De8CacfDb9CdefD12D22D32D42D71D81D91Da1Dc2Dd2De2C259D5aD6bCbdfD1aD1bD2aD2bD3aD3bD89DdaDdbDeaDebCaceD04D05D06Df4Df5Df6CdefD11D13D23D33D52Dd3De1De3C79dD5bCcdfD16D17D26D27D36D85D86D87D95D96D97Da6Da7Db6Db7Dc5Dc6Dc7Dd6Dd7De6De7CacfD1dD2dD2eD3dD3eD4dD4eD5dD5eD6dD6eD7dD7eD8eD9eDadDaeDbdDbeDcdDceDddDdeDedCeefD21D31D41D51D61Db1Dc1Dd1C248D55Da3DabCbcfD1cD2cD3cD4bD4cD5cDa9DccDdcDecCabeD08DbcDf8C79bD84CacfD8dD9dC469D67CcdfD19D29D38D39D99Dc9Dd9De9CbceD02D30D40D50D60D70D80D90Da0Db0Dc0Df2C8beD2fD3fD4fD5fD6fD7fD8fD9fDafDbfDcfDdfC148D73D7bD83D93D9bCbcfDcaDcbC9beD09D0aD0bDf9DfaDfbC68bD92CacfD1eDeeC369D68CbceD78C9beD6cC258D65CcdfDa5CaceD07Df7C8acD72C57aDbaCbceD20D44D62D77Db5Dd0C9beD0cD0dDfcDfdC68bD82C369D54D63D66D74D7aC9adD0eD79Da2DfeC79cD94C47aDa4C69cD49D9aCaceD03Df3C258D69CcdfDb2Dc4C9acD75C58aDb4CcddD00Df0C9bdD53C79cDacC47aDaaC68cD7cD8aC8acDefC57aDbbCbceD76C68bDb3C79cD45C47aD47C9acD1fC57bD48D8cCbbcD0fC9beD4a"{
+	if (Roi_Exist("Root")){
+		origid=Duplica(image_name);
+		run("Select None");
+		run("Duplicate...", "title=nb");
+		run("8-bit");
+		run("Gaussian Blur...", "sigma="+sigma_gauss_cortex);
+		Map_Roi("Root"); // Euclidian distance map
+		selectWindow("map");
+		//run("Add...", "value="+edm_cortex);
+		run("Multiply...", "value="+edm_cortex);//EDM factor
+		imageCalculator("Subtract", "nb","map");
+		selectWindow("map");
+		close();
+		selectWindow("nb");
+		run("Threshold...");
+		setThreshold(seuil_cortex[0], seuil_cortex[1]);//setAutoThreshold("Default");
+		setTool("wand");
+		run("Select None");
+		title = "Cortex Selection: step 4/5";
+				
+		if (verbose == "Yes") msg = "1- Adjust Threshold if necessary        \n2- Select by clicking \n3- Press OK";
+		else msg="Select Cortex";
+		
+		waitForUser(title, msg);
+		if (selectionType() ==-1){
+			showMessage("WARNING","You have to select the cortex area");
+			waitForUser(title, msg);
+			}
+			getThreshold(lower, upper);
+		seuil_cortex[0]=lower;
+		seuil_cortex[1]=upper;
+		run("Enlarge...", "enlarge="+px_enlarge_cortex+" pixel");
+		run("Enlarge...", "enlarge=-"+(px_enlarge_cortex+sigma_gauss_cortex)+" pixel");
+		AddToRoi("Cortex");
+		close();
+		selectImage(origid);
+		roiManager("Show None");
+		n = roiManager("count");
+		roiManager("Select", n-1);
+		setTool("brush");
+	call("ij.gui.Toolbar.setBrushSize", 100);
+	title = "Option";
+	if (verbose == "Yes") msg = "1- Adjust selection with brush tool if necessary \n2- Press OK \n3- Go to next step: Layers and Cell Files";
+	else msg="Adjust Cortex Selection";
+	waitForUser(title, msg); 
+	}
+	else showMessage ("You have to select the root area (R) first");
+	roiManager("Update");
+	roiManager("Show All");
+}
+
+macro 'Cortex Selection Action Tool Options'  {
+    Dialog.create("Cortex Parameters");
+    Dialog.addNumber("Gaussian Blur:", sigma_gauss_cortex);
+    Dialog.addNumber("Selection smooth  (px):", px_enlarge_cortex);
+    Dialog.addNumber("EDM factor (0,1):", edm_cortex);
+    Dialog.show();
+    sigma_gauss_cortex=Dialog.getNumber();
+    px_enlarge_cortex=Dialog.getNumber();;
+    edm_cortex=Dialog.getNumber();;;
+    }
+
+
+
+
+
+////////////////////////////////Layers and Cell Files /////////////////////////////////////////////////
+
+macro "Layer and Cell File Counts Action Tool - C148D8bCcccD0fCbbcDffCdefD14D15D24D25D34D35D44D45D94D95Da4Da5Db4Db5Dc4Dc5Dd4Dd5De1De4De5C9acDefCcdfD18D28D38D48D98Da8Db8Dc8Dd8De8CacfDbaCdefD21D22D32D42D92Da2Db2Dc2Dd1Dd2De2C469D73CcdfD19D29D39D49Da9Db9Dc9Dd9De9CaceDf4Df5Df6CdefD12D13D23D33D43D82D93Da3Db3Dc3Dd3De3C8adD53CcdfD16D17D26D27D36D37D46D47D96D97Da6Da7Db6Db7Dc6Dc7Dd6Dd7De6De7CbcfD1cD2cD3cD4cDccDdcDecCeefD31D41D51D61D71D81D91Da1Db1Dc1C258D63CbdfD1aD1bD2aD2bD3aD3bD4aD4bD99DcaDcbDdaDdbDeaDebCbceD20D30D40D50D60D70D80D84D85D90Da0Db0Dc0Dd0C8adD3fD4fD54D5fD6fD7fD8fD9fDafDbfDcfDdfCacfD1dD2dD3dD3eD4dD4eD5dD5eD6dD6eD7dD7eD8dD8eD9dD9eDadDaeDbdDbeDcdDceDddDedC79dD58D59D5aD6cCbceDf2Df3C9beDfcDfdC248D64D65D66D67D68D69D6aD6bD7bD9bCdddD00Df0CabeD89C9abD1fCacfD2eDdeC79cD7cD8cD9cCacfD5cDbcCabdD09D0aD0bC369D74D75D76D77D78D79C8adD55D56D57D5bCabeDf9CccdD01D10De0CacdD04D05C8acD2fCacfDeeC68bD9aC9bdD0cD0dD62C258D7aDabC9beDfaDfbCcdeD83CbcdDf1CabcD0eC79cDacC9bfD1eCabdD06D07D08C57bD8aC9adDbbCaceD72D88CaceDf7Df8CbcdD02D03C69cDaaCcdfD11D52CbceD86D87C9acDfe"{
+		if (Roi_Exist("Root")){
+			selectWindow(image_name);
+			origid=getImageID();
+			getDimensions(width, height, channels, slices, frames);	
+			largeur_orig=width;
+			hauteur_orig=height;
+			setBackgroundColor(0, 0, 0);
+			setTool("oval");
+			//cherche la stelle en ROI manager
+			Roi_Select("Stele");
+			if (selectionType() ==-1)		exit("This macro needs the Stele Selection step to run");
+			run("Select None");
+			getSelectionBounds(x, y, width, height);
+			run("Duplicate...", "title=pol");
+			if(ligthpath=="Bright-field") run("Invert");
+			run("Restore Selection");
+			getSelectionBounds(x, y, width, height);
+			tx=(getWidth()/2)-(x+(width/2));
+			ty=(getHeight()/2)-(y+(height/2));
+			run("Select All");
+			run("Cut");
+			makeRectangle(tx, ty, getWidth(),getHeight() );
+			run("Paste");
+			run("Select None");
+			run("Polar Transformer", "method=Polar degrees=360 default number=720");
+			run("Subtract Background...", "rolling=50");
+			run("Enhance Contrast...", "saturated=0.4");
+			run("Rotate 90 Degrees Right");
+			selectWindow("pol");
+			close();
+			selectWindow("Polar Transform of pol");
+			rename("pol");
+			setTool("freeline");
+			getDimensions(width, height, channels, slices, frames);
+			factor_zoom=((screenWidth/width)*100);
+			factor_zoom=floor(factor_zoom);
+			run("To Selection");
+			setLocation(0, 150, screenWidth, screenHeight);
+			run("Set... ", "zoom="+factor_zoom+" x=0 y=0");
+			setLocation(0, 150, screenWidth, screenHeight);
+			run("Out [-]");
+				
+
+		for (i=0;i<NbMesureCellV;i++){
+			title = "Number of cell layers "+(i+1)+"/"+NbMesureCellV;
+			msg = "1- Draw a VERTICAL line to count the number of cells in a cell layer \n2- Press OK ";
+			waitForUser(title, msg);
+			compte_maxima("magenta");
+			nombre_cell=getResult("Count", nResults-1)+1;//nombre d intervals
+			nombre_cell=validation_nombre("Number of layers:",nombre_cell,1,1000);
+			NbCellV[i]=nombre_cell;
+		}
+
+		for (i=0;i<NbMesureCellH;i++){
+			title = "Number of cells in a cell file "+(i+1)+"/"+NbMesureCellH;
+			msg = "1- Draw an HORIZONTAL line to count the number of cells in a cell file \n2- Press OK ";
+			waitForUser(title, msg);
+			run("Set Measurements...", "area centroid bounding feret's redirect=None decimal=3");
+			List.setMeasurements;
+			width_line=List.getValue("Width");
+			extrapol=round (width*100/width_line)/100;
+			compte_maxima("green");
+			nombre_cell=getResult("Count", nResults-1);
+			nombre_cell=validation_nombre("Number of cells:",nombre_cell,1,1000);
+				if ((width/width_line)<1.1) NbCellH[i]=nombre_cell; // all cells
+				else{
+					NbCellH[i]=round(nombre_cell*extrapol);
+					NbCellH[i]=validation_nombre("Extrapolated number of cells on the whole image:",NbCellH[i],1,100);
+				}
+			}
+
+			
+			run("Flatten");
+			rename("temp");
+			run("Rotate 90 Degrees Left");
+			run("Polar Transformer", "method=Cartesian degrees=360 default");
+			run("Canvas Size...", "width="+largeur_orig+" height="+hauteur_orig+" position=Center zero");	
+			run("Select All");
+			run("Cut");
+			makeRectangle(-tx, -ty, getWidth(),getHeight() );
+			run("Paste");	
+			run("Select None");
+			roiManager("Show All");
+			rename("flat");
+			run("Flatten");
+			rename("Result "+image_name);
+			selectWindow("flat");
+			close();
+			selectWindow("temp");
+			close();
+			selectWindow("pol");
+			close();
+			run("Clear Results");
+			if (verbose == "Yes") showMessage ("Go to next step: Data display");
+	}
+	else showMessage ("You have to go step by step starting with the root area (R) first");
+}
+
+
+macro 'Layer and Cell File Counts Action Tool Options'  {
+    //on right-click, the corresponding 'Options' macro is run
+    
+    Dialog.create("Layers and Cell Files parameters");
+    Dialog.addNumber("Noise tolerance:", bruit);
+    Dialog.addSlider("Number of measures for cell layers:", 1, 3, NbMesureCellV);
+    Dialog.addSlider("Number of measures for cell files:", 1, 10, NbMesureCellH);
+    Dialog.show();
+    bruit=Dialog.getNumber();
+    NbMesureCellV=Dialog.getNumber();;
+    NbMesureCellH=Dialog.getNumber();;;
+      	
+
+
+}
+
+//////////////////////////////////////////////Data display/////////////////////////////////////////////////////////////////////////////
+
+macro "Data Display Action Tool - C147D5aDa5Da8CbbbD1fC9abD2fCcdfD19D29D78Dd9De8C469D43CbcfD38D39D3aD79CabeD8cCdefD12D13D23D32Da2Dc3Dd3C358Db7CbceDc6C9bdD0cDbaCddfDb3C9abD3fD4fD5fD6fD7fD8fD9fDafDbfDcfCbcfDc9CacfD1dD9cCeefD31D41D51D61D71D81D91Da1Db1Dc1C258D8aDa4CbcdD02D03D04C9bdD1eDabCcdfD16D17D26D27D33D75D76D86D87Dd6Dd7De5De6C79cD98CbdfD1bD2bDcbDdbCacfD4cCdefD21D22Db2Dc2Dd1Dd2C369D4aCcdeD92CabdD07D08CdefD14D15D24D25Dc4Dd4Dd5De2De3De4C8acD52D62Da3CbdfD1aD2aDcaDdaDe9DeaCacfD2dD3dD4dD5dD6dD7dD8dD9dDadDbdDcdDddDecC248D54D55D56D57D58D59D83D94D9aDa6Da7CbbcDefC9adD72CcdfD18D28D77D88Dd8De7C57aD64D95CbcfD1cD2cD3bD3cDacDbbDbcDccDdcDebC9bfD2eD3eD4eD5eD6eD7eD8eD9eDaeDbeDceDdeC369D93DaaDb8CbceDc8C9beD89CcdeDe1CccdD01D10CabdDf4Df5Df6Df7Df8Df9DfaC8acD65D66CacfDedC369D44D45D46D47D48D49D7aD8bD99CdddDf0CabeD42C8adD97CcdfD34C148D53D63D73Da9CbcdDf2Df3C9acDb4C57aD84C359D5bD6aD6bD7bDb6CbceD20D30D40D50D60D70D80D90Da0Db0Dc0Dd0CabdD09D0aD0bD82CbdfD36D37C79cD74CacdD05D06CccdDf1C9bdD0dC68aDb9C9beD5cD6cD7cCcdfD35D85Dc5CccdDe0C8adD96CaceDc7CcdfD11CbbcD0eC9abDdfC47aDb5C79cD69CcccDfeC9adDeeCabcDfdC57bD4bC89cD67D68CdddD0fDffCabdDfbDfcC57bD9bCdddD00"{
+	
+	
+	Dialog.create("Data Set");
+	Dialog.create("Plants");
+	Dialog.addMessage("Name of dataset");
+	Dialog.addString("Plants:", plants);
+	Dialog.addMessage("Necessary if these data are analysed thereafter with the PHIV_RootCell.R script");
+	
+	Dialog.show();
+	plants = Dialog.getString();
+	if( !isOpen("Analyses")){
+		entete="\\Headings:Plants      \tRootArea   \tExternalLayerArea   \tCortexArea   \tSteleArea  \tCentralMetaxylemArea \tNbCentralMetaxylem   \tNbMetaxylem   \tMeanNbCortexLayers   ";
+		for (i=0;i<NbMesureCellH;i++){
+			entete=entete+"\tNbCellFile"+(i+1);				
+		}
+		entete=entete+"\tPicture";
+		run("Table...", "name="+title2+" width=1300 height=300");
+		print(fe, entete);
+		}
+		root_area=-1;
+		stele_area=-1;
+		cortex_area=-1;
+		centralxylem_area=-1;
+		AreaExternalLayer=-1;
+		n = roiManager("count");
+		selectWindow(image_name);
+		dir=getDirectory("image");
+		for (i=0; i<n; i++) {
+		nameRoi=call("ij.plugin.frame.RoiManager.getName", i);
+		roiManager("Select", i);
+		if (nameRoi=="Root") {getStatistics(area);root_area=round(area);}
+		if (nameRoi=="Stele") {getStatistics(area);stele_area=round(area);}
+		if (nameRoi=="Cortex") {getStatistics(area);cortex_area=round(area);}
+		if (nameRoi=="CentralMetaxylem") {getStatistics(area);centralxylem_area=round(area);}
+	}
+	if (cortex_area!=-1){
+		 AreaExternalLayer = root_area -cortex_area;
+		cortex_area=cortex_area-stele_area;
+	}
+	
+	for (i=0;i<NbMesureCellV;i++){
+		MeanNbCortexLayers=MeanNbCortexLayers+NbCellV[i];
+		
+	}
+	
+	
+	MeanNbCortexLayers=round(((MeanNbCortexLayers)*100)/NbMesureCellV)/100;
+	
+	ligne_result=plants + "\t" + NA(root_area) + "\t" + NA(AreaExternalLayer)+ "\t" + NA(cortex_area)+ "\t" + NA(stele_area)+ "\t" + NA(centralxylem_area)+ "\t" + NA(nb_central_xylem)+ "\t" + NA(nb_peripheral_xylem)+ "\t" + NA(MeanNbCortexLayers);
+	//+ "\t" + NbCellH[0]+ "\t" + NbCellH[1]+ "\t" + NbCellH[2]
+	for (i=0;i<NbMesureCellH;i++){
+			ligne_result=ligne_result+"\t"+NA(NbCellH[i]);				
+		}
+		ligne_result=ligne_result+"\t" +image_name;
+	print(fe,ligne_result );	
+				
+	
+	if( isOpen("Result "+image_name)){
+		selectWindow("Result "+image_name);
+		saveAs("Jpeg", dir+"Result_"+image_name);
+		roiManager("Save", dir+image_name+".zip");
+		if (verbose == "Yes") showMessage("Data","<html><font size=+0>Data are displayed in the Analyses window<br>At the end, use the File/Save as menu to save the data<br>The image with selections and the Roi Manager have been saved in the original image directory<br>Click on N to analyse a new image");
+		else showMessage("Data","<html><font size=+0>Data are displayed in the Analyses window");
+		
+	}
+	
+	
+}
+
+////////////////////////////////////////////////////New Image//////////////////////////////////////////////////////////////////
+
+macro "New image Action Tool - C147D54D64D99DaaCbbbD1fC9abD2fCbdfDdbC369Da3CacfDccC9beDfdCdefD23D92Dd3De3C258Db4Db5Db6CaceDf4Df5Df6C8adD5cDacCcdfD15D16D26D27D34D35Dd6Dd7De6De7C8abD3fD4fD5fD6fD7fD8fD9fDafDbfDcfDdfCbcfD1bD2cD3aD3bD3cD7bD7cD8bD8cDdcDecCacfD1dD2eD3eD4eD5eD6eD7eD8eD9eDaeDbeDceDdeCeefD31D41D51D61D71D81D91Da1Db1Dc1C258D63D9aDb7Db8Db9DbaCbceD84C9acDfeCcdfD18D29D36D37Dd9De9C47aD4bCacfD1cD2dD3dD4dD5dD6dD7dD8dD9dDadDbdDcdDddDedCabeDf9CdefD21D22D32D82Dd1Dd2De2C359D86Da7DbbCbceDf2Df3CabdD04D05D06D07D08D09D0aCdefD12D13D14D24D25D33D83Dd4Dd5De1De4De5C89cD73CbcfD95C248D53D56D57D58D59D5aD75D76D88CbcdDf1C9adD52Dc8Dc9DcaCbdfD19D1aD2aD2bD38D39D7aDdaDeaDebC46aD44D45D46D47D48D49D4aD89CbcfD79CabdD62Da2C258D98DabC9bdD1eD96Db2CbceD20D30D40D50D60D70D80D90Da0Db0Dc0Dd0CabdDc4Dc5CcdfD17D28Dd8De8C57bD9bC9bfDeeC369Da6CbceD42C8adD78CcdfD93C247D87CbcdD03C9abDefC369D77C9beD4cDfaDfbC248Da8C9adDbcDcbC9bdDc6Dc7C57aD43D97CaceDf7Df8C8acD69D6bCcdfD94CdddD0fCabdDc3C258D5bDb3CabdD0bD0cC78bD85CacfD6cD9cC369D74Da4Da5CcdeD11C8adD8aCddfD72Dc2CbccD0eC9beDfcCabcD0dC89cD6aCccdDe0C148D55D65Da9CbcdD02C8acD68C469D66CdddDf0C79bD67CcccDffCcddD10CccdD01CdddD00"{
+
+	run("Close All");
+	if (isOpen("ROI Manager")){
+		roiManager("Deselect");
+		n = roiManager("count");
+		if (n>0) roiManager("Delete");
+	}
+	nb_central_xylem=-1;
+	NbCellV=newArray(-1,-1,-1);
+	NbCellH=newArray(-1,-1,-1,-1,-1,-1,-1,-1,-1,-1);
+	run("Open...");
+
+}
+
+macro "About These Macros Action Tool - C000C111C222C333C444C555D54D55D63D73D7cD7dD83D88D89D8aD8cD8dD93D97Da3Da4Da5Da6C555D7aDb5C555D72D82C555D45Da7C555D98C555D53C555D79C555C666Db4C666Db6C666C777D92C777D87C777D64C777D62C777C888D44C888D96C888D78C999D94C999CaaaCbbbD99Db3CbbbDa2CbbbDa8CbbbCcccDb7CcccD52CcccD43CcccD65CcccCdddD74CdddD77CdddD86CdddD84D95CdddD00D01D02D03D04D05D06D07D08D09D0aD0bD0cD0dD0eD0fD10D11D12D13D14D15D16D17D18D19D1aD1bD1cD1dD1eD1fD20D21D22D23D24D25D26D27D28D29D2aD2bD2cD2dD2eD2fD30D31D32D33D34D35D36D37D38D39D3aD3bD3cD3dD3eD3fD40D41D42D46D47D48D49D4aD4bD4cD4dD4eD4fD50D51D56D57D58D59D5aD5bD5cD5dD5eD5fD60D61D66D67D68D69D6aD6bD6cD6dD6eD6fD70D71D75D76D7bD7eD7fD80D81D85D8bD8eD8fD90D91D9aD9bD9cD9dD9eD9fDa0Da1Da9DaaDabDacDadDaeDafDb0Db1Db2Db8Db9DbaDbbDbcDbdDbeDbfDc0Dc1Dc2Dc3Dc4Dc5Dc6Dc7Dc8Dc9DcaDcbDccDcdDceDcfDd0Dd1Dd2Dd3Dd4Dd5Dd6Dd7Dd8Dd9DdaDdbDdcDddDdeDdfDe0De1De2De3De4De5De6De7De8De9DeaDebDecDedDeeDefDf0Df1Df2Df3Df4Df5Df6Df7Df8Df9DfaDfbDfcDfdDfeDff"{
+open(getDirectory("macros")+"toolsets/PHIV_Rootcell_toolset.txt");
+}
+
+
+
+
+
+
+//////////////////////////////////Fonctions////////////////////////////////////
+
+function Duplica(image){
+	if( !isOpen("duplica")){
+	selectWindow(image);
+	run("Select None");
+	run("Duplicate...", "title=duplica");
+	if(ligthpath=="Bright-field") run("Invert");
+	run("Enhance Contrast", "saturated=0.35");
+		}
+		else selectWindow("duplica");
+	return(getImageID());
+}
+
+
+function coord_cartesien(){	
+run("Flatten");
+run("Rotate 90 Degrees Left");
+run("Polar Transformer", "method=Cartesian degrees=360 default");
+run("Canvas Size...", "width="+largeur_orig+" height="+hauteur_orig+" position=Center zero");	
+run("Select All");
+run("Cut");
+makeRectangle(-tx, -ty, getWidth(),getHeight() );
+run("Paste");	
+run("Select None");
+}
+
+function coord_polaire(){	
+getDimensions(width, height, channels, slices, frames);	
+largeur_orig=width;
+hauteur_orig=height;
+setBackgroundColor(0, 0, 0);
+setTool("oval");
+//cherche la stelle en ROI manager
+Roi_Select("Stelle");
+getSelectionBounds(x, y, width, height);
+//si il n y a pas de selection
+if (y==0)
+exit("Selection d une ellipse avant le centrage");
+//si il y a une selection
+run("Select None");
+run("Duplicate...", "title=pol");
+run("Restore Selection");
+getSelectionBounds(x, y, width, height);
+tx=(getWidth()/2)-(x+(width/2));
+ty=(getHeight()/2)-(y+(height/2));
+run("Select All");
+run("Cut");
+makeRectangle(tx, ty, getWidth(),getHeight() );
+run("Paste");
+run("Select None");
+run("Polar Transformer", "method=Polar degrees=360 default number=720");
+run("Subtract Background...", "rolling=50");
+run("Enhance Contrast...", "saturated=0.4");
+run("Rotate 90 Degrees Right");
+selectWindow("pol");
+close();
+selectWindow("Polar Transform of pol");
+setTool("freeline");
+setLocation(0, 150, screenWidth, screenHeight);
+run("Set... ", "zoom=200 x=0 y=0");
+//run("Brightness/Contrast...");
+}
+
+function compte_ligne(file_cell,couleur,fichier){
+		title = "WARNING";
+		msg = "1- Draw a line on the cell file "+file_cell+"\n2- Press OK";
+		waitForUser(title, msg);
+		compte_maxima(couleur);
+		nombre=getResult("Count", nResults-1);
+		nombre=validation_nombre("Number of cells:",nombre,1,100);
+		/*setResult("Count", nResults-1, nombre);
+		setResult("Label", nResults-1, fichier+".tif:"+file_cell);
+		updateResults();*/
+		
+}
+
+
+function compte_maxima(couleur){
+IDmage=getImageID();
+if (selectionType()==-1){
+	title = "WARNING";
+	msg = "1- Draw a line  \n2- Press OK";
+	waitForUser(title, msg);
+	}
+if (selectionType()<5)run("Area to Line");
+run("Select None");
+run("Duplicate...", "title=polar");
+run("Restore Selection");
+run("Line Width...", "line=1");
+run("Line to Area");
+setBackgroundColor(1, 1, 1);
+run("Clear Outside");
+run("Find Maxima...", "noise="+bruit+" output=Count");
+run("Find Maxima...", "noise="+bruit+" output=[Point Selection]");
+run("Select None");
+close();
+selectImage(IDmage);
+run("Restore Selection");
+run("Overlay Options...", "stroke="+couleur+" width=1 fill="+couleur);
+run("Add Selection...");
+}
+
+function validation_nombre(titre,nombre,min,max){
+	Dialog.create("Validation");
+  Dialog.addSlider(titre, min, max, nombre); //"Number of cells:"
+  Dialog.show();
+  nombre= Dialog.getNumber();
+  return nombre;
+}
+
+function Roi_Select(nom){
+n = roiManager("count");
+indice=-1;
+for (i=0; i<n; i++) {
+nameRoi=call("ij.plugin.frame.RoiManager.getName", i);
+if (nameRoi==nom) indice=i;
+}
+if (indice!=-1) roiManager("Select", indice);
+}
+
+function Map_Roi(nom){
+Roi_Select(nom);
+run("Create Mask");
+rename("map");
+run("Distance Map");
+Roi_Select(nom);
+run("Clear Outside");
+}
+
+function AddToRoi(name){
+	roiManager("Add");
+	n = roiManager("count");
+	for (i=0; i<n; i++) {
+		nameRoi=call("ij.plugin.frame.RoiManager.getName", i);
+		if (nameRoi==name) {
+			roiManager("Select", i);
+			roiManager("Delete");	
+			}
+	}
+			n = roiManager("count");
+			roiManager("Select", n-1);
+			roiManager("Rename", name);
+		}
+	roiManager("Deselect");
+}
+
+function Map_Roi(name){
+	Roi_Select(name);
+	run("Create Mask");
+	rename("map");
+	run("Distance Map");
+	selectWindow("map");
+	close();
+	selectWindow("EDM of map");
+	rename("map");
+	Roi_Select(name);
+	setForegroundColor(0, 0, 0);
+	setBackgroundColor(255, 255, 255);
+	run("Clear Outside");
+	run("8-bit");
+}
+
+function Roi_Exist(name){
+	n = roiManager("count");
+	exist=0;
+	for (i=0; i<n; i++) {
+		nameRoi=call("ij.plugin.frame.RoiManager.getName", i);
+		if (nameRoi==name) exist=1;
+	}
+	return exist;
+}
+
+function NA(valeur){
+	if (valeur==-1)valeur="NA";
+	return valeur;
+}

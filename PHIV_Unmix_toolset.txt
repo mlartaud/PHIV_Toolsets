@@ -1,0 +1,255 @@
+// PHIV Matlab Tool Set
+// Marc LARTAUD MRI PHIV
+// Boite a outils pour l analyse d images multispectrales dans Matlab
+
+
+/*
+Matlab = a partir d une image .lsm choix d un dossier de travail pour matlab copie dedans tous les fichiers
+en option choix de l emplacement du dossier de base ou sont tous les scripts matlab
+par defaut "D:\\Mes donnees\\matlab\\la base"
+Mask = creation d un masque et sauvegarde dans le dossier de travail
+//Luminosite Contraste = reglages!
+Spectre = mets dans le presse papier les spectres des roi pour les coller dans le fichier spectres.csv
+Composite = creation d une image composite des stacks unmix en options le nombre de cannaux
+Lut = choix des lut
+on peut aussi utiliser stack sorter pour mettre les couches dans l ordre  R G B C M Y
+
+
+
+
+*/
+
+var canaux=5;
+     var dCmds = newMenu("Lut Menu Tool",
+      newArray("Red","Green", "Blue", "Cyan", "Magenta", "Yellow", "Matlab"));
+
+
+//macro "Unused Tool-1 - " {}  // laisse une place libre!
+
+var dir="";
+var dirbase="D:\\Mes donnees\\matlab\\la base";
+var fichier_unmix="unmix_pca.tif";
+var lambdas=newArray(0);
+
+
+
+macro "LUT_spectrale Action Tool - Cf00D00D01D02D03D04D05D06D07D08D09D0aD0bD0cD0dD0eD0fD10D11D12D13D14D15D16D17D18D19D1aD1bD1cD1dD1eD1fC02dD60D61D62D63D64D65D66D67D68D69D6aD6bD6cD6dD6eD6fC0f0D40D41D42D43D44D45D46D47D48D49D4aD4bD4cD4dD4eD4fCf0eDc0Dc1Dc2Dc3Dc4Dc5Dc6Dc7Dc8Dc9DcaDcbDccDcdDceDcfCd20D20D21D22D23D24D25D26D27D28D29D2aD2bD2cD2dD2eD2fC08fD80D81D82D83D84D85D86D87D88D89D8aD8bD8cD8dD8eD8fCfc2De0De1De2De3De4De5De6De7De8De9DeaDebDecDedDeeDefCa5eDb0Db1Db2Db3Db4Db5Db6Db7Db8Db9DbaDbbDbcDbdDbeDbfC01fD70D71D72D73D74D75D76D77D78D79D7aD7bD7cD7dD7eD7fC0a5D50D51D52D53D54D55D56D57D58D59D5aD5bD5cD5dD5eD5fCf59Dd0Dd1Dd2Dd3Dd4Dd5Dd6Dd7Dd8Dd9DdaDdbDdcDddDdeDdfC5a0D30D31D32D33D34D35D36D37D38D39D3aD3bD3cD3dD3eD3fC0ffD90D91D92D93D94D95D96D97D98D99D9aD9bD9cD9dD9eD9fCff0Df0Df1Df2Df3Df4Df5Df6Df7Df8Df9DfaDfbDfcDfdDfeDffC2dfDa0Da1Da2Da3Da4Da5Da6Da7Da8Da9DaaDabDacDadDaeDaf"{
+
+		run("Duplicate...", "duplicate");
+		
+		lambda_labels();
+		 //Array.show(lambdas);
+		 run("Make Composite", "display=Composite");
+		 n = nSlices;
+		for (i=1; i<=n; i++) {
+			setSlice(i);
+			setMetadata("Label", ""+lambdas[i-1]+"nm");
+			lambda_lut(lambdas[i-1]);
+			run("Enhance Contrast...", "saturated=0.01");
+			
+			
+		}
+		 
+		 run("RGB Color");
+		 run("Z Project...", "projection=[Max Intensity]");
+
+}
+  
+
+
+
+macro "Spectre Action Tool - C111D7bCfffD00D01D02D03D04D05D06D07D08D09D0aD0fD10D11D12D13D14D15D16D17D18D19D1aD1eD1fD20D21D22D23D24D25D26D27D28D29D2dD2eD2fD30D31D32D33D34D35D36D3dD3eD3fD40D41D42D43D4cD4dD4eD4fD50D51D52D53D5aD5bD5cD5dD5eD5fD60D61D62D63D64D6dD6eD6fD70D71D72D73D74D7eD7fD8dD8eD8fD98D99D9aD9bD9cD9dD9eD9fDa3Da4Da5Da6Da7Da8Da9DaaDabDacDadDaeDafDb5Db6Db7Db8Db9DbaDbbDbcDbdDbeDbfDc0Dc8Dc9DcaDcbDccDcdDceDcfDd0Dd1Dd2Dd3DdbDdcDddDdeDdfDe0De1De2De3De4De5DeeDefDf0Df1Df2Df3Df4Df5Df6Df7Df8CaaaD6bD93Dd5C666D46Db1Dc3CdddD80D95Dd4DffC555D3aD68D85D86D91De9CcccD1bD4aD81D8bDecC888D0cD67D83DfbCfffD0bD2aD4bD75D97Dc1De6DedDf9C555D3bD47D69Db2DeaDfcCbbbD38D66C777Dd8CeeeD37D59D76D96Da2Dc7DdaC666D48D87Dd6CdddD1dD6cD77D7dDe7DfaC999D2bD49D89De8C444D7cDfdCbbbD78D8aDc2Dc6C777D57D6aD79D84D88Da1Dc5CeeeD44D65D8cDb0Db4CcccD3cD58D94Dd9C888D2cD39D92DebDfeC999D0eC222D7aCaaaD45D54D82Db3C444D1cDa0Dc4Dd7C222D56D90C333D55C333D0d"{
+	
+	if (isOpen("plot_live")){
+		selectWindow("plot_live");
+		close();
+	}
+	if (isOpen("Spectre")){
+		selectWindow("Spectre");
+		close();
+	}
+	
+	
+	lambda_labels();
+	run("Plot Z-axis Profile");
+	rename("plot_live");
+	Plot.getValues(xpoints, ypoints);
+	maxInts= Array.findMaxima(ypoints, 10);
+	Array.show(maxInts);
+	
+	leg="{";
+	for (i=0;i<xpoints.length;i++){
+			leg=leg+lambdas[i]+",";
+		}
+	leg=leg+"}";
+	Plot.create("Spectre",leg, "Y-axis Label",ypoints );
+	Plot.getLimits(xMin, xMax, yMin, yMax);
+	
+	for (i=0;i<maxInts.length;i++){
+		print (maxInts[i]/lambdas.length);
+		Plot.addText(lambdas[maxInts[i]], maxInts[i]/lambdas.length, 1-(ypoints[maxInts[i]]/yMax));
+	}
+	Plot.update();
+
+}
+
+
+
+macro "ROI_add Action Tool - C148D05D06D07D08D09CbceD2aDcaC78bD5aCddfD43C258D34CbdfD0cD1cD2cD3cD4cD5cD6bD6cD7cD8cD9cDacDbcDcbDccDdcDecDfcCaceD64Da3CeefD10D20D30D40D50D60D70D80D90Da0Db0Dc0Dd0De0C258D24D27D4aD67D68D84D8aD94Db7De4DeaCbcfD2bC9adD57D6aD8bCdefD01D11D21D31D41D51D61D71D81D91Da1Db1Dc1Dd1De1Df1C57aD65CcdfD73Df3CacfD0eD0fD1eD1fD2eD2fD3eD3fD4eD4fD5eD5fD6eD6fD7eD7fD8eD8fD9eD9fDaeDafDbeDbfDceDcfDdeDdfDeeDefDfeDffC248D38Db5Db8CbcfD0dD1dD2dD3bD3dD4dD5dD6dD7dD8dD9dDadDbdDcdDdbDddDedDfdC8acDd6CdefD00D02D12D22D32D42D52D62D72D82D92Da2Db2Dc2Dd2De2Df2C469D76D78Dc7CaceD03C258D45D46D49D66Da4DaaC9beD0bD1bC68bDf6Df7CcdfD98C148D17D37De5De6De7De8De9CbdeDc4C79cD3aCdefD53D63Dc3C369D19D35D36D7aCabeD5bDfbC9bdD58D93Da6DabC58bDb4CcdfD54Dd3Df0C248D14D9aC8adD59Dd5C47aD77Da5Dc6CacfD7bC259D04D0aCabeD13D23D29D83Da7De3C68bD89CcdfD96D97Db3CbceD33D86D88C79cDc5C359D15D16D18C9bdD4bDd4DebC57aD48C258D75D79Db6Db9C8adDd9C46aD1aD69D74Da9C68bD85Df5DfaCbcfDbbC89cD25C36aD39C68bD47DbaDf8Df9C8adDa8DdaC68bD44C79bDf4C57aDc8C8acD26D95C79cD99Dd7C79cD56Dc9C57bD28C8adD9bCbdfD87C89cDd8C9adD55"{
+
+roiManager("Add");
+
+}
+
+
+
+macro "Unmixing Action Tool - C338D1eD29D2aD2bD2cD2dD2eD3cD3dD3eCeddDe8Ca35DeeCfffDd6C394D8dCefeDbaC7b7D88CfffD00D01D02D03D04D05D06D07D10D11D12D13D14D15D20D21D22D23D24D25D30D31D32D33D34D35D36D40D41D70D71D77D80D93Da0Da1Db0Db1Db2Db3Db4Dc0Dc1Dc2Dc3Dd0Dd1Dd2De0De1De2De3Df0Df1Df2Df3Df4Df5Df6Df7Df8C169D5eCeeeD44D45D46D47D48D50D51D60D61D73D81D82D84D91Da3Da4Da5Db6Dc5Dc6Dc7De5De6De7DfaC77aD19CfffDb9C4a5D8bCfffD09D37D42D43D49D4aD52D53D62D63D72D76D83D90D92Da2Db5Dc4Dd3Dd5De4Df9C9bcD58C484DbeCdeeD54C945DcdC3a4D98D99D9aD9cDacDadCeefD0aCaabD39C549D1bD28Cb67DccCfffD08C5a6D89DaaCdccDfcCdddD75Cb35DdbDdcC394D7eC7abD5bC179D6dC87aD4cC596D8fCccdD26C348D4eCeeeD94Cb46Dd9C3a4D9bCeffD78CbdbDa8C659D1aD1fD2fCc89DcbC38aD69CcdcD85Da7CeddDc8Dd7Ca45DceC394D8eD9dD9eDaeC8b8Da9C448D1cD3bC77aD3aC4a5D96CacdD57C275D6eCeeeD74Db7Db8Dd4C786D6fC8bcD59C559D3fCb68Dd8C589D5fCdcdD0cCddeD38Cb45DfeC494DbdC8abD66C27aD6aC88bD18C5a6DafCbddD56C438D1dD4dCeeeD0bCb57DdfDffC3a4D97DabCdbbDe9C479D4fCc9aDeaC59bD5cCdddD64Cb35DdeC7b8D95C269D5dCabcD65Ca57DcfCaacD0eCb67DefCccdD16D4bCdedDa6C8abD7bC17aD6bD6cC88aD0fC596D7fD9fCbcdD7aCb56DecCbdcDbbCc89DfdC48aD68Cb35DddC8c9D87C77aD27C4a5D8aCbbdD0dC287D7dC876DbfCacbD86Cc78DebC6a7DbcCedeDfbCb45DdaDedC394D8cC7acD5aC389D7cCa9cD17CcddD55CdbcDc9Cd9aDcaC69bD67CdeeD79"{
+
+run("PoissonNMF ");
+
+
+}
+
+
+
+////////////////////////////////////////////////////////////////label=Composite////////////////////////////////////////////
+
+macro "myTool Action Tool - C529D97Ce22D15Cb11D17CfffD00D01D02D03D09D0aD0bD0cD0dD0eD10D11D12D1aD1bD1cD1dD1eD20D21D2dD2eD30D31D3dD3eD40D4dD4eD50D5dD5eD60D6dD6eD70D7dD7eD80D8dD8eD90D9dD9eDa0DadDaeDb0DbdDbeDc0Dc1DccDcdDceDd0Dd1DdaDdbDdcDddDdeDe0De1De2DeaDebDecDedDeeDf1Df2Df3DfaDfbDfcDfdDfeC05bDa5Db4CeeeD8cD9bDf9Cdb1D58C2a3D82Cfd9D32Cb23D07D39C06cDa4Db3CeffDb1CdacDe7Ca72D6bCec4D43Ce22D26C43aDa6CffeD41Ccc4D53C5b3D72CeddD5cCc55D18C08aD85CfffD2aDcbCbdeDa1C293D75Ce83D24Cd12D16D27D38C15aD96CfeeD19Ccc2D56C194D83CeecD8aCe42D25C07cD86CfffD2bD2cDbcCdceDe3C729Db6CfdcD13Ce62D36C92aDe5CfffD9cDacDbbDcaDf0CcabDa8C8c3D63CeeeDbaCd88D29C67cDd3CddcDc9Dd8De8C476D6aCe44D14Cb12D28C06cDc3CeefDd2Ceb2D45C3a3D74CedcD89D9aCd34D05C07cD95CddcD99Da9Db9C819Dc6Cfd6D42Cc52D5aC62aDd4CffeD3cCdaaD6cC7b3D65CeedDaaCa3aDf5C09eDa2CddcDc8C197D84Cea3D33Cd21D49C43aDb5CffeD3bCcc3D55C4a4D68CeddDd9Ce82D35C08dD94Da3CdceDf4C829Da7CeccD08Cd91D59C84bDe4CadaDf8C7c8D81CfeeD22D4cCb8bDd7C9dbD91CeecD51CdccDb8Ca75D7bCe32D37C62aDc5Ccd4D52C6b3D66Cc76D5bC36aD78C196D76C15aD87Ccc3D54C5a3D67Cc44D4aC09bD93C729Dd5Ce82D47C939Db7CdbbD7cC9d3D62Cb7bD98C99aD7aC576D69Cc12D06Cdc2D57C4a3D73C919Dd6CfbbD04Ce61D48C85aD88Cce9D61C8c3D64CeedDe9Ca5aDc7C39eDb2CdddD8bC089D77Cfa5D23C34bDc4CfefDabCec3D44C1a8D92Ce93D34Ca29De6CeddD4bCea2D46Ca3aDf6CdbaDf7Cad9D71CbabD79C7adDc2CebbD3a"{
+
+if (isOpen("NMF sources")) selectWindow("NMF sources");
+else exit("Pa s encore unmixer!");
+run("Make Composite", "display=Composite");
+n = nSlices;
+setSlice(1);
+run("Blue");
+setSlice(n);
+run("Red");
+for (i=1;i<nSlices+1;i++){
+	setSlice(i);
+	run("Enhance Contrast", "saturated=0.3");
+}
+run("Channels Tool...");
+run("Brightness/Contrast...");
+
+}
+
+
+
+
+
+
+
+macro "About These Macros Action Tool - C000C111C222C333C444C555D54D55D63D73D7cD7dD83D88D89D8aD8cD8dD93D97Da3Da4Da5Da6C555D7aDb5C555D72D82C555D45Da7C555D98C555D53C555D79C555C666Db4C666Db6C666C777D92C777D87C777D64C777D62C777C888D44C888D96C888D78C999D94C999CaaaCbbbD99Db3CbbbDa2CbbbDa8CbbbCcccDb7CcccD52CcccD43CcccD65CcccCdddD74CdddD77CdddD86CdddD84D95CdddD00D01D02D03D04D05D06D07D08D09D0aD0bD0cD0dD0eD0fD10D11D12D13D14D15D16D17D18D19D1aD1bD1cD1dD1eD1fD20D21D22D23D24D25D26D27D28D29D2aD2bD2cD2dD2eD2fD30D31D32D33D34D35D36D37D38D39D3aD3bD3cD3dD3eD3fD40D41D42D46D47D48D49D4aD4bD4cD4dD4eD4fD50D51D56D57D58D59D5aD5bD5cD5dD5eD5fD60D61D66D67D68D69D6aD6bD6cD6dD6eD6fD70D71D75D76D7bD7eD7fD80D81D85D8bD8eD8fD90D91D9aD9bD9cD9dD9eD9fDa0Da1Da9DaaDabDacDadDaeDafDb0Db1Db2Db8Db9DbaDbbDbcDbdDbeDbfDc0Dc1Dc2Dc3Dc4Dc5Dc6Dc7Dc8Dc9DcaDcbDccDcdDceDcfDd0Dd1Dd2Dd3Dd4Dd5Dd6Dd7Dd8Dd9DdaDdbDdcDddDdeDdfDe0De1De2De3De4De5De6De7De8De9DeaDebDecDedDeeDefDf0Df1Df2Df3Df4Df5Df6Df7Df8Df9DfaDfbDfcDfdDfeDff"{
+open(getDirectory("macros")+"toolsets/PHIV_Unmix_toolset.txt");
+}
+
+
+
+function lambda_lut(lambda){
+
+		if((lambda >= 380) && (lambda < 440)){
+		redFactor = -(lambda - 440) / (440 - 380);
+		greenFactor = 0.0;
+		blueFactor = 1.0;
+		}
+
+		//440-489 nm colorization
+		else if((lambda >= 440) && (lambda < 490)){
+		redFactor = 0.0;
+		greenFactor = (lambda - 440) / (490 - 440);
+		blueFactor = 1.0;
+		}
+		//490-509 nm colorization
+		else if((lambda >= 490) && (lambda < 510)){
+		redFactor = 0.0;
+		greenFactor = 1.0;
+		blueFactor = -(lambda - 510) / (510 - 490);
+		}
+		//510-579 nm colorization
+		else if((lambda >= 510) && (lambda < 580)){
+		redFactor = (lambda - 510) / (580 - 510);
+		greenFactor = 1.0;
+		blueFactor = 0.0;
+		}
+
+		//580-644 nm colorization
+		else if((lambda >= 580) && (lambda < 645)){
+		redFactor = 1.0;
+		greenFactor = -(lambda - 645) / (645 - 580);
+		blueFactor = 0.0;
+		}
+
+		//645-780 nm colorization
+		else if((lambda >= 645) && (lambda <= 780)){
+		redFactor = 1.0;
+		greenFactor = 0.0;
+		blueFactor = 0.0;
+		}
+		//all other lambdas, including outside of VIS range, default to black
+		else if((lambda < 380) || (lambda > 780)){
+		redFactor = 0.0;
+		greenFactor = 0.0;
+		blueFactor = 0.0;
+		}
+		//unintelligible lambdas (e.g. transmitted channel) white if flagged so at top of macro...
+		else if(nonLambdaChannelsWhite){
+		redFactor = 1.0;
+		greenFactor = 1.0;
+		blueFactor = 1.0;
+		}
+		else{
+		redFactor = 0.0;
+		greenFactor = 0.0;
+		blueFactor = 0.0;
+		}
+
+		// Let the intensity fall off near the vision limits
+		if((lambda >=380) && (lambda < 420)){
+		masterFactor = 0.3 + 0.7*(lambda - 380) / (420 - 380);
+		}
+		else if((lambda >= 701) && (lambda <=780)){
+		masterFactor = 0.3 + 0.7*(780 - lambda) / (780 - 700);
+		}
+		else if((lambda >= 420) && (lambda <= 700)){
+		masterFactor = 1.0;
+		}
+		else{
+		masterFactor = 1.0;
+		}
+
+		maxRed = redFactor * masterFactor;
+		maxGreen = greenFactor * masterFactor;
+		maxBlue = blueFactor * masterFactor;
+
+		//arrays for LUT
+		redArray = initializeArray(maxRed);  //initializeArray is defined below
+		greenArray = initializeArray(maxGreen);
+		blueArray = initializeArray(maxBlue);
+		setLut(redArray, greenArray, blueArray);
+
+}
+
+
+function initializeArray(max)
+{
+array = newArray(256);
+for(i = 0; i <= 255; i++){
+array[i] = i * max;
+}
+
+return array;
+}
+
+function lambda_labels(){
+	lambdas=newArray(0);
+	infos=getMetadata("Info");
+		lines=split(infos, "\n");
+		for (i=0; i<lengthOf(lines); i++){
+		if (startsWith(lines[i], "Information|Image|Channel|Name #")) { 
+			tab=split(lines[i], "#");
+			tab2=split(tab[1], "=");
+			lambdas=Array.concat(lambdas,parseInt(tab2[1])) ;
+			}
+		 }
+	} 
+

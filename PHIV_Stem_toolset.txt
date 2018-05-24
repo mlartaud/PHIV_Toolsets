@@ -1,0 +1,965 @@
+// PHIV Shorgo Tool Set 
+// Marc LARTAUD MRI PHIV (http://phiv.cirad.fr/en/instit.html)
+//Toolset for semi-automatic measurement of several parameters on images of (shorgo) stem transverse sections
+
+
+/*
+
+Documentation
+
+//////////////////////////////////Requirement
+
+Download the plugin Colour Deconvolution from G. Landini website:
+http://www.mecourse.com/landinig/software/colour_deconvolution.zip
+extract the zip file in the ImageJ/plugins folder
+
+Save the "PHIV_Stem_BFF_toolset.txt" file in the ImageJ/macros/toolsets folder.
+
+This toolset will run on the 1.49p (or higher) version of ImageJ.
+
+
+
+//////////////////////////////////User Manual
+
+>Start ImageJ (if you have read and apply the "Requirement" section (see above)
+
+>In the tool bar menu, click on the "More Tools" menu (">>") and select "PHIV_Sorgho_toolset"
+	<In the tool bar menu, by passing the mouse over the 8 buttons of the toolset, you will see that they correspond to:
+	1- Stem and Zones Selection (Z)
+	2- External Zone Sclerenchyma  Selection (S)
+	3- Counting vascular bundles  in the internal stem  zone  (Vb)
+	4- Blue zones Parenchyma selection (P)
+	5- Biomass (B)
+	6- Data Display (D)
+	7- New Image (N)
+	8 About These Macros (?)
+	<For a detailed description of all the tools included in this toolset, go to the "Tools" section below
+
+>If you click on the "?" button, you will open a text file containing the user manual - Warning: do not modify this file, it contains also the program!
+
+>From the File/Open menu, select an image of a stem transverse section to analyse
+
+>In the tool bar menu, press the Z button (Zonation Selection)
+> Select Cuts Integrity : 
+- Complete if you can analyse all the cut
+- Incomplete if a part of cut is missing, in this case you have to draw a polygone passing by the centroid to select a portion to keep or to delete
+- Hole if you have hles in your cut, in this case you have to select holes with the "Wand (tracing) tool" you can add selection by click with hold down Shift key
+
+>Adjust threshold in the "Threshold" window to cover the whole stem if necessary
+
+>Select the area by clicking on it with the "Wand (tracing) tool" automatically selected
+
+>Press OK
+<You have the possibility to correct the selection by using the "brush tool" automatically selected . Click in the center of the root, and correct the selection by moving the circle around.
+
+>Press OK in the "Option" window
+<In the "ROI Manager" you have now a new item "Total">
+
+>Adjust threshold in the "Threshold" window to cover the External or Internal stem Zone 
+>Select the area by clicking on it with the "Wand (tracing) tool" automatically selected 
+
+>Press OK
+<You have the possibility to correct the selection by using the "brush tool" automatically selected 
+
+>Select wich Zone you have selected External or Internal
+<In the "ROI Manager" you have now a new item "Zone" ,in case of Incomplete cuts youhave also "Angle" and in case of Hole you have a new item "Hole">
+
+
+>In the tool bar menu, press the S button (Sclerenchyma_Ext_Zone)
+
+>Adjust threshold in the "Threshold" window to select sclerenchyma
+
+>Press OK
+<In the "ROI Manager" you have now a new item "Scl_Zone"
+
+>In the tool bar menu, press the Vb button (Vascular_Bundles_Int_Zone)
+<In the "ROI Manager" you have now a new items "VBi"
+<You can select wrong item and delete with Keyboard shortcut  [0]
+<You can add a vascular bundle : make a point selection and press Keyboard shortcut  [1]
+
+>In the tool bar menu, press the P button (Parenchyma)
+>Adjust threshold in the "Threshold" window to select blue parenchyma
+>Press OK
+<In the "ROI Manager" you have now a new item "Parenchyma_blue">
+
+>In the tool bar menu, press the B button (Biomass)
+Adjust threshold in the "Threshold" window to select biomass
+>Press OK
+<In the "ROI Manager" you have now a new item "biomass">
+
+>In the tool bar menu, press the D button (Data Display)
+
+>In the tool bar menu, press the N button (New image) to analyse a new picture
+
+>At the end of your analysis, from the Analyses window, save the file: File/Save as... in a text format (.txt).
+
+
+/////////////////////////////////Tools
+
+The PHIV_Sorgho_Cell toolset contains 7 tools which have to be run sequentially:
+
+-Z = Zonation 
+	Delimitation of the entire stem area, then of the external or internal zone of the stem.  
+	If the section is incomplete it is possible to delete or keep a polygon that passes through the center of gravity 
+	If the cut is torn it is possible to deselect the missing area	
+	in option (right clic): 
+			Total Gaussian Blur (default = 10)
+			Zone Gaussian Blur (default = 10)
+	
+-S = Sclerenchyma_zone --> Delimitation of the sclerenchyma in the external zone by threshold adjustment 
+	in option (right clic):
+		Gaussian Blur (default = 3)
+		Smooth selection : in pixels (default = 3) 
+		
+-Vb = Vascular Bundles_zone -> counting the vascular bundles  in the internal stem  zone according to the parameters
+	in option (right clic):
+		Gaussian Blur (default = 5)	
+		Noise for Maxima detection (default = 30)
+		Enlarge Px to enlarge selections (default = 100 px)
+	To add a vascular bundles make a selection and Keyboard shortcuts [1]  
+	Keyboard shortcuts [0] to delete a selection
+	
+
+-P = Parenchyma color  -> Selection of blue zones by adjusting Threshold on the hue slice 	
+	in option (right clic):
+		Gaussian Blur (default = 3)
+		Smooth selection : in pixels (default = 5) 	
+		
+-B = Biomass
+
+-D = Display data
+	This tool will save the Roi Manager in the original image directory. All the measurements are also display in the "Analyses" window (Table headings: \\Headings:Picture \Cuts Integrity \Diameter \TotalArea \PortionArea \Angle \ExtZoneArea \SclerArea \NbVBIntZone \BlueParemArea \HoleArea \CorrectFactor \CorTotalArea \PercExtZone \PercIntZone \PercSclExtZone \CorNbVBIntZone \DensVBIntZone \PercBluIntZone \PercBiomas; with "NA" values if none). 
+
+-N = New image
+	This tool will close all images and reset the ROI Manager. The file manager will go to the directory previously opened to select a new picture for analysis.
+	
+
+
+Keyboard shortcuts with numeric keypad
+0 delete selection
+1 add selection
+
+
+
+*/
+/////////////////////////////////////SCRIPT
+macro "AutoRun"{
+	setTool("rectangle");
+	setForegroundColor(255, 255, 255);//white forground
+	setBackgroundColor(0,0,0);// black background
+	run("Set Measurements...", "area shape display redirect=None decimal=3");
+	requires("1.49p");
+}
+
+
+/////////////////////variables glogales////////////////////////////
+
+//var globales zones
+var etat="";
+var seuil_total=newArray(0,164);
+var seuil_zone=newArray(0,117);
+var param_zone=newArray(10,10);//Sigma Gaussian Blur (Total,Zone)
+// scerenchyme 
+var seuil_scl_zone=newArray(0,40);
+var param_scl_zone=newArray(3,3);	//(sigma,enlarge)
+//var globales faisceaux interieurs
+var param_fx=newArray(5,30,100); //(sigma,noise,enlarge)
+// parenchyme 
+var seuil_par=newArray(95,255);
+var param_par=newArray(3,5);
+// biomass 
+var seuil_biomass=newArray(0,140);	
+
+// Results
+var title1 = "Analyses";
+var title2 = "["+title1+"]";
+var fe = title2;
+
+
+
+
+/////////////////////////////////////////////////Zonation///////////////////////////////////////////////////////////////////////////////
+
+macro "Zonation Action Tool - C147D6aD6bD87D94CbccD0eCaabDefCcdfD15D16D26D27D36D37D43D46D47D56D57D66Db7Dc6Dc7Dd6Dd7De6De7C469D97CbdfD19D1aD2aD2bD3aD3bDcaDdaDdbDeaDebCabfD4bD6dD7dD8dD9dDadCdefD23D33Db2Dd3De3C358D86Da5CcdeD11CabdDf6Df7Df8CddfDc4C9abD2fCcdfD17D28D38D48D58Db8Dc8Dd8De8CacfDbaCeefD31D41D51D61D71D81D91Da1Db1Dc1C258D84D88D8bD9bDabCcccDffCabdDf9DfaDfbC8abD3fD4fD5fD6fD7fD8fD9fDafDbfDcfDdfCcdfD18D29D39D49Da8Da9Db9Dc9Dd9De9CacfD1dD2eD3eD4eD5dD5eD6eD7eD8eD9eDaeDbeDceDdeCdefD21D22D32D42Dc2Dd1Dd2De2C46aDa3CcdfD55Db6CacdDf4Df5CdefD12D13D14D24D25D34D35D45D52Dc3Dc5Dd4Dd5De4De5C9bdD1eDfcCacfD1cD2dD3dD4dDcdDddDedC248D78D79D7bD96Da4CbceD20D30D40D50D60D70D80D90Da0Db0Dc0Dd0CabdD04D05D06D07D08D09D0aC67aD89CacfD4cDbdC369D63D6cD73D7cD83D8cD93D9cDacCbcfD1bD2cD3cD4aDdcDecCabeD76C9bdDb3DfdCbcfD99DcbC258D7aCdddD0fCbcdD03C79cD68CcdfD62D72D82D92Da2De1CaceDa7C9beDeeC148D95CbcdD02CabcD0dC57bD5cC369D69CbdfD67C8acD98CccdDe0Df1CcdfD44CbcdDf2Df3C68bDbcCacfDccCabeD59CdddDf0C89cD8aCbceD65D75CbbbD1fC57aD54D77C359D5bD64D74CccdD01C68bD85DbbC9beD9aDaaCcddD10CabdD0bD0cC58bD53D5aC78bDa6CdddD00CabdDb5CabcDfeC79bDb4"{
+	if (roiManager("count")>0){
+		showMessage("<html>"+"Analyse Again?<br> Echap for No");
+		roiManager("Deselect");
+		roiManager("Delete");
+		}
+
+	
+	run("Select None");
+	origid=getImageID();
+	dir=getInfo("image.directory");
+	nom=getTitle();
+	nom=replace(nom,".tif","");
+
+	Dialog.create("Cuts");
+	items = newArray("Complete", "Incomplete", "Hole");
+	Dialog.addRadioButtonGroup("Cuts  Integrity", items, 3, 1, etat);
+	Dialog.show;
+	etat=Dialog.getRadioButton;
+	
+	run("Select None");
+	//Total
+	run("Duplicate...", "title=nb");
+	run("8-bit");
+	run("Gaussian Blur...", "sigma="+param_zone[0]);
+	Validation_surface("Total",seuil_total);
+	
+	////incomplet
+	if(etat=="Incomplete"){
+		roiManager("Select", 0);
+		centre_gravite();
+		run("Select None");
+		roiManager("Show None");
+		setTool("polygon");
+		title = "Portion";
+		msg = "Draw Polygone with the second point on the Centroid";
+		waitForUser(title, msg);
+		RoiAdd("temp");
+		Roi.getCoordinates(xpoints, ypoints);
+		xpoints=Array.trim(xpoints,3);
+		ypoints=Array.trim(ypoints,3);
+		makeSelection("angle",xpoints,ypoints);
+		RoiAdd("Angle");
+		Dialog.create("Portion");
+		items = newArray("Keep", "Delete");
+		Dialog.addRadioButtonGroup("Selection a :", items, 2, 1, "Keep");
+		Dialog.show;
+		etat_portion=Dialog.getRadioButton;
+		if(etat_portion=="Delete"){
+			roiManager("Select", 1);
+			run("Make Inverse");
+			roiManager("Update");			
+		}
+		roiManager("Select", newArray(0,1));
+		roiManager("AND");
+		RoiAdd("Portion");
+		roiManager("Select", 1);
+		roiManager("Delete");
+				
+	}
+	////Hole
+	if(etat=="Hole"){
+		run("Wand Tool...", "mode=Legacy tolerance=20");
+		setTool("wand");
+		waitForUser("Hole","Select Hole (Shift to add selections)");
+		RoiAdd("Hole");
+		run("Wand Tool...", "mode=Legacy tolerance=0");
+		}
+	//Zone
+	selectImage(origid);
+	run("Select None");
+	run("Duplicate...", "title=Zone");
+	ncount=roiManager("count");
+	for(i=0;i<ncount;i++){
+		nom_item=call("ij.plugin.frame.RoiManager.getName", i);
+		if (nom_item=="Total")roiManager("Select", i);
+		if (nom_item=="Portion")roiManager("Select", i);
+	}
+	run("Make Inverse");
+	run("Fill", "slice");
+	run("Make Inverse");
+	run("Select None");
+	run("Split Channels");
+	selectWindow("Zone (red)");
+	close();
+	selectWindow("Zone (green)");
+	close();
+	selectWindow("Zone (blue)"); 
+	rename("Zone");
+	run("Gaussian Blur...", "sigma="+param_zone[1]);
+	Validation_surface("Zone",seuil_zone);
+	Dialog.create("Selected Zone");
+	items = newArray("Internal Zone", "External Zone");
+	Dialog.addRadioButtonGroup("Selection", items, 1, 2, "Internal Zone");
+	Dialog.show;
+	zone=Dialog.getRadioButton;
+	ncount=roiManager("count");
+	if (zone=="Internal Zone"){
+		roiManager("Deselect");
+		roiManager("Select", newArray(0,ncount-1));
+		roiManager("XOR");
+		roiManager("Add");
+		roiManager("Deselect");
+		roiManager("Select", ncount-1);
+		roiManager("Delete");
+		roiManager("Select", ncount-1);
+	  roiManager("Rename", "Zone");	
+	}
+	selectImage(origid);
+	roiManager("Deselect");
+	roiManager("Show All");
+	}
+
+
+macro 'Zonation Action Tool Options'  {
+    //on right-click, the corresponding 'Options' macro is run
+    
+    Dialog.create("Zonation");
+    Dialog.addMessage("Sigma Gaussian Blur");
+    Dialog.addNumber("Total :", param_zone[0]);
+    Dialog.addNumber("Zone :", param_zone[1]);
+    Dialog.show();
+    param_zone[0]=Dialog.getNumber();
+    param_zone[1]=Dialog.getNumber();;
+    
+      
+  	}
+
+/////////////////////////////////////////////Sclerenchyma_Ext_Zone///////////////////////////////////////////////////////////
+macro "Sclerenchyma_Ext_Zone Action Tool - C147D65D66D88CbccDffC9adD63CcdfD16D17D26D27D36D37D96Da6Db6Db7Dc6Dc7Dd6Dd7De6De7C57aD73D75CbdfD1aD1bD2aD2bD3aD3bD69D7aDcaDcbDdaDdbDeaDebCabeD79CdefD12D13D23D33D43D72D92Dc3Dd3De2De3C258D84D9aDabCbcfD1cD2cD3cD4aDccDdcDecCabdD05D06D07Df5Df6Df7CddfD53C8adD8dCcdfD18D28D38D47D48Dc8Dd8De8CacfD1dD2dD2eD3dD3eD4dD4eD5eD6eD7eD8eD9eDaeDbdDbeDcdDceDddDdeDedCeefD31D41D51D61D71D81D91Da1Db1Dc1C258D64CbceD20D30D40D50D60D70D80D90Da0Db0Dc0Dd0C9beD9dC79cDacDbaCcdfD19D29D39D49D59Dc9Dd9De9CacfDbcCdefD21D22D32D42D52D62Da2Db2Dc2Dd1Dd2C369D55D6bCcdeDb4CacdD04Df3Df4CdefD14D15D24D25D34D35D44D82Db3Dc4Dc5Dd4Dd5De4De5C8beD3fD4fD5fD6fD7fD8fD9fDafDbfDcfC248D67D74D7cD8cD94D98D99D9bDa9DaaCccdD10De0CabdD08D09D0aD0bD85Da3Df8Df9DfaDfbC68bD68D97CaceD86C359D5bD87D9cC8adD6dC258D6cC9beD5aC89cDb9CbcfD6aC47aD83Da8CcdfD45Db5CbcdD02D03Df2C247D77CccdD01Df1C9bdD0cD0dDfcDfdC57bD7bCacfD1eD4cD5dDeeC258D78C8adD95DbbC79cDa5C469Da4CbcfD58CdddD00Df0C69cD57CbceDb8C369D56C8aeD2fDdfC9beD8aC9acD1fDefCacfDadC57aD76CcdfD11De1CcccD0fCabcD0eDfeC9beD4bC8acD54C58bD89D93C79dD7dC46aD8bCbdfD46CbceDa7C47aD5c"{
+	RoiDelete ("Scl_Zone");
+	if (!RoiExist ("Zone")) exit("Use Zonation Tool Before");	
+
+
+
+	origid=getImageID();
+	run("Select None");
+	//colour_deconv("scl");
+	run("Duplicate...", "title=temp");
+		run("Set Scale...", "distance=0 known=0 pixel=1 unit=pixel");
+		run("Colour Deconvolution", "vectors=[FastRed FastBlue DAB]");
+		selectWindow("temp-(Colour_3)");
+		close();
+		selectWindow("temp-(Colour_2)");
+		close();
+		selectWindow("Colour Deconvolution");
+		close();
+		selectWindow("temp");
+		close();
+		selectWindow("temp-(Colour_1)");
+		rename("scl");
+	
+			//clear outside zone
+	n=roiManager("count");
+	for(i=0;i<n;i++){
+		roiManager("Select", i);
+		nom_item=call("ij.plugin.frame.RoiManager.getName", i);
+		if (nom_item=="Zone"){
+			setBackgroundColor(255,255,255);
+			run("Clear Outside");
+			setBackgroundColor(0,0,0);
+			}
+		}
+	Blur(param_scl_zone[0]);
+	ChoixSeuils("Sclerenchyma in external zone",seuil_scl_zone);
+	run("Create Selection");
+	run("Enlarge...", "enlarge="+param_scl_zone[1]+" pixel");
+	run("Enlarge...", "enlarge=-"+param_scl_zone[1]+" pixel");
+	roiManager("Add");
+	close();
+	selectImage(origid);
+	n = roiManager("count");
+	roiManager("Select", n-1);
+	roiManager("Rename", "Scl_Zone");
+	roiManager("Show None");
+	roiManager("Deselect");
+	
+	
+		
+}
+
+macro 'Sclerenchyma_Ext_Zone Action Tool Options'  {
+	Dialog.create("Sclerenchyma External_Zone");
+	Dialog.addNumber("Sigma Gauss:", param_scl_zone[0]);
+	Dialog.addNumber("Pixels lissage:", param_scl_zone[1]);
+	Dialog.show();    
+    param_scl_zone[0]=Dialog.getNumber();
+    param_scl_zone[1]=Dialog.getNumber();; 
+}
+
+//////////////////////////////////Vascular_Bundles_Int_Zone///////////////////////////////////////////////////////////////////
+macro "Vascular_Bundles_Int_Zone Action Tool - C148D25D4aDd7CbbcD0eC78bD35CcccD0fC359Da9DbbCbcfD1bD1cD2cD6cD7cD8cDecDfcCaabDffCdefD43D53Dc3Dd3De1De3Df3C258D74Db6CacfD1dD2dD2eD3dD3eD4dD4eD5dD5eD6dD6eD7dD7eD8dD8eD9dD9eDadDaeDbdDbeDcdDceDddDdeDedDeeDfdC8beD3fD4fD5fD6fD7fD8fD9fDafDbfDcfDdfCcdfDf7C46aD14CbdfD2bC9beD56CeefD31D41D51D61D71D81D91Da1Db1Dc1Dd1C258D26D39D66Da7Dd8CaceD87D88D89C9acD1fCbcfDfaC369D58CabdD78CdefD21D22D32D42D52D62D72D82Db2Dc2Dd2De2C358D24D75C9beDccDfeCdefD12D33D44D54D92Da2Dc4Dd4De4De5Df2Df4Df5C68aDb7CabeD5cD9cDacDbcDdcC248D38D59D5aD67Da6DaaDc6Dd9DdaCbceD30D40D50D60D70D80D90Da0Db0Dc0Dd0Df1C69cD57CcdeD11C369D27D3aD5bD65DabDcaDd6CabdD03D05D06D07D08D09D0aC258D68D94D95D96D97D98D99D9aCcdfD45Df6C57aD76CabeDb9CacfD2aC9bdD16Dc5CcdfDb3C36aD9bCabdD34D73De6C259D49D4bC9beDc8DebC68bD15D28CaceD8aCbcdD20De0C79bD6aD84CcddD10C369Da4Da5Da8CabdD0dC258D37DcbC47aD69DbaDdbC9beD1eD4cCbceD83Dd5C9adDb5CbdfD18D19D1aD7aD7bDfbC469D36De8De9C68bDeaC8adD2fDc9DefCbdfD46C57aDc7CaceD23Db8CacfD3cC9bdD47D6bC68bD64Da3CacfD8bCbcdD02C68cD3bCcddD01Df0CabcD04CabeD13D86C58bD93C8acD85CbcfDf8CbceDb4C79bD77CdddD00CabdD0bD0cC9adD29C68bD48CcdfD55D63C58aDe7CbcfD17D79Df9"{
+
+	RoiDelete ("VBi");	
+	if (!RoiExist ("Zone")) exit("Use Zonation Tool Before");	
+	origid=getImageID();
+	run("Select None");
+	run("Duplicate...", "title=fx");
+	run("8-bit");
+	n=roiManager("count");
+	for(i=0;i<n;i++){
+		roiManager("Select", i);
+		nom_item=call("ij.plugin.frame.RoiManager.getName", i);
+		if (nom_item=="Total"){
+			setBackgroundColor(255,255,255);
+			run("Enlarge...", "enlarge=-50 pixel");
+			run("Clear Outside");			
+			}
+		if (nom_item=="Portion"){
+			setBackgroundColor(255,255,255);
+			run("Clear Outside");			
+			}
+		if (nom_item=="Zone"){
+			setForegroundColor(255,255,255);
+			run("Clear");			
+			}
+		
+		}
+	roiManager("Deselect");
+	run("Select None");
+	setBackgroundColor(0,0,0);
+	Blur(param_fx[0]);
+	run("Find Maxima...", "noise="+param_fx[1]+" output=[Point Selection] light");
+	run("Enlarge...", "enlarge="+param_fx[2]);
+	norig=roiManager("count");
+	RoiAdd("fx");
+	roiManager("Split");
+	roiManager("Delete");
+	nfinal=roiManager("count");
+	for(i=norig;i<nfinal;i++){
+		roiManager("Select", i);
+		roiManager("Rename", "VBi");
+		
+	}
+	selectWindow("fx");
+	close();
+	selectImage(origid);
+	roiManager("Deselect");
+	roiManager("Show All with labels");
+	setTool("point");
+	
+	
+	
+}
+/////////////////////
+macro 'Vascular_Bundles_Int_Zone Action Tool Options'  {
+	Dialog.create("Vascular Bundles Internal Zone");
+    Dialog.addMessage("Radius Filter");
+    Dialog.addNumber("Sigma Gauss:", param_fx[0]);
+    Dialog.addNumber("Noise for Maxima :", param_fx[1]);
+    Dialog.addNumber("Enlarge Px:", param_fx[2]);
+    Dialog.show();
+    param_fx[0]=Dialog.getNumber();
+    param_fx[1]=Dialog.getNumber();;
+   param_fx[2]=Dialog.getNumber();;;
+
+		
+	}
+
+
+//////////////////////////////////////Parenchyme_couleur///////////////////////////////////////////
+macro "Parenchyma Action Tool - C147D68Da5Da6CbcdD01D10De0Df1CabbDffCcddD00Df0C46aD84CbdfD1aD1bD2aD2bD3aD3bD8aD8bD9aD9bDaaDabDbaDbbDcaDcbDdaDdbDeaDebCabfD5dCdefD11D13D23D33Dc3Dd3De1De3C258D67D69D83D97CbcfD1cD1dD2cD2dD3cD3dD8cD8dD9cD9dDacDadDbcDbdDccDcdDdcDddDecDedCbceDa9CddfDc4C8adD46D47D48CcdfD19D29D39Db9Dc7Dc9Dd9De9CacfD1eD2eD3eD4dD4eD5eD6eD7dD7eD8eD9eDaeDbeDceDdeDeeCeefD21D31D41D51D61D71D81D91Da1Db1Dc1Dd1C248D54D55D56D57D63D64D73D94Da4Da7CbdfD85CabeD08D09D6dDf8Df9CcdfD16D17D26D27D36D37Dd6Dd7De6De7C78bDb7CacfD2fD3fD4fD5fD6fD7fD8fD9fDafDbfDcfDdfCdefD12D22D32Db2Dc2Dd2De2C359D93CbceD02D03D30D40D50D60D70D80D90Da0Db0Dc0Df2Df3CdefD14D15D24D25D34D35D42Da2Dd4Dd5De4De5C9beD1fD4cDefC148D58D59D5aD5bD78D88CbceD20D92Dd0C9beD0aD0bDfaDfbCcdfD18D28D38Dc8Dd8De8C57aD79Da8C258D53D65D66D6aD6bC9bdD0eD44DfeCcdfD86Dc5Dc6CaceD04D05D06Df4Df5Df6C8adD4aD4bC46aD6cD95D96C9beD0dDfdCabdD43D76CcdfDb3C57aD74C258D98C9adD45D7bCaceD07Df7C79cD89C369D5cC9beD7cCabeD52C58bD87C9bdD62D72C8adD99C9beD0cDfcCabbD0fC47aDb5Db6C79bDa3CabdD82C79cDb4CaceDb8C68bD77C9adD7aCabdD75C8adD49"{
+
+		RoiDelete ("Parenchyma_blue");
+		if (!RoiExist ("Zone")) exit("Use Zonation Tool Before");	
+		setTool("rectangle");
+		origid=getImageID();
+		run("Select None");
+		run("Duplicate...", "title=hsb");
+		run("HSB Stack");
+		run("Next Slice [>]");
+		run("Delete Slice");
+		run("Next Slice [>]");
+		run("Delete Slice");
+		run("Invert");
+		n=roiManager("count");
+		zone_interne();
+		Blur(param_par[0]);
+		ChoixSeuils("Selection of blue zones ",seuil_par);
+		run("Create Selection");
+		run("Enlarge...", "enlarge=-"+param_par[1]+" pixel");
+		run("Enlarge...", "enlarge="+(2*param_par[1])+" pixel");
+		run("Enlarge...", "enlarge=-"+param_par[1]+" pixel");
+		roiManager("Add");
+		close();
+		selectImage(origid);
+		n = roiManager("count");
+		roiManager("Select", n-1);
+		roiManager("Rename", "Parenchyma_blue");
+		roiManager("Show None");
+		roiManager("Deselect");
+}	
+
+
+macro 'Parenchyma Action Tool Options'  {
+	  Dialog.create("Parenchyma segmentation");
+  	Dialog.addNumber("Sigma Gauss:", param_par[0]);
+		Dialog.addNumber("Enlarge Px:", param_par[1]);
+		Dialog.show();    
+    param_par[0]=Dialog.getNumber();
+    param_par[1]=Dialog.getNumber();; 
+    	
+}
+
+
+//////////////////////////////////////biomass///////////////////////////////////////////
+
+macro "Biomass Action Tool - C147D67D97Da8DaaCbbcD0eC9acDefCcdfD17D28D38Dd8De8C369DbaCcdeD11Db3CabeDf9CdefD23D33Dc3Dd3De3C258D6aCbceD43Dc8Df2Df3C9adDacCdefD12D13D14D24D25D34D35D42Da2Dc4Dd4Dd5De1De4De5C79cDbbCcdfD18D29D39Dd9De9CacfD2dD3dD3eD4dD4eD5dD5eD6dD6eD7dD7eD8dD8eD9dD9eDadDaeDbdDbeDcdDceDddDedCeefD31D41D51D61D71D81D91Da1Db1Dc1C248D63D64D66D68D73D77D83D87D8bD9bDa4Da9CcddD01D0fCabdD0bD0cCcdfD15D16D26D27D36D37Dc5Dc6Dc7Dd6Dd7De6De7C68bD78Da3CbdfD19D1aD2aD2bD3aD3bD89DdaDdbDeaDebCacfDbcCdefD21D22D32Db2Dc2Dd1Dd2De2C359D53Da7DabCabeD46D47D48DcaC8adD3fD4fD5fD6fD7fD8fD9fDafDbfDcfDdfC148D6bD7bDa5CbceD30D40D50D60D70D80D90Da0Db0Dc0Dd0C9bdD62D72Db7C47aD9aCbcfD1bD1cD2cD3cDcbDccDdcDecCaceDf4Df5Df6C258D54D55D56D57D58D59D5aD5bD65D69D93D96Da6Db9C9beD49C89cDb4CcddD10CabdD04D05D06D07D08D09D0aC78bDb5CacfD1dD4cDdeCabeD52CbcdD02C9acDb6C469D95D98Db8CcdfD85CaceDf7Df8C258D94CabdD82C79cD5cCccdDe0C68bD76CacfD2eDeeC9beDfaDfbCabdD0dD75C58bD6cD7cC9beD4bC8acD2fCdddDf0C68cD7aCaceD44D45CbbcDffCaabD1fC9bdDc9C57aD74D84C9beDfcDfdC68bD86CbceD92C9acDfeC9beD1eD4aC79dD99C58bD8cC8adD8aCdddD00C79cD88D9cCbcdD20Df1CbcdD03C9adD79"{
+	
+	RoiDelete ("Biomass");
+	if (!RoiExist ("Total")) exit("Use Zonation Tool Before");	
+	origid=getImageID();
+		run("Select None");
+		run("Duplicate...", "title=biomass");
+		biomass();
+		close();
+		
+		selectImage(origid);
+		n = roiManager("count");
+		roiManager("Select", n-1);
+		roiManager("Show None");
+		roiManager("Deselect");
+}
+
+
+
+/////////////////////////////////////////////////////Data Display
+
+macro "Data Display Action Tool - C147D5aDa5Da8CbbbD1fC9abD2fCcdfD19D29D78Dd9De8C469D43CbcfD38D39D3aD79CabeD8cCdefD12D13D23D32Da2Dc3Dd3C358Db7CbceDc6C9bdD0cDbaCddfDb3C9abD3fD4fD5fD6fD7fD8fD9fDafDbfDcfCbcfDc9CacfD1dD9cCeefD31D41D51D61D71D81D91Da1Db1Dc1C258D8aDa4CbcdD02D03D04C9bdD1eDabCcdfD16D17D26D27D33D75D76D86D87Dd6Dd7De5De6C79cD98CbdfD1bD2bDcbDdbCacfD4cCdefD21D22Db2Dc2Dd1Dd2C369D4aCcdeD92CabdD07D08CdefD14D15D24D25Dc4Dd4Dd5De2De3De4C8acD52D62Da3CbdfD1aD2aDcaDdaDe9DeaCacfD2dD3dD4dD5dD6dD7dD8dD9dDadDbdDcdDddDecC248D54D55D56D57D58D59D83D94D9aDa6Da7CbbcDefC9adD72CcdfD18D28D77D88Dd8De7C57aD64D95CbcfD1cD2cD3bD3cDacDbbDbcDccDdcDebC9bfD2eD3eD4eD5eD6eD7eD8eD9eDaeDbeDceDdeC369D93DaaDb8CbceDc8C9beD89CcdeDe1CccdD01D10CabdDf4Df5Df6Df7Df8Df9DfaC8acD65D66CacfDedC369D44D45D46D47D48D49D7aD8bD99CdddDf0CabeD42C8adD97CcdfD34C148D53D63D73Da9CbcdDf2Df3C9acDb4C57aD84C359D5bD6aD6bD7bDb6CbceD20D30D40D50D60D70D80D90Da0Db0Dc0Dd0CabdD09D0aD0bD82CbdfD36D37C79cD74CacdD05D06CccdDf1C9bdD0dC68aDb9C9beD5cD6cD7cCcdfD35D85Dc5CccdDe0C8adD96CaceDc7CcdfD11CbbcD0eC9abDdfC47aDb5C79cD69CcccDfeC9adDeeCabcDfdC57bD4bC89cD67D68CdddD0fDffCabdDfbDfcC57bD9bCdddD00"{
+	if (!RoiExist ("Zone")) exit("Use Zonation Tool Before");	
+	dir=getInfo("image.directory");
+	nom=getTitle();
+	nom=replace(nom,".tif","");
+	//RoiDedoublonne("VBi");
+		
+		
+	facteur_correction=1;
+	area_total=-1;
+	diam=-1;
+	area_portion=0;
+	angle_portion=0;
+	area_zone1=-1;
+	pourcent_zone1=0;
+	area_zone2=-1;
+	pourcent_zone2=0;
+	nb_fx=0;
+	densite_fx=0;
+	area_scl=-1;
+	pourcent_scl=0;
+	area_blue=-1;
+	area_Hole=0;
+	pourcent_blue=0;
+	biomasse=0;
+	pourcent_biomasse=0;
+	
+	ncount=roiManager("count");
+	for(i=0;i<ncount;i++){
+			roiManager("Select", i);
+			nom_item=call("ij.plugin.frame.RoiManager.getName", i);
+			
+						if (nom_item=="Total"){
+							getStatistics(area);
+							area_total=area;////////////////////////////////////////////area_total
+							run("Set Measurements...", "area centroid feret's redirect=None decimal=3");
+							List.setMeasurements;
+							diam=List.getValue("Feret");////////////////diam
+							//dif_ncount++;
+							}
+						if (nom_item=="Angle"){
+							List.setMeasurements;
+							angle_portion=List.getValue("Angle");///////////////angle
+							//dif_ncount++;
+						}															
+						if (nom_item=="Portion"){
+							getStatistics(area);							
+							area_portion=area;////////////////////////////////////////////area_portion
+							//dif_ncount++;
+						}
+						if (nom_item=="Hole"){
+							getStatistics(area);							
+							area_Hole=area;////////////////////////////////////////////area_Hole
+							//dif_ncount++;
+						}
+							
+						if (nom_item=="Zone"){
+							getStatistics(area);
+							area_zone1=area;////////////////////////////////////////////surfzone1
+							//dif_ncount++;
+						}
+						
+						if (nom_item=="Scl_Zone"){
+							getStatistics(area);
+							area_scl=area;////////////////////////////////////////////area_scl
+							//dif_ncount++;
+						}
+						
+						if (nom_item=="Parenchyma_blue"){
+							getStatistics(area);
+							area_blue=area;////////////////////////////////////////////area_blue
+							//dif_ncount++;
+						}
+						if (nom_item=="Biomass"){
+							getStatistics(area);
+							biomasse=area;////////////////////////////////////////////area_biomass
+							//dif_ncount++;
+						}
+						
+						if (startsWith(nom_item, "VBi")) nb_fx++;
+
+
+			}	
+		run("Select None");
+		
+		///////////////facteur_correction en fonction de angle
+		if(angle_portion!=0){
+			if (area_portion>(area_total/2)) facteur_correction=360/((360-angle_portion));
+			else facteur_correction=360/angle_portion;
+		}
+								//showMessage ("Facteur de correction = "+facteur_correction);
+		//nb_fx=(ncount-dif_ncount);
+		area_total=deux_decimal(area_total/1000000);
+		diam=deux_decimal(diam/1000);
+		area_portion=deux_decimal(area_portion/1000000);
+		area_zone1=deux_decimal(area_zone1/1000000);
+		area_scl=deux_decimal(area_scl/1000000);
+		area_blue=deux_decimal(area_blue/1000000);
+		area_Hole=deux_decimal(area_Hole/1000000);
+		biomasse=deux_decimal(biomasse/1000000);
+		
+		
+		if (facteur_correction==1)area_portion=area_total;					
+		area_total_c=deux_decimal(area_portion*facteur_correction);
+		angle_portion=deux_decimal(angle_portion);
+		pourcent_zone1=deux_decimal(100*(area_zone1/area_portion));
+		pourcent_scl=deux_decimal(100*(area_scl/area_zone1));
+		area_zone2=area_portion-area_zone1;
+		pourcent_zone2=deux_decimal(100*(area_zone2/area_portion));
+		nb_fx_c=round(nb_fx*facteur_correction);
+		densite_fx=deux_decimal(nb_fx/area_zone2);
+		pourcent_blue=deux_decimal(100*(area_blue/(area_zone2-area_Hole)));
+		facteur_correction=deux_decimal(facteur_correction);
+		pourcent_biomasse=deux_decimal(100*(biomasse/(area_portion-area_Hole)));
+		
+		
+		
+			
+		infos=split(getMetadata("Info"),"@");
+	if (infos.length>1){
+		genotype=infos[0];
+		etat=infos[1];
+		
+	}
+	else {
+		genotype="";
+		etat="";
+		
+	}
+
+		if( !isOpen("Analyses")){
+		run("Table...", "name="+title2+" width=1400 height=600");
+	print(fe, "\\Headings:Picture \tCuts Integrity \tDiameter \tTotalArea \tPortionArea \tAngle \tExtZoneArea \tSclerArea \tNbVBIntZone \tBlueParemArea \tHoleArea \tCorrectFactor \tRealTotalArea \tPercExtZone \tPercIntZone \tPercSclExtZone \tRealNbVBIntZone \tDensVBIntZone \tPercBluIntZone \tPercBiomas");
+
+	}
+		
+	print(fe, nom+"\t"+etat+"\t"+diam+"\t"+area_total+"\t"+area_portion+"\t"+angle_portion+"\t"+area_zone1+"\t"+area_scl+"\t"+nb_fx+"\t"+area_blue+"\t"+area_Hole+"\t"+facteur_correction+"\t"+area_total_c+"\t"+pourcent_zone1+"\t"+pourcent_zone2+"\t"+pourcent_scl+"\t"+nb_fx_c+"\t"+densite_fx+"\t"+pourcent_blue+"\t"+pourcent_biomasse);
+		
+		
+		
+		
+		roiManager("Save", dir+nom+"-RoiSet.zip");//save the ROI Manager
+		run("Remove Overlay");
+		run("Save");		
+}
+
+
+//////////////////////////////////////////////New////////////////////////////////////////////////////////////+
+macro "New image Action Tool - C147D54D64D99DaaCbbbD1fC9abD2fCbdfDdbC369Da3CacfDccC9beDfdCdefD23D92Dd3De3C258Db4Db5Db6CaceDf4Df5Df6C8adD5cDacCcdfD15D16D26D27D34D35Dd6Dd7De6De7C8abD3fD4fD5fD6fD7fD8fD9fDafDbfDcfDdfCbcfD1bD2cD3aD3bD3cD7bD7cD8bD8cDdcDecCacfD1dD2eD3eD4eD5eD6eD7eD8eD9eDaeDbeDceDdeCeefD31D41D51D61D71D81D91Da1Db1Dc1C258D63D9aDb7Db8Db9DbaCbceD84C9acDfeCcdfD18D29D36D37Dd9De9C47aD4bCacfD1cD2dD3dD4dD5dD6dD7dD8dD9dDadDbdDcdDddDedCabeDf9CdefD21D22D32D82Dd1Dd2De2C359D86Da7DbbCbceDf2Df3CabdD04D05D06D07D08D09D0aCdefD12D13D14D24D25D33D83Dd4Dd5De1De4De5C89cD73CbcfD95C248D53D56D57D58D59D5aD75D76D88CbcdDf1C9adD52Dc8Dc9DcaCbdfD19D1aD2aD2bD38D39D7aDdaDeaDebC46aD44D45D46D47D48D49D4aD89CbcfD79CabdD62Da2C258D98DabC9bdD1eD96Db2CbceD20D30D40D50D60D70D80D90Da0Db0Dc0Dd0CabdDc4Dc5CcdfD17D28Dd8De8C57bD9bC9bfDeeC369Da6CbceD42C8adD78CcdfD93C247D87CbcdD03C9abDefC369D77C9beD4cDfaDfbC248Da8C9adDbcDcbC9bdDc6Dc7C57aD43D97CaceDf7Df8C8acD69D6bCcdfD94CdddD0fCabdDc3C258D5bDb3CabdD0bD0cC78bD85CacfD6cD9cC369D74Da4Da5CcdeD11C8adD8aCddfD72Dc2CbccD0eC9beDfcCabcD0dC89cD6aCccdDe0C148D55D65Da9CbcdD02C8acD68C469D66CdddDf0C79bD67CcccDffCcddD10CccdD01CdddD00"{
+
+	//run("Close All");
+	if (isOpen("ROI Manager")){
+		roiManager("Deselect");
+		n = roiManager("count");
+		if (n>0) roiManager("Delete");
+	}
+	
+	run("Open Next");
+
+}
+
+///////////////////////////////////////////////////????????????????????????????????????????????????????
+
+macro "About These Macros Action Tool - C000C111C222C333C444C555D54D55D63D73D7cD7dD83D88D89D8aD8cD8dD93D97Da3Da4Da5Da6C555D7aDb5C555D72D82C555D45Da7C555D98C555D53C555D79C555C666Db4C666Db6C666C777D92C777D87C777D64C777D62C777C888D44C888D96C888D78C999D94C999CaaaCbbbD99Db3CbbbDa2CbbbDa8CbbbCcccDb7CcccD52CcccD43CcccD65CcccCdddD74CdddD77CdddD86CdddD84D95CdddD00D01D02D03D04D05D06D07D08D09D0aD0bD0cD0dD0eD0fD10D11D12D13D14D15D16D17D18D19D1aD1bD1cD1dD1eD1fD20D21D22D23D24D25D26D27D28D29D2aD2bD2cD2dD2eD2fD30D31D32D33D34D35D36D37D38D39D3aD3bD3cD3dD3eD3fD40D41D42D46D47D48D49D4aD4bD4cD4dD4eD4fD50D51D56D57D58D59D5aD5bD5cD5dD5eD5fD60D61D66D67D68D69D6aD6bD6cD6dD6eD6fD70D71D75D76D7bD7eD7fD80D81D85D8bD8eD8fD90D91D9aD9bD9cD9dD9eD9fDa0Da1Da9DaaDabDacDadDaeDafDb0Db1Db2Db8Db9DbaDbbDbcDbdDbeDbfDc0Dc1Dc2Dc3Dc4Dc5Dc6Dc7Dc8Dc9DcaDcbDccDcdDceDcfDd0Dd1Dd2Dd3Dd4Dd5Dd6Dd7Dd8Dd9DdaDdbDdcDddDdeDdfDe0De1De2De3De4De5De6De7De8De9DeaDebDecDedDeeDefDf0Df1Df2Df3Df4Df5Df6Df7Df8Df9DfaDfbDfcDfdDfeDff"{
+open(getDirectory("macros")+"toolsets\\PHIV_Stem_toolset.txt");
+}
+
+
+
+
+
+
+//////////////////////////Shortcut Key/////////////////
+
+//delete selection 
+macro "ROI Delete [n0]"{
+	if(selectionType()!=-1 && selectionType()!=10){
+	
+		roiManager("Delete");
+		run("Select None");
+	}
+		
+}
+
+
+//add selection
+
+macro "ROI Ajoute [n1]"{
+
+			RoiAdd("VBi");
+		
+		
+	
+
+}
+
+
+
+//Zoom to selection
+
+macro "Zoom [n3]"{
+run("To Selection");
+}
+	
+
+	
+	
+	/////////////////////////////////////////////////////FUNCTIONS///////////////////////////////////////////////////
+	
+
+
+function RoiAdd(nom) {
+	roiManager("Add");
+	n = roiManager("count");
+	roiManager("Select", n-1);	
+	roiManager("Rename", nom);
+}
+
+
+function RoiDelete (nom){
+	ncount=roiManager("count");
+	for(i=ncount-1;i>=0;i--){
+		roiManager("Select", i);
+		nom_item=call("ij.plugin.frame.RoiManager.getName", i);
+		if (startsWith(nom_item, nom)) roiManager("Delete");
+		}
+}
+
+function RoiExist (nom){
+	ncount=roiManager("count");
+	for(i=ncount-1;i>=0;i--){
+		roiManager("Select", i);
+		nom_item=call("ij.plugin.frame.RoiManager.getName", i);
+		if (startsWith(nom_item, nom)) return 1;
+		}
+return 0;
+}
+
+	///////////
+function faisseaux() {
+	run("Duplicate...", "title=nb");
+	run("Set Scale...", "distance=0 known=0 pixel=1 unit=pixel");
+	run("Split Channels");
+	selectWindow("nb (red)");
+	close();
+	selectWindow("nb (green)");
+	close();
+	selectWindow("nb (blue)");
+	rename("fx");
+	setBackgroundColor(255,255,255);
+	zone_interne();
+	setBackgroundColor(0,0,0);
+}
+
+///////////////////////////
+
+function Blur(sigma){
+	run("Gaussian Blur...", "sigma="+sigma);
+}
+
+
+	
+function Seuil(seuils){
+	setThreshold(seuils[0], seuils[1]);
+	run("Convert to Mask");
+}
+
+
+
+function Validation_surface(zone,seuils){
+	run("Threshold...");
+	setThreshold(seuils[0], seuils[1]);
+	run("Threshold...");	
+	setTool("wand");
+	title = zone;
+	msg = "Adjust Threshold and select with the WandTool";
+	waitForUser(title, msg);
+	getThreshold(lower, upper);
+	seuils[0]=lower;
+	seuils[1]=upper;
+	roiManager("Add");
+	n = roiManager("count");
+	roiManager("Select", n-1);
+	roiManager("Rename", zone);
+	close();
+  selectImage(origid);
+  roiManager("Select", n-1);
+	setTool("brush");
+	call("ij.gui.Toolbar.setBrushSize", 50); 
+	waitForUser(zone,"Selection correction");
+	roiManager("Update");	
+	roiManager("Deselect");
+	run("Select None");	
+	setTool("rectangle");
+}
+
+function ChoixSeuils(titre,seuils){
+	run("Threshold...");
+	setThreshold(seuils[0], seuils[1]);
+	run("Threshold...");
+	waitForUser(titre,"Adjust Threshold");
+	getThreshold(lower, upper);
+	seuils[0]=lower;
+	seuils[1]=upper;
+	}
+
+
+function zone_interne(){
+		n=roiManager("count");
+		for(i=0;i<n;i++){
+			roiManager("Select", i);
+			nom_item=call("ij.plugin.frame.RoiManager.getName", i);
+			if (nom_item=="Total") run("Clear Outside");
+			if (nom_item=="Hole") run("Clear");
+			if (nom_item=="Portion") run("Clear Outside");
+			if (nom_item=="Zone") run("Clear");	
+		}	
+	run("Select None");	
+}
+
+
+function raz(titre){
+	if (roiManager("count")>0){
+		roiManager("Deselect");
+		roiManager("Delete");
+		}	
+	run("Remove Overlay");
+	run("Clear Results");
+	print ("\\Clear");
+	
+}
+
+
+
+function clear_roi(){
+	valid_fx_ext=0;
+	valid_autosegment=0;
+	Num_VBi="";
+	n=roiManager("count");
+	for(i=n-1;i>-1;i--){
+		roiManager("Select", i);
+		nom_item=Roi.getName;
+		if (startsWith(nom_item, "Delete")) roiManager("Delete");
+	}
+	roiManager("Deselect");
+	roiManager("Show None");
+	roiManager("UseNames", "true");
+	roiManager("Show All");
+	run("Select None");
+}
+
+
+function NA(valeur){
+	if (valeur==-1)valeur="NA";
+	return valeur;
+}
+
+function deux_decimal(valeur){
+	if (valeur!=-1){
+		valeur= round(valeur*100)/100;
+	}
+	else valeur="NA";
+	return valeur;
+}
+
+
+function angle2polygon (){
+	if(selectionType() == 8){
+		List.setMeasurements;
+		angle=List.getValue("Angle");
+		//y=ax+b;	
+		Roi.getCoordinates(xpoints, ypoints);
+		a1=(ypoints[1]-ypoints[0])/(xpoints[1]-xpoints[0]);
+		b1=(ypoints[1]-a1*xpoints[1]);
+		a2=(ypoints[1]-ypoints[2])/(xpoints[1]-xpoints[2]);
+		b2=(ypoints[1]-a2*xpoints[1]);
+		print (a1);
+		print(b1);
+		print (a2);
+		print(b2);
+		if(xpoints[0]<xpoints[1]) x1=-10000;
+		else x1=10000;
+		y1=a1*hx1+b1;
+		makeLine(hx, hy, xpoints[1], ypoints[1]);
+		hy=5000;
+		hx=(hy-b)/a;
+		makeLine(hx, hy, xpoints[0], ypoints[0]);
+		
+	}
+	else {
+		setTool("angle");
+		title = "Zone a supprimer";
+		msg = "Selectionner la zone a enlever avec l outil angle";
+		waitForUser(title, msg);
+		//angle2polygon ();
+	}
+	
+	
+}
+
+function centre_gravite(){
+	run("Set Measurements...", "area centroid shape display redirect=None decimal=3");
+	getPixelSize(unit, pixelWidth, pixelHeight);
+	run("Set Scale...", "distance=0 known=0 pixel=1 unit=pixel");
+	List.setMeasurements;
+	xg=List.getValue("X");
+	yg=List.getValue("Y");
+	run("Select None");
+	makePoint(xg, yg);
+	run("Set Scale...", "distance=1 known=&pixelWidth pixel=1 unit=&unit");
+	run("Add Selection...");
+}
+
+function mesure_angle(){
+	Roi.getCoordinates(xpoints, ypoints);
+	xpoints=Array.trim(xpoints,3);
+	ypoints=Array.trim(ypoints,3);
+	makeSelection("angle",xpoints,ypoints);
+	List.setMeasurements;
+	return List.getValue("Angle");		
+}
+
+function portion_roi(i,index_portion,nom){
+	roiManager("Select", newArray(i,index_portion));
+	roiManager("AND");
+	if(selectionType()!=-1) RoiAdd(nom+"_p");
+}
+function biomass(){
+							run("8-bit");
+							//setAutoThreshold("Default");
+							ncount=roiManager("count");
+							for(j=0;j<ncount;j++){
+						roiManager("Select", j);
+						nom_item=call("ij.plugin.frame.RoiManager.getName", j);
+						
+						if (nom_item=="Total"){
+							index=j;
+						}
+						if (nom_item=="Portion"){
+							index=j;
+						}
+					}
+					roiManager("Select", index);
+							setBackgroundColor(255, 255, 255);
+							run("Clear Outside");
+							/*run("Threshold...");
+							setAutoThreshold("Default");
+							waitForUser("Biomass","Adjust Threshold");*/
+							ChoixSeuils("Biomass",seuil_biomass);
+							run("Create Selection");
+							RoiAdd("Biomass");
+							setBackgroundColor(0,0,0);// black background
+			}
+
+
